@@ -1,11 +1,13 @@
 Package: rTest
-Title: Test Package For C LibOTF Wrapper (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Test Package for C LibOTF Wrapper
+Version: 0.0.1.0
 Authors@R: 
     person("Dylan", "Kierans", , "dylankierans53@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-Depends: R (>= 3.2.0), Rcpp
+Depends: R (>= 3.2.0)
+Imports: Rcpp
+LinkingTo: Rcpp
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
