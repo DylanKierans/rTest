@@ -1,8 +1,8 @@
-#' @file OTF2_GlobalDefWriter.R
-#' @brief Wrapper for OTF2_GlobalDefWriter functions
-#' @version 0.01
-#' @author D.Kierans (dylanki@kth.se)
-#' @date 2024-01-16
+# @file OTF2_GlobalDefWriter.R
+# @brief Wrapper for OTF2_GlobalDefWriter functions
+# @version 0.01
+# @author D.Kierans (dylanki@kth.se)
+# @date 2024-01-16
 
 #' init_GlobalDefWriter - doxygen documentation
 #'  More info

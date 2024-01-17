@@ -9,47 +9,47 @@
 #' @todo Error checking
 NULL
 
-#' @brief This example uses a function delivering dummy timestamps
+#' This example uses a function delivering dummy timestamps
 #' @return sequence - Next integer in sequence
 NULL
 
-#' @brief Simple hello world function streaming to Rcout
+#' Simple hello world function streaming to Rcout
 #' @return R_NilValue
 helloWorld <- function() {
     .Call('_rTest_helloWorld', PACKAGE = 'rTest')
 }
 
-#' @brief Initialize static otf2 {archive} objs
+#' Initialize static otf2 {archive} objs
 #' @return R_NilValue
 init_Archive <- function() {
     .Call('_rTest_init_Archive', PACKAGE = 'rTest')
 }
 
-#' @brief Close static otf2 {archive, evt_writer} objs
+#' Close static otf2 {archive, evt_writer} objs
 #' @return R_NilValue
 finalize_Archive <- function() {
     .Call('_rTest_finalize_Archive', PACKAGE = 'rTest')
 }
 
-#' @brief Initialize static otf2 {evt_writer} objs
+#' Initialize static otf2 {evt_writer} objs
 #' @return R_NilValue
 init_EvtWriter <- function() {
     .Call('_rTest_init_EvtWriter', PACKAGE = 'rTest')
 }
 
-#' @brief Close static otf2 {evt_writer} objs
+#' Close static otf2 {evt_writer} objs
 #' @return R_NilValue
 finalize_EvtWriter <- function() {
     .Call('_rTest_finalize_EvtWriter', PACKAGE = 'rTest')
 }
 
-#' @brief Init static otf2 {globaldefwriter} obj
+#' Init static otf2 {globaldefwriter} obj
 #' @return R_NilValue
 init_GlobalDefWriter <- function() {
     .Call('_rTest_init_GlobalDefWriter', PACKAGE = 'rTest')
 }
 
-#' @brief Define new id-value pair in globaldefwriter
+#' Define new id-value pair in globaldefwriter
 #' @param stringRef id/index for stringRef
 #' @param stringRefValue String assigned to given id
 #' @return NUM_STRINGREF 
@@ -57,7 +57,7 @@ globalDefWriter_WriteString <- function(stringRef, stringRefValue) {
     .Call('_rTest_globalDefWriter_WriteString', PACKAGE = 'rTest', stringRef, stringRefValue)
 }
 
-#' @brief Define new region description in global writer
+#' Define new region description in global writer
 #' @param regionRef id/index for string
 #' @param stringRef_name Name to be associated with region
 #' @return R_NilValue
@@ -65,7 +65,7 @@ globalDefWriter_WriteRegion <- function(regionRef, stringRef_name) {
     .Call('_rTest_globalDefWriter_WriteRegion', PACKAGE = 'rTest', regionRef, stringRef_name)
 }
 
-#' @brief Write the system tree including a definition for the location group to the global definition writer.
+#' Write the system tree including a definition for the location group to the global definition writer.
 #' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 #' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
 #' @return R_NilValue
@@ -73,14 +73,14 @@ globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class)
     .Call('_rTest_globalDefWriter_WriteSystemTreeNode', PACKAGE = 'rTest', stringRef_name, stringRef_class)
 }
 
-#' @brief Write a definition for the location to the global definition writer.
+#' Write a definition for the location to the global definition writer.
 #' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 #' @return R_NilValue
 globalDefWriter_WriteLocation <- function(stringRef_name) {
     .Call('_rTest_globalDefWriter_WriteLocation', PACKAGE = 'rTest', stringRef_name)
 }
 
-#' @brief Write event to evt_writer
+#' Write event to evt_writer
 #' @param regionRef Region id
 #' @param event_type True for enter, False for leave region
 #' @return R_NilValue

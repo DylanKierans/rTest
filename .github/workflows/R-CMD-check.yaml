@@ -44,8 +44,8 @@ jobs:
         if: runner.os == 'linux'
         run: |
            wget https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.0.3/otf2-3.0.3.tar.gz 
-           tar xzf otf2-3.0.3.tar.gz -C ~
-           cd ~/otf2-3.0.3
+           tar xzf otf2-3.0.3.tar.gz
+           cd otf2-3.0.3
            ./configure --prefix=/usr/local && \
            make -j  && \
            make check && \

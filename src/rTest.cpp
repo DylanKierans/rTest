@@ -32,7 +32,7 @@ RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stri
 // Function definitions
 ///////////////////////////////
 
-//' @brief Simple hello world function streaming to Rcout
+//' Simple hello world function streaming to Rcout
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP helloWorld(){
@@ -45,7 +45,7 @@ RcppExport SEXP helloWorld(){
 /////
 
 
-//' @brief This example uses a function delivering dummy timestamps
+//' This example uses a function delivering dummy timestamps
 //' @return sequence - Next integer in sequence
 static OTF2_TimeStamp get_time() {
     static uint64_t sequence;
@@ -75,7 +75,7 @@ static OTF2_FlushCallbacks flush_callbacks =
 };
 
 
-//' @brief Initialize static otf2 {archive} objs
+//' Initialize static otf2 {archive} objs
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_Archive() {
@@ -100,7 +100,7 @@ RcppExport SEXP init_Archive() {
 }
 
 
-//' @brief Close static otf2 {archive, evt_writer} objs
+//' Close static otf2 {archive, evt_writer} objs
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_Archive() {
@@ -112,7 +112,7 @@ RcppExport SEXP finalize_Archive() {
 
 
 
-//' @brief Initialize static otf2 {evt_writer} objs
+//' Initialize static otf2 {evt_writer} objs
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_EvtWriter() {
@@ -123,7 +123,7 @@ RcppExport SEXP init_EvtWriter() {
 }
 
 
-//' @brief Close static otf2 {evt_writer} objs
+//' Close static otf2 {evt_writer} objs
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_EvtWriter() {
@@ -136,7 +136,7 @@ RcppExport SEXP finalize_EvtWriter() {
     return(R_NilValue);
 }
 
-//' @brief Init static otf2 {globaldefwriter} obj
+//' Init static otf2 {globaldefwriter} obj
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_GlobalDefWriter() {
@@ -162,7 +162,7 @@ RcppExport SEXP init_GlobalDefWriter() {
     return(R_NilValue);
 }
 
-//' @brief Define new id-value pair in globaldefwriter
+//' Define new id-value pair in globaldefwriter
 //' @param stringRef id/index for stringRef
 //' @param stringRefValue String assigned to given id
 //' @return NUM_STRINGREF 
@@ -174,7 +174,7 @@ RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stri
 }
 
 
-//' @brief Define new region description in global writer
+//' Define new region description in global writer
 //' @param regionRef id/index for string
 //' @param stringRef_name Name to be associated with region
 //' @return R_NilValue
@@ -196,7 +196,7 @@ RcppExport SEXP globalDefWriter_WriteRegion( int regionRef, int stringRef_name) 
 }
 
 
-//' @brief Write the system tree including a definition for the location group to the global definition writer.
+//' Write the system tree including a definition for the location group to the global definition writer.
 //' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 //' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
 //' @return R_NilValue
@@ -221,7 +221,7 @@ RcppExport SEXP globalDefWriter_WriteSystemTreeNode( int stringRef_name, int str
     return(R_NilValue);
 }
 
-//' @brief Write a definition for the location to the global definition writer.
+//' Write a definition for the location to the global definition writer.
 //' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 //' @return R_NilValue
 // [[Rcpp::export]]
@@ -245,7 +245,7 @@ RcppExport SEXP globalDefWriter_WriteLocation( int stringRef_name ) {
 
 
 
-//' @brief Write event to evt_writer
+//' Write event to evt_writer
 //' @param regionRef Region id
 //' @param event_type True for enter, False for leave region
 //' @return R_NilValue

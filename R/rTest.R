@@ -1,5 +1,5 @@
 #' @useDynLib rTest
-#' @importFrom Rcpp evalCpp
+#' @importFrom Rcpp evalCpp 
 #' @exportPattern "^[[:alpha:]]+"
 
 if (!require("Rcpp")) install.packages("Rcpp")

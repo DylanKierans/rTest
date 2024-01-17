@@ -1,8 +1,8 @@
-#' @file otf2_evtWriter.R
-#' @brief Wrapper for OTF2_EvtWriter functions
-#' @version 0.01
-#' @author D.Kierans (dylanki@kth.se)
-#' @date 2024-01-16
+# @file otf2_evtWriter.R
+# @brief Wrapper for OTF2_EvtWriter functions
+# @version 0.01
+# @author D.Kierans (dylanki@kth.se)
+# @date 2024-01-16
 
 #' rTest_init_ - doxygen documentation
 #'  Simple wrapper for C++ otf2 init function

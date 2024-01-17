@@ -1,8 +1,0 @@
-library("devtools")
-library("roxygen2")
-library("Rcpp")
-devtools::load_all()
-devtools::document()
-devtools::load_all()
-Rcpp::compileAttributes()
-devtools::check()
