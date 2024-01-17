@@ -19,7 +19,7 @@ jobs:
       matrix:
         config:
           - {os: macos-latest,   r: 'release'}
-          - {os: windows-latest, r: 'release'}
+            #- {os: windows-latest, r: 'release'}
           - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,   r: 'release'}
           - {os: ubuntu-latest,   r: 'oldrel-1'}
@@ -39,9 +39,15 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install extra libotf2 system dependencies manually
-        run:
-          apt-get install 
+      # MANUAL OTF2 INSTALL
+      - name: Install libotf2 (linux)
+        if: runner.os == 'linux'
+        run: sudo apt-get install libotf-trace-dev
+
+      - name: Install libotf2 (mac)
+        if: runner.os == 'macOS'
+        run: brew install otf2
+
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
