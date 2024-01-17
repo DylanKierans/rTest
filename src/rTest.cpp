@@ -147,15 +147,16 @@ RcppExport SEXP init_GlobalDefWriter() {
     OTF2_GlobalDefWriter_WriteClockProperties( global_def_writer,
             1 /* 1 tick per second */,
             0 /* epoch */,
-            2 /* length */,
+            1 /* length - globalOffset A timestamp smaller than all event timestamps. */,
             OTF2_UNDEFINED_TIMESTAMP );
 
-    // DEBUGGING
     //OTF2_GlobalDefWriter_WriteString( global_def_writer, NUM_STRINGREF, "");
     Rcpp::String stringRefValue="";
-    uint64_t tmp; // Test return value
-    tmp = globalDefWriter_WriteString(NUM_STRINGREF, stringRefValue);
-    Rcout << "tmp: " << tmp << "\n";
+    globalDefWriter_WriteString(NUM_STRINGREF, stringRefValue);
+
+    // DEBUGGING
+    //uint64_t tmp = globalDefWriter_WriteString(NUM_STRINGREF, stringRefValue);
+    //Rcout << "tmp: " << tmp << "\n";
 
 
     return(R_NilValue);
@@ -169,7 +170,7 @@ RcppExport SEXP init_GlobalDefWriter() {
 RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue)
 {
     OTF2_GlobalDefWriter_WriteString( global_def_writer, NUM_STRINGREF, stringRefValue.get_cstring() );
-    return(NUM_STRINGREF++);
+    return(NUM_STRINGREF++); // ++ applied after return value!
 }
 
 

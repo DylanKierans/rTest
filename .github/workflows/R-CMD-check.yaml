@@ -46,10 +46,12 @@ jobs:
            wget https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.0.3/otf2-3.0.3.tar.gz 
            tar xzf otf2-3.0.3.tar.gz -C ~
            cd ~/otf2-3.0.3
-           ./configure --prefix=/usr
-           make -j 
+           ./configure --prefix=/usr/local && \
+           make -j  && \
+           make check && \
            sudo make install
            cd ~
+           export OTF2_ROOT=/usr/local
 
       - name: Install libotf2 (mac)
         if: runner.os == 'macOS'
