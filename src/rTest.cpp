@@ -6,7 +6,8 @@
 //' @todo Error checking
 
 #include "Rcpp.h"
-#include <otf2/otf2.h>
+// #include <otf2/otf2.h>
+#include <otf2.h>
 
 #define DEBUG
 
@@ -138,7 +139,13 @@ RcppExport SEXP init_GlobalDefWriter() {
             2 /* length */,
             OTF2_UNDEFINED_TIMESTAMP );
 
-    OTF2_GlobalDefWriter_WriteString( global_def_writer, 0, "");
+    // DEBUGGING
+    //OTF2_GlobalDefWriter_WriteString( global_def_writer, NUM_STRINGREF, "");
+    Rcpp::String stringRefValue="";
+    uint64_t tmp; // Test return value
+    tmp = globalDefWriter_WriteString(NUM_STRINGREF, stringRefValue);
+    Rcout << "tmp: " << tmp << "\n";
+
 
     return(R_NilValue);
 }
@@ -146,12 +153,12 @@ RcppExport SEXP init_GlobalDefWriter() {
 //' @brief Define new id-value pair in globaldefwriter
 //' @param stringRef id/index for stringRef
 //' @param stringRefValue String assigned to given id
-//' @return R_NilValue
+//' @return NUM_STRINGREF 
 // [[Rcpp::export]]
-RcppExport SEXP globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue)
+RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue)
 {
-    OTF2_GlobalDefWriter_WriteString( global_def_writer, stringRef, stringRefValue.get_cstring() );
-    return(R_NilValue);
+    OTF2_GlobalDefWriter_WriteString( global_def_writer, NUM_STRINGREF, stringRefValue.get_cstring() );
+    return(NUM_STRINGREF++);
 }
 
 
