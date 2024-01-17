@@ -2,8 +2,7 @@ Package: rTest
 Title: Test Package for C LibOTF Wrapper
 Version: 0.0.1.0
 Authors@R: 
-    person("Dylan", "Kierans", , "dylankierans53@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+    person("Dylan", "Kierans", , "dylankierans53@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.2.0)
 Imports: Rcpp
@@ -14,3 +13,4 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 URL: https://github.com/DylanKierans/rTest
 BugReports: https://github.com/DylanKierans/rTest/issues
+SystemRequirements: libotf-trace-dev
