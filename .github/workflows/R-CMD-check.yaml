@@ -42,7 +42,13 @@ jobs:
       # MANUAL OTF2 INSTALL
       - name: Install libotf2 (linux)
         if: runner.os == 'linux'
-        run: sudo apt-get install libotf-dev
+        run: |
+           wget https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.0.3/otf2-3.0.3.tar.gz 
+           tar xzf otf2-3.0.3.tar.gz -C ~
+           cd ~/otf2-3.0.3
+           ./configure
+           make -j 
+           sudo make install
 
       - name: Install libotf2 (mac)
         if: runner.os == 'macOS'

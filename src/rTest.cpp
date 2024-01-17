@@ -6,8 +6,8 @@
 //' @todo Error checking
 
 #include "Rcpp.h"
-// #include <otf2/otf2.h>
-#include <otf2.h>
+#include <otf2/otf2.h>
+// #include <otf2.h>
 
 #define DEBUG
 
