@@ -71,7 +71,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // globalDefWriter_WriteString
-RcppExport SEXP globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue);
+RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue);
 RcppExport SEXP _rTest_globalDefWriter_WriteString(SEXP stringRefSEXP, SEXP stringRefValueSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

@@ -52,7 +52,7 @@ init_GlobalDefWriter <- function() {
 #' @brief Define new id-value pair in globaldefwriter
 #' @param stringRef id/index for stringRef
 #' @param stringRefValue String assigned to given id
-#' @return R_NilValue
+#' @return NUM_STRINGREF 
 globalDefWriter_WriteString <- function(stringRef, stringRefValue) {
     .Call('_rTest_globalDefWriter_WriteString', PACKAGE = 'rTest', stringRef, stringRefValue)
 }

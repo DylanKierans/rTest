@@ -21,6 +21,17 @@ static OTF2_GlobalDefWriter* global_def_writer;
 static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static uint64_t NUM_STRINGREF=0; ///* Number of events recorded for WriteLocation
 
+
+///////////////////////////////
+// Function declrations
+///////////////////////////////
+RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue);
+
+
+///////////////////////////////
+// Function definitions
+///////////////////////////////
+
 //' @brief Simple hello world function streaming to Rcout
 //' @return R_NilValue
 // [[Rcpp::export]]
