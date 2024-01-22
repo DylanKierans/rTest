@@ -6,20 +6,22 @@
 
 #' rTest_init_ - doxygen documentation
 #'  Simple wrapper for C++ otf2 init function
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_init_EvtWriter <- function() {
-    cat("Entering wrapper\n")
+rTest_init_EvtWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper\n")
     init_EvtWriter()
-    cat("Finished function.\n")
+    if (flag_debug) cat("Finished function.\n")
 }
 
 #' rTest_finalize_Archive- doxygen documentation
 #'  Simple wrapper for C++ otf2 init function
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_finalize_EvtWriter <- function() {
-    cat("Entering wrapper\n")
+rTest_finalize_EvtWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper\n")
     finalize_EvtWriter()
-    cat("Finished function.\n")
+    if (flag_debug) cat("Finished function.\n")
 }
 
 
@@ -27,9 +29,10 @@ rTest_finalize_EvtWriter <- function() {
 #'  More info
 #' @param regionRef Int - regionRef
 #' @param event_type Bool - True if enter, False if exit
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_evtWriter_Write <- function(regionRef, event_type) {
-    cat("Entering wrapper:\n")
+rTest_evtWriter_Write <- function(regionRef, event_type, flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper:\n")
     evtWriter_Write(regionRef, event_type)
-    cat("Finished wrapper.\n")
+    if (flag_debug) cat("Finished wrapper.\n")
 }

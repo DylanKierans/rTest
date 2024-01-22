@@ -5,12 +5,18 @@
 \title{globalDefWriter_WriteSystemTreeNode - doxygen documentation
 More info}
 \usage{
-rTest_globalDefWriter_WriteSystemTreeNode(stringRef_name, stringRef_class)
+rTest_globalDefWriter_WriteSystemTreeNode(
+  stringRef_name,
+  stringRef_class,
+  flag_debug = F
+)
 }
 \arguments{
 \item{stringRef_name}{Int - Index for name of system tree}
 
 \item{stringRef_class}{Int - Index for class of system tree}
+
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
 globalDefWriter_WriteSystemTreeNode - doxygen documentation

@@ -2,12 +2,15 @@
 % Please edit documentation in R/otf2_archive.R
 \name{rTest_finalize_Archive}
 \alias{rTest_finalize_Archive}
-\title{rTest_finalize_Archive- doxygen documentation
-Simple wrapper for C++ otf2 init function}
+\title{rTest_finalize_Archive
+Simple wrapper for C++ otf2 finalize function}
 \usage{
-rTest_finalize_Archive()
+rTest_finalize_Archive(flag_debug = F)
+}
+\arguments{
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
-rTest_finalize_Archive- doxygen documentation
-Simple wrapper for C++ otf2 init function
+rTest_finalize_Archive
+Simple wrapper for C++ otf2 finalize function
 }

@@ -5,12 +5,14 @@
 \title{rTest_evtWriter_Write - doxygen documentation
 More info}
 \usage{
-rTest_evtWriter_Write(regionRef, event_type)
+rTest_evtWriter_Write(regionRef, event_type, flag_debug = F)
 }
 \arguments{
 \item{regionRef}{Int - regionRef}
 
 \item{event_type}{Bool - True if enter, False if exit}
+
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
 rTest_evtWriter_Write - doxygen documentation

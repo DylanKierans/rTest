@@ -4,11 +4,9 @@
 \alias{globalDefWriter_WriteString}
 \title{Define new id-value pair in globaldefwriter}
 \usage{
-globalDefWriter_WriteString(stringRef, stringRefValue)
+globalDefWriter_WriteString(stringRefValue)
 }
 \arguments{
-\item{stringRef}{id/index for stringRef}
-
 \item{stringRefValue}{String assigned to given id}
 }
 \value{

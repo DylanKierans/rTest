@@ -5,7 +5,10 @@
 \title{rTest_init_ - doxygen documentation
 Simple wrapper for C++ otf2 init function}
 \usage{
-rTest_init_EvtWriter()
+rTest_init_EvtWriter(flag_debug = F)
+}
+\arguments{
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
 rTest_init_ - doxygen documentation

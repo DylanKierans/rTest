@@ -2,18 +2,18 @@
 % Please edit documentation in R/RcppExports.R
 \name{globalDefWriter_WriteRegion}
 \alias{globalDefWriter_WriteRegion}
-\title{Define new region description in global writer}
+\title{globalDefWriter_WriteRegion
+Define new region description in global writer}
 \usage{
-globalDefWriter_WriteRegion(regionRef, stringRef_name)
+globalDefWriter_WriteRegion(stringRef_RegionName)
 }
 \arguments{
-\item{regionRef}{id/index for string}
-
-\item{stringRef_name}{Name to be associated with region}
+\item{stringRef_RegionName}{Name to be associated with region}
 }
 \value{
-R_NilValue
+regionRef id/index for string
 }
 \description{
+globalDefWriter_WriteRegion
 Define new region description in global writer
 }

@@ -4,22 +4,24 @@
 # @author D.Kierans (dylanki@kth.se)
 # @date 2024-01-16
 
-#' rTest_init_Archive- doxygen documentation
+#' rTest_init_Archive
 #'  Simple wrapper for C++ otf2 init function
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_init_Archive <- function() {
-    cat("Entering wrapper\n")
+rTest_init_Archive <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper init_Archive\n")
     init_Archive()
-    cat("Finished function.\n")
+    if (flag_debug) cat("Finished function init_Archive.\n")
 }
 
-#' rTest_finalize_Archive- doxygen documentation
-#'  Simple wrapper for C++ otf2 init function
+#' rTest_finalize_Archive
+#'  Simple wrapper for C++ otf2 finalize function
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_finalize_Archive <- function() {
-    cat("Entering wrapper\n")
+rTest_finalize_Archive <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper finalize_Archive\n")
     finalize_Archive()
-    cat("Finished function.\n")
+    if (flag_debug) cat("Finished function finalize_Archive.\n")
 }
 
 

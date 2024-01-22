@@ -2,12 +2,15 @@
 % Please edit documentation in R/otf2_archive.R
 \name{rTest_init_Archive}
 \alias{rTest_init_Archive}
-\title{rTest_init_Archive- doxygen documentation
+\title{rTest_init_Archive
 Simple wrapper for C++ otf2 init function}
 \usage{
-rTest_init_Archive()
+rTest_init_Archive(flag_debug = F)
+}
+\arguments{
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
-rTest_init_Archive- doxygen documentation
+rTest_init_Archive
 Simple wrapper for C++ otf2 init function
 }

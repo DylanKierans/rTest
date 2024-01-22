@@ -4,11 +4,13 @@
 \alias{rTest_globalDefWriter_WriteLocation}
 \title{globalDefWriter_WriteLocation - doxygen documentation}
 \usage{
-rTest_globalDefWriter_WriteLocation(stringRef_name)
+rTest_globalDefWriter_WriteLocation(stringRef_name, flag_debug = F)
 }
 \arguments{
 \item{stringRef_name}{Int - Index for name of location
 More info}
+
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
 globalDefWriter_WriteLocation - doxygen documentation

@@ -5,7 +5,10 @@
 \title{init_GlobalDefWriter - doxygen documentation
 More info}
 \usage{
-rTest_init_GlobalDefWriter()
+rTest_init_GlobalDefWriter(flag_debug = F)
+}
+\arguments{
+\item{flag_debug}{Boolean - True to enable verbose stdout}
 }
 \description{
 init_GlobalDefWriter - doxygen documentation

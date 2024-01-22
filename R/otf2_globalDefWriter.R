@@ -6,65 +6,72 @@
 
 #' init_GlobalDefWriter - doxygen documentation
 #'  More info
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_init_GlobalDefWriter <- function() {
-    cat("Entering wrapper\n")
+rTest_init_GlobalDefWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTest_init_GlobalDefWriter\n")
     init_GlobalDefWriter()
-    cat("Finished wrapper.\n")
+    if (flag_debug) cat("Finished wrapper rTest_init_GlobalDefWriter.\n")
 }
 
-#' globalDefWriter_WriteStrings - doxygen documentation
+#' finalize_GlobalDefWriter - doxygen documentation
 #'  More info
-#' @param stringRef_array Int[] - Index list for stringRef's 
-#' @param stringRefValue_array String[] - String list for globalDefWriter
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteStrings <- function(stringRef_array, stringRefValue_array) {
-    cat("Entering wrapper\n")
-    for ( i in 1:length(stringRef_array) ){
-        stringRef <- stringRef_array[i]
-        stringRefValue <- stringRefValue_array[i]
-        globalDefWriter_WriteString(stringRef, stringRefValue)
-    }
-    cat("Finished wrapper.\n")
+rTest_finalize_GlobalDefWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTest_finalize_GlobalDefWriter\n")
+    finalize_GlobalDefWriter()
+    if (flag_debug) cat("Finished wrapper rTest_finalize_GlobalDefWriter.\n")
 }
 
-
-#' globalDefWriter_WriteRegions - doxygen documentation
+#
+#' globalDefWriter_WriteString - doxygen documentation
 #'  More info
-#' @param regionRef_array Int[] - Index list for regionReg's
-#' @param regionRefName_array Int[] - Index list for names, taken from stringRef's
+#' @param stringRefValue String - String for globalDefWriter
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteRegions <- function(regionRef_array, regionRefName_array) {
-    cat("Entering wrapper\n")
-    for ( i in 1:length(regionRef_array) ){
-        regionRef <- regionRef_array[i]
-        regionRefName <- regionRefName_array[i]
-        globalDefWriter_WriteRegion(regionRef, regionRefName)
-    }
-    cat("Finished wrapper.\n")
+rTest_globalDefWriter_WriteString <- function(stringRefValue, flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteString\n")
+    stringRef <- globalDefWriter_WriteString(stringRefValue)
+    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteString.\n")
+    stringRef
+}
+
+#' globalDefWriter_WriteRegion - doxygen documentation
+#'  More info
+#' @param stringRef_RegionName Int - Index for names, taken from stringRef's
+#' @return regionRef Int - Index for regionRef
+#' @param flag_debug Boolean - True to enable verbose stdout
+#' @export
+rTest_globalDefWriter_WriteRegion <- function(stringRef_RegionName, flag_debug=F){
+    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteRegion\n")
+    regionRef <- globalDefWriter_WriteRegion(stringRef_RegionName)
+    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteRegion\n")
+    regionRef
 }
 
 #' globalDefWriter_WriteSystemTreeNode - doxygen documentation
 #'  More info 
 #' @param stringRef_name Int - Index for name of system tree
 #' @param stringRef_class Int - Index for class of system tree
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class) {
-    cat("Entering globalDefWriter_WriteSystemTreeNode\n")
+rTest_globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class, flag_debug=F) {
+    if (flag_debug) cat("Entering globalDefWriter_WriteSystemTreeNode\n")
     globalDefWriter_WriteSystemTreeNode(stringRef_name, stringRef_class)
-    cat("Finished globalDefWriter_WriteSystemTreeNode.\n")
+    if (flag_debug) cat("Finished globalDefWriter_WriteSystemTreeNode.\n")
 }
-
 
 
 #' globalDefWriter_WriteLocation - doxygen documentation
 #' @param stringRef_name Int - Index for name of location
 #'  More info
+#' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteLocation <- function(stringRef_name) {
-    cat("Entering wrapper\n")
+rTest_globalDefWriter_WriteLocation <- function(stringRef_name, flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteLocation\n")
     globalDefWriter_WriteLocation(stringRef_name)
-    cat("Finished wrapper.\n")
+    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteLocation.\n")
 }
 
 

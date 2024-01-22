@@ -70,27 +70,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// globalDefWriter_WriteString
-RcppExport uint64_t globalDefWriter_WriteString(int stringRef, Rcpp::String stringRefValue);
-RcppExport SEXP _rTest_globalDefWriter_WriteString(SEXP stringRefSEXP, SEXP stringRefValueSEXP) {
+// finalize_GlobalDefWriter
+RcppExport SEXP finalize_GlobalDefWriter();
+RcppExport SEXP _rTest_finalize_GlobalDefWriter() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type stringRef(stringRefSEXP);
+    rcpp_result_gen = Rcpp::wrap(finalize_GlobalDefWriter());
+    return rcpp_result_gen;
+END_RCPP
+}
+// globalDefWriter_WriteString
+RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
+RcppExport SEXP _rTest_globalDefWriter_WriteString(SEXP stringRefValueSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::String >::type stringRefValue(stringRefValueSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteString(stringRef, stringRefValue));
+    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteString(stringRefValue));
     return rcpp_result_gen;
 END_RCPP
 }
 // globalDefWriter_WriteRegion
-RcppExport SEXP globalDefWriter_WriteRegion(int regionRef, int stringRef_name);
-RcppExport SEXP _rTest_globalDefWriter_WriteRegion(SEXP regionRefSEXP, SEXP stringRef_nameSEXP) {
+RcppExport uint64_t globalDefWriter_WriteRegion(int stringRef_RegionName);
+RcppExport SEXP _rTest_globalDefWriter_WriteRegion(SEXP stringRef_RegionNameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type regionRef(regionRefSEXP);
-    Rcpp::traits::input_parameter< int >::type stringRef_name(stringRef_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteRegion(regionRef, stringRef_name));
+    Rcpp::traits::input_parameter< int >::type stringRef_RegionName(stringRef_RegionNameSEXP);
+    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteRegion(stringRef_RegionName));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -137,8 +145,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTest_init_EvtWriter", (DL_FUNC) &_rTest_init_EvtWriter, 0},
     {"_rTest_finalize_EvtWriter", (DL_FUNC) &_rTest_finalize_EvtWriter, 0},
     {"_rTest_init_GlobalDefWriter", (DL_FUNC) &_rTest_init_GlobalDefWriter, 0},
-    {"_rTest_globalDefWriter_WriteString", (DL_FUNC) &_rTest_globalDefWriter_WriteString, 2},
-    {"_rTest_globalDefWriter_WriteRegion", (DL_FUNC) &_rTest_globalDefWriter_WriteRegion, 2},
+    {"_rTest_finalize_GlobalDefWriter", (DL_FUNC) &_rTest_finalize_GlobalDefWriter, 0},
+    {"_rTest_globalDefWriter_WriteString", (DL_FUNC) &_rTest_globalDefWriter_WriteString, 1},
+    {"_rTest_globalDefWriter_WriteRegion", (DL_FUNC) &_rTest_globalDefWriter_WriteRegion, 1},
     {"_rTest_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTest_globalDefWriter_WriteSystemTreeNode, 2},
     {"_rTest_globalDefWriter_WriteLocation", (DL_FUNC) &_rTest_globalDefWriter_WriteLocation, 1},
     {"_rTest_evtWriter_Write", (DL_FUNC) &_rTest_evtWriter_Write, 2},

@@ -5,8 +5,6 @@
 // @author D.Kierans (dylanki@kth.se)
 // @todo Error checking
 // @todo Update OTF2_GlobalDefWriter_WriteString() and related functions to take input string rather than int
-// @todo Fix timing offset problems
-// @todo TRACE_LENGTH, automate at end of process?
 
 #include "Rcpp.h"
 #include <otf2/otf2.h>
@@ -41,7 +39,6 @@ const OTF2_TimeStamp TRACE_LENGTH = 5E6;
 // Function declrations
 ///////////////////////////////
 RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
-OTF2_TimeStamp epoch;
 
 
 ///////////////////////////////
@@ -63,7 +60,7 @@ RcppExport SEXP helloWorld(){
 
 //' This example uses a function delivering dummy timestamps
 //'     Walltime O(E-6)
-//' @return time - Current time
+//' @return sequence - Next integer in sequence
 static OTF2_TimeStamp get_time() {
     static OTF2_TimeStamp wtime;
 #ifdef DUMMY_TIMESTEPS
@@ -179,20 +176,6 @@ RcppExport SEXP init_GlobalDefWriter() {
     // Now write the global definitions by getting a writer object for it.
     global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
 
-    epoch = get_time(); // Get init time for finalize
-
-    // Define empty string in first stringRef value
-    Rcpp::String stringRefValue="";
-    globalDefWriter_WriteString(stringRefValue);
-
-    return(R_NilValue);
-}
-
-//' Finalize static otf2 {globaldefwriter} obj
-//'     Write clock information before ending tracing
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP finalize_GlobalDefWriter() {
 #ifdef DUMMY_TIMESTEPS
     // We need to define the clock used for this trace and the overall timestamp range.
     OTF2_GlobalDefWriter_WriteClockProperties( 
@@ -206,13 +189,16 @@ RcppExport SEXP finalize_GlobalDefWriter() {
     OTF2_GlobalDefWriter_WriteClockProperties( 
             global_def_writer /* writerHandle */,
             1E6 /* resolution - 1 tick per second */,
-            epoch /* epoch - globalOffset */,
-            get_time()-epoch /* traceLength */,
+            get_time() /* epoch - globalOffset */,
+            TRACE_LENGTH /* traceLength */,
             OTF2_UNDEFINED_TIMESTAMP );
 #endif
+
+    Rcpp::String stringRefValue="";
+    globalDefWriter_WriteString(stringRefValue);
+
     return(R_NilValue);
 }
-
 
 //' Define new id-value pair in globaldefwriter
 //' @param stringRefValue String assigned to given id
