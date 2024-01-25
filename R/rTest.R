@@ -5,5 +5,12 @@
 if (!require("Rcpp")) install.packages("Rcpp")
 library("Rcpp")
 
-# Load cpp source files
-#Rcpp::sourceCpp("src/test.cpp")
+# source files
+source("R/helloWorld.R")
+
+#' rTest_helloWorld_wrapper - doxygen documentation
+#' @export
+rTest_helloWorld_wrapper <- function() {
+    cat("Wrapper for R/helloWorld.R::rTest_helloWorld\n")
+    rTest_helloWorld()
+}
