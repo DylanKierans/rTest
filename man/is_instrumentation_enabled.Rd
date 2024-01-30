@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{is_instrumentation_enabled}
 \alias{is_instrumentation_enabled}
-\title{is_instrumentation_enabled
-Return current instrumentation status}
+\title{is_instrumentation_enabled}
 \usage{
 is_instrumentation_enabled()
 }
@@ -11,6 +10,5 @@ is_instrumentation_enabled()
 BOOLEAN - Instrumentation status
 }
 \description{
-is_instrumentation_enabled
 Return current instrumentation status
 }

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{insert_instrumentation}
 \alias{insert_instrumentation}
-\title{insert_instrumentation
-Insert instrumentation prefix for package_name:::func}
+\title{insert_instrumentation}
 \usage{
 insert_instrumentation(
   func,
@@ -31,6 +30,5 @@ insert_instrumentation(
 \item{env_is_locked}{Boolean - True if function name-/package- space is locked}
 }
 \description{
-insert_instrumentation
 Insert instrumentation prefix for package_name:::func
 }

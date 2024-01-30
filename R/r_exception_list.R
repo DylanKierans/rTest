@@ -1,11 +1,11 @@
 #' @name file - exception_list.R
-#'  List of functions to not profile, due to recursion problems amongst others
+#' @description List of functions to not profile, due to recursion problems amongst others
 #'  (will hopefully reduce with otf2 C/C++ implimentation)
 library("R.utils")
 library("methods")
 
 #' get_function_exception_list()
-#'  Get function list to not insturment (mostly due to recursion problems in wrapper)
+#' @description Get function list to not insturment (mostly due to recursion problems in wrapper)
 #'  Note: This is a hacky fix for many smaller problems
 #' @return function_exception_list Object[] List of all functions to not instrument
 #' @export
@@ -66,7 +66,7 @@ get_function_exception_list <- function() {
 }
 
 #' get_function_methods
-#'  Get all methods of given function list
+#' @description Get all methods of given function list
 #' @param function_list Object[] List of function pointers
 #' @return function_method_list Object[] List of all method functions for function_list
 #' @export
@@ -75,11 +75,6 @@ get_function_methods <- function(function_list) {
     for (function_exception in function_list) {
 
         suppressWarnings( function_methods <- utils::methods(function_exception) )
-        ## Hide warnings produced by utils::methods
-        #tryCatch(
-        #    { function_methods <- utils::methods(function_exception) },
-        #   warning = function(w){NULL}
-        #)
 
         # Methods exist
         if (length(function_methods) > 0 ){
@@ -90,11 +85,11 @@ get_function_methods <- function(function_list) {
 }
 
 #' get_package_exception_list
-#'  Get list of packages to not instrument
+#' @description Get list of packages to not instrument
 #' @return package_exception_list String[] List of packages to not instrument
 #' @export
 get_package_exception_list <- function() {
-    package_exception_list <- c("rTest")
+    package_exception_list <- c("rTrace")
     package_exception_list 
 }
 

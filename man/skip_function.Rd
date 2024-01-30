@@ -2,11 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{skip_function}
 \alias{skip_function}
-\title{skip_function
-Check if function should be skipped for instrumentation. Reasons
-for skipping include function in FUNCTION_EXCEPTION_LIST, primitive
-functions, functions used in instrumentation wrapper (to avoid recursion)
-etc}
+\title{skip_function}
 \usage{
 skip_function(
   func_ptr,
@@ -31,7 +27,6 @@ skip_function(
 Boolean - TRUE if skip, else FALSE
 }
 \description{
-skip_function
 Check if function should be skipped for instrumentation. Reasons
 for skipping include function in FUNCTION_EXCEPTION_LIST, primitive
 functions, functions used in instrumentation wrapper (to avoid recursion)

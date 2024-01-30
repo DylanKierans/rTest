@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{event_create}
 \alias{event_create}
-\title{event_create
-Create new start or end event in global eventlog}
+\title{event_create}
 \usage{
 event_create(region, event_type, timestamp)
 }
@@ -15,6 +14,5 @@ event_create(region, event_type, timestamp)
 \item{timestamp}{numeric - Time of event occurence}
 }
 \description{
-event_create
 Create new start or end event in global eventlog
 }

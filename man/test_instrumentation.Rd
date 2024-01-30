@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{test_instrumentation}
 \alias{test_instrumentation}
-\title{test_instrumentation - utility function
-Call function with expr and output dataframe changes if enabled}
+\title{test_instrumentation}
 \usage{
 test_instrumentation(func_ptr, func_name, expr, flag_debug = F)
 }
@@ -17,6 +16,5 @@ test_instrumentation(func_ptr, func_name, expr, flag_debug = F)
 \item{flag_debug}{Boolean - Enable debug statements}
 }
 \description{
-test_instrumentation - utility function
-Call function with expr and output dataframe changes if enabled
+Utility function - Call function with expr and output dataframe changes if enabled
 }

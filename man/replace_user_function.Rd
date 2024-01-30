@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{replace_user_function}
 \alias{replace_user_function}
-\title{replace_user_function
-Replace user function definition}
+\title{replace_user_function}
 \usage{
 replace_user_function(new_func, func_name, package_name, env = .GlobalEnv)
 }
@@ -17,6 +16,5 @@ replace_user_function(new_func, func_name, package_name, env = .GlobalEnv)
 \item{env}{Environment, environment function exists in (default .GlobalEnv)}
 }
 \description{
-replace_user_function
 Replace user function definition
 }

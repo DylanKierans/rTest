@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{get_function_list}
 \alias{get_function_list}
-\title{get_function_list
-Get all functions in package (else all if no arg given)}
+\title{get_function_list}
 \usage{
 get_function_list(packages = NULL, flag_full_name = FALSE, flag_debug = FALSE)
 }
@@ -18,6 +17,5 @@ get_function_list(packages = NULL, flag_full_name = FALSE, flag_debug = FALSE)
 func_list Function[] - List of function ptrs
 }
 \description{
-get_function_list
 Get all functions in package (else all if no arg given)
 }

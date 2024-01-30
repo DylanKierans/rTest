@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{create_dataframe}
 \alias{create_dataframe}
-\title{create_dataframe
-See return}
+\title{create_dataframe}
 \usage{
 create_dataframe(flag_debug = FALSE)
 }
@@ -15,6 +14,5 @@ Dataframe containing each function with information on function name,
 package, count of function calls, total time spent in function
 }
 \description{
-create_dataframe
 See return
 }

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{create_eventlog}
 \alias{create_eventlog}
-\title{create_eventlog
-See return}
+\title{create_eventlog}
 \usage{
 create_eventlog()
 }
@@ -11,6 +10,5 @@ create_eventlog()
 Dataframe for event logging
 }
 \description{
-create_eventlog
 See return
 }

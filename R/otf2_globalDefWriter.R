@@ -8,20 +8,20 @@
 #'  More info
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_init_GlobalDefWriter <- function(flag_debug=F) {
-    if (flag_debug) cat("Entering wrapper rTest_init_GlobalDefWriter\n")
+rTrace_init_GlobalDefWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTrace_init_GlobalDefWriter\n")
     init_GlobalDefWriter()
-    if (flag_debug) cat("Finished wrapper rTest_init_GlobalDefWriter.\n")
+    if (flag_debug) cat("Finished wrapper rTrace_init_GlobalDefWriter.\n")
 }
 
 #' finalize_GlobalDefWriter - doxygen documentation
 #'  More info
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_finalize_GlobalDefWriter <- function(flag_debug=F) {
-    if (flag_debug) cat("Entering wrapper rTest_finalize_GlobalDefWriter\n")
+rTrace_finalize_GlobalDefWriter <- function(flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTrace_finalize_GlobalDefWriter\n")
     finalize_GlobalDefWriter()
-    if (flag_debug) cat("Finished wrapper rTest_finalize_GlobalDefWriter.\n")
+    if (flag_debug) cat("Finished wrapper rTrace_finalize_GlobalDefWriter.\n")
 }
 
 #
@@ -30,10 +30,10 @@ rTest_finalize_GlobalDefWriter <- function(flag_debug=F) {
 #' @param stringRefValue String - String for globalDefWriter
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteString <- function(stringRefValue, flag_debug=F) {
-    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteString\n")
+rTrace_globalDefWriter_WriteString <- function(stringRefValue, flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTrace_globalDefWriter_WriteString\n")
     stringRef <- globalDefWriter_WriteString(stringRefValue)
-    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteString.\n")
+    if (flag_debug) cat("Finished wrapper rTrace_globalDefWriter_WriteString.\n")
     stringRef
 }
 
@@ -43,10 +43,10 @@ rTest_globalDefWriter_WriteString <- function(stringRefValue, flag_debug=F) {
 #' @return regionRef Int - Index for regionRef
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteRegion <- function(stringRef_RegionName, flag_debug=F){
-    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteRegion\n")
+rTrace_globalDefWriter_WriteRegion <- function(stringRef_RegionName, flag_debug=F){
+    if (flag_debug) cat("Entering wrapper rTrace_globalDefWriter_WriteRegion\n")
     regionRef <- globalDefWriter_WriteRegion(stringRef_RegionName)
-    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteRegion\n")
+    if (flag_debug) cat("Finished wrapper rTrace_globalDefWriter_WriteRegion\n")
     regionRef
 }
 
@@ -56,7 +56,7 @@ rTest_globalDefWriter_WriteRegion <- function(stringRef_RegionName, flag_debug=F
 #' @param stringRef_class Int - Index for class of system tree
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class, flag_debug=F) {
+rTrace_globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class, flag_debug=F) {
     if (flag_debug) cat("Entering globalDefWriter_WriteSystemTreeNode\n")
     globalDefWriter_WriteSystemTreeNode(stringRef_name, stringRef_class)
     if (flag_debug) cat("Finished globalDefWriter_WriteSystemTreeNode.\n")
@@ -68,10 +68,10 @@ rTest_globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_
 #'  More info
 #' @param flag_debug Boolean - True to enable verbose stdout
 #' @export
-rTest_globalDefWriter_WriteLocation <- function(stringRef_name, flag_debug=F) {
-    if (flag_debug) cat("Entering wrapper rTest_globalDefWriter_WriteLocation\n")
+rTrace_globalDefWriter_WriteLocation <- function(stringRef_name, flag_debug=F) {
+    if (flag_debug) cat("Entering wrapper rTrace_globalDefWriter_WriteLocation\n")
     globalDefWriter_WriteLocation(stringRef_name)
-    if (flag_debug) cat("Finished wrapper rTest_globalDefWriter_WriteLocation.\n")
+    if (flag_debug) cat("Finished wrapper rTrace_globalDefWriter_WriteLocation.\n")
 }
 
 

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{try_insert_instrumentation}
 \alias{try_insert_instrumentation}
-\title{try_insert_instrumentation
-Checks function exceptions and calls insert_instrumentation() if success}
+\title{try_insert_instrumentation}
 \usage{
 try_insert_instrumentation(
   func_info,
@@ -31,6 +30,5 @@ try_insert_instrumentation(
 \item{flag_debug}{Boolean - Enable debug output}
 }
 \description{
-try_insert_instrumentation
 Checks function exceptions and calls insert_instrumentation() if success
 }

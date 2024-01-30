@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrumentation_init}
 \alias{instrumentation_init}
-\title{instrumentation_init
-Create otf2 objs for instrumentation, and initiate global vars}
+\title{instrumentation_init}
 \usage{
 instrumentation_init(r_profiling = T, verbose_wrapping = F)
 }
@@ -13,17 +12,5 @@ instrumentation_init(r_profiling = T, verbose_wrapping = F)
 \item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout}
 }
 \description{
-Max depth of functions to creat instrumententation events for
-
-Keep package envs unlocked when instrumenting functions
-
-Print which functions are being skipped due to exception
-
-Print which functions are being instrumented
-
-Print function indexes when called (only intended for verbose debugging)
-
-Current status of instrumentation
-
-Current instrumentation depth
+Create otf2 objs for instrumentation, and initiate global vars
 }

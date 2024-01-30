@@ -9,51 +9,51 @@ NULL
 #' Simple hello world function streaming to Rcout
 #' @return R_NilValue
 helloWorld <- function() {
-    .Call('_rTest_helloWorld', PACKAGE = 'rTest')
+    .Call('_rTrace_helloWorld', PACKAGE = 'rTrace')
 }
 
 #' Initialize static otf2 {archive} objs
 #' @return R_NilValue
 init_Archive <- function() {
-    .Call('_rTest_init_Archive', PACKAGE = 'rTest')
+    .Call('_rTrace_init_Archive', PACKAGE = 'rTrace')
 }
 
 #' Close static otf2 {archive, evt_writer} objs
 #' @return R_NilValue
 finalize_Archive <- function() {
-    .Call('_rTest_finalize_Archive', PACKAGE = 'rTest')
+    .Call('_rTrace_finalize_Archive', PACKAGE = 'rTrace')
 }
 
 #' Initialize static otf2 {evt_writer} objs
 #' @return R_NilValue
 init_EvtWriter <- function() {
-    .Call('_rTest_init_EvtWriter', PACKAGE = 'rTest')
+    .Call('_rTrace_init_EvtWriter', PACKAGE = 'rTrace')
 }
 
 #' Close static otf2 {evt_writer} objs
 #' @return R_NilValue
 finalize_EvtWriter <- function() {
-    .Call('_rTest_finalize_EvtWriter', PACKAGE = 'rTest')
+    .Call('_rTrace_finalize_EvtWriter', PACKAGE = 'rTrace')
 }
 
 #' Init static otf2 {globaldefwriter} obj
 #' @return R_NilValue
 init_GlobalDefWriter <- function() {
-    .Call('_rTest_init_GlobalDefWriter', PACKAGE = 'rTest')
+    .Call('_rTrace_init_GlobalDefWriter', PACKAGE = 'rTrace')
 }
 
 #' Finalize static otf2 {globaldefwriter} obj
 #'     Write clock information before ending tracing
 #' @return R_NilValue
 finalize_GlobalDefWriter <- function() {
-    .Call('_rTest_finalize_GlobalDefWriter', PACKAGE = 'rTest')
+    .Call('_rTrace_finalize_GlobalDefWriter', PACKAGE = 'rTrace')
 }
 
 #' Define new id-value pair in globaldefwriter
 #' @param stringRefValue String assigned to given id
 #' @return NUM_STRINGREF 
 globalDefWriter_WriteString <- function(stringRefValue) {
-    .Call('_rTest_globalDefWriter_WriteString', PACKAGE = 'rTest', stringRefValue)
+    .Call('_rTrace_globalDefWriter_WriteString', PACKAGE = 'rTrace', stringRefValue)
 }
 
 #' globalDefWriter_WriteRegion
@@ -61,7 +61,7 @@ globalDefWriter_WriteString <- function(stringRefValue) {
 #' @param stringRef_RegionName Name to be associated with region
 #' @return regionRef id/index for string
 globalDefWriter_WriteRegion <- function(stringRef_RegionName) {
-    .Call('_rTest_globalDefWriter_WriteRegion', PACKAGE = 'rTest', stringRef_RegionName)
+    .Call('_rTrace_globalDefWriter_WriteRegion', PACKAGE = 'rTrace', stringRef_RegionName)
 }
 
 #' Write the system tree including a definition for the location group to the global definition writer.
@@ -69,14 +69,14 @@ globalDefWriter_WriteRegion <- function(stringRef_RegionName) {
 #' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
 #' @return R_NilValue
 globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class) {
-    .Call('_rTest_globalDefWriter_WriteSystemTreeNode', PACKAGE = 'rTest', stringRef_name, stringRef_class)
+    .Call('_rTrace_globalDefWriter_WriteSystemTreeNode', PACKAGE = 'rTrace', stringRef_name, stringRef_class)
 }
 
 #' Write a definition for the location to the global definition writer.
 #' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 #' @return R_NilValue
 globalDefWriter_WriteLocation <- function(stringRef_name) {
-    .Call('_rTest_globalDefWriter_WriteLocation', PACKAGE = 'rTest', stringRef_name)
+    .Call('_rTrace_globalDefWriter_WriteLocation', PACKAGE = 'rTrace', stringRef_name)
 }
 
 #' Write event to evt_writer
@@ -84,6 +84,6 @@ globalDefWriter_WriteLocation <- function(stringRef_name) {
 #' @param event_type True for enter, False for leave region
 #' @return R_NilValue
 evtWriter_Write <- function(regionRef, event_type) {
-    .Call('_rTest_evtWriter_Write', PACKAGE = 'rTest', regionRef, event_type)
+    .Call('_rTrace_evtWriter_Write', PACKAGE = 'rTrace', regionRef, event_type)
 }
 

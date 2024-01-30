@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_exception_list.R
 \name{get_package_exception_list}
 \alias{get_package_exception_list}
-\title{get_package_exception_list
-Get list of packages to not instrument}
+\title{get_package_exception_list}
 \usage{
 get_package_exception_list()
 }
@@ -11,6 +10,5 @@ get_package_exception_list()
 package_exception_list String[] List of packages to not instrument
 }
 \description{
-get_package_exception_list
 Get list of packages to not instrument
 }

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{create_otf2_event}
 \alias{create_otf2_event}
-\title{create_otf2_event
-Creates stringRef and regionRef for func_name}
+\title{create_otf2_event}
 \usage{
 create_otf2_event(func_name)
 }
@@ -14,6 +13,5 @@ create_otf2_event(func_name)
 regionRef Int - Index of stringRef for function
 }
 \description{
-create_otf2_event
 Creates stringRef and regionRef for func_name
 }

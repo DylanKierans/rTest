@@ -2,9 +2,7 @@
 % Please edit documentation in R/r_utils.R
 \name{lock_envs}
 \alias{lock_envs}
-\title{lock_envs
-Lock package- and name-spaces to change function definitions in packages
-Counterfunction for \code{unlock_envs}}
+\title{lock_envs}
 \usage{
 lock_envs(package_name)
 }
@@ -12,7 +10,6 @@ lock_envs(package_name)
 \item{package_name}{String - name of package}
 }
 \description{
-lock_envs
 Lock package- and name-spaces to change function definitions in packages
 Counterfunction for \code{unlock_envs}
 }

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_exception_list.R
 \name{get_function_methods}
 \alias{get_function_methods}
-\title{get_function_methods
-Get all methods of given function list}
+\title{get_function_methods}
 \usage{
 get_function_methods(function_list)
 }
@@ -14,6 +13,5 @@ get_function_methods(function_list)
 function_method_list Object[] List of all method functions for function_list
 }
 \description{
-get_function_methods
 Get all methods of given function list
 }

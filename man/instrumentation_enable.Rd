@@ -2,12 +2,10 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrumentation_enable}
 \alias{instrumentation_enable}
-\title{instrumentation_enable
-Enable instrumentation and reset function depth}
+\title{instrumentation_enable}
 \usage{
 instrumentation_enable()
 }
 \description{
-instrumentation_enable
 Enable instrumentation and reset function depth
 }

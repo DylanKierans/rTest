@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{total_num_functions}
 \alias{total_num_functions}
-\title{total_num_functions
-Find total number of loaded packages and functions}
+\title{total_num_functions}
 \usage{
 total_num_functions(debug_flag = FALSE, flag_user_functions = FALSE)
 }
@@ -16,6 +15,5 @@ total_num_functions(debug_flag = FALSE, flag_user_functions = FALSE)
 Int[] Number of functions per package
 }
 \description{
-total_num_functions
 Find total number of loaded packages and functions
 }

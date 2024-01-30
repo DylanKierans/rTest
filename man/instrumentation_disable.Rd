@@ -2,12 +2,10 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrumentation_disable}
 \alias{instrumentation_disable}
-\title{instrumentation_disable
-Disable instrumentation}
+\title{instrumentation_disable}
 \usage{
 instrumentation_disable()
 }
 \description{
-instrumentation_disable
 Disable instrumentation
 }

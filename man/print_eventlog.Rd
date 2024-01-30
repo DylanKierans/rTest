@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{print_eventlog}
 \alias{print_eventlog}
-\title{print_eventlog
-Print global event log}
+\title{print_eventlog}
 \usage{
 print_eventlog(df = pkg.env$PROFILE_EVENTLOG)
 }
@@ -13,6 +12,5 @@ print_eventlog(df = pkg.env$PROFILE_EVENTLOG)
 }}
 }
 \description{
-print_eventlog
 Print global event log
 }

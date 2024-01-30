@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{save_eventlog}
 \alias{save_eventlog}
-\title{save_eventlog
-Save event log to file}
+\title{save_eventlog}
 \usage{
 save_eventlog(filename, df = pkg.env$PROFILE_EVENTLOG, flag_debug = FALSE)
 }
@@ -17,6 +16,5 @@ save_eventlog(filename, df = pkg.env$PROFILE_EVENTLOG, flag_debug = FALSE)
 \item{flag_debug}{Boolean - True to enable debug statements}
 }
 \description{
-save_eventlog
 Save event log to file
 }

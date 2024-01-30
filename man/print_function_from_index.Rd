@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{print_function_from_index}
 \alias{print_function_from_index}
-\title{print_function_from_index
-Prints names of given functions from indexes, only intended for debugging}
+\title{print_function_from_index}
 \usage{
 print_function_from_index(func_indexes)
 }
@@ -11,6 +10,5 @@ print_function_from_index(func_indexes)
 \item{func_indexes}{Int[]}
 }
 \description{
-print_function_from_index
 Prints names of given functions from indexes, only intended for debugging
 }

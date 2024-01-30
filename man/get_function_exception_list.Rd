@@ -2,9 +2,7 @@
 % Please edit documentation in R/r_exception_list.R
 \name{get_function_exception_list}
 \alias{get_function_exception_list}
-\title{get_function_exception_list()
-Get function list to not insturment (mostly due to recursion problems in wrapper)
-Note: This is a hacky fix for many smaller problems}
+\title{get_function_exception_list()}
 \usage{
 get_function_exception_list()
 }
@@ -12,7 +10,6 @@ get_function_exception_list()
 function_exception_list Object[] List of all functions to not instrument
 }
 \description{
-get_function_exception_list()
 Get function list to not insturment (mostly due to recursion problems in wrapper)
 Note: This is a hacky fix for many smaller problems
 }

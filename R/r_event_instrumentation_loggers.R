@@ -6,7 +6,7 @@
 #######################################################################
 
 #' create_eventlog
-#'  See return
+#' @description See return
 #' @return Dataframe for event logging
 #' @export
 create_eventlog <- function() {
@@ -17,18 +17,13 @@ create_eventlog <- function() {
 
     df <- data.frame( region=region, event_type=event_type, timestamp=timestamp )
 
-    ## DEBUGGING - Check datatypes
-    #print(class(region))
-    #print(class(event_type))
-    #print(sapply(df, class))
-
     pkg.env$PROFILE_EVENTLOG_NROWS <- 0
     pkg.env$PROFILE_EVENTLOG <- df
     df # Kept for compatability after change
 }
 
 #' event_create
-#'  Create new start or end event in global eventlog
+#' @description Create new start or end event in global eventlog
 #' @param region Integer - Index of event/function in INSTRUMENTATION_DF
 #' @param event_type Boolean - TRUE for start, FALSE for end event
 #' @param timestamp numeric - Time of event occurence
@@ -43,7 +38,7 @@ event_create <- function(region, event_type, timestamp) {
 }
 
 #' reset_event_log
-#'  Assign new eventlog dataframe 
+#' @description Assign new eventlog dataframe 
 #' @return Dataframe for eventlog
 reset_eventlog <- function() {
     #PROFILE_EVENTLOG <<- create_eventlog()
@@ -52,7 +47,7 @@ reset_eventlog <- function() {
 
 
 #' print_eventlog
-#'  Print global event log
+#' @description Print global event log
 #' @param df - Dataframe object for eventlog
 print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
     print(df)
@@ -60,7 +55,7 @@ print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
 
 
 #' save_eventlog
-#'  Save event log to file
+#' @description Save event log to file
 #' @param filename String - Name of file to save eventlog to, .csv
 #' @param df - Dataframe object for eventlog
 #' @param flag_debug Boolean - True to enable debug statements
@@ -79,7 +74,7 @@ save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALS
 # EXTRA VALS: min time, max time, call stack
 
 #' create_dataframe
-#'  See return
+#' @description See return
 #' @param flag_debug Boolean - Enabled debug state,emts
 #' @return Dataframe containing each function with information on function name,
 #'      package, count of function calls, total time spent in function
@@ -127,7 +122,7 @@ create_dataframe <- function(flag_debug=FALSE) {
 }
 
 #' reset_dataframe
-#'  Reset function_count and function_time info to zero
+#' @description Reset function_count and function_time info to zero
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @export
 reset_dataframe <- function(df) {
@@ -139,7 +134,7 @@ reset_dataframe <- function(df) {
 }
 
 #' reduce_dataframe
-#'  Reset function_count and function_time info to zero
+#' @description Reset function_count and function_time info to zero
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @export
 reduce_dataframe <- function(df) {
@@ -150,7 +145,7 @@ reduce_dataframe <- function(df) {
 }
 
 #' save_dataframe
-#'  Write dataframe to file (preferably reduced)
+#' @description Write dataframe to file (preferably reduced)
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @param filename String - Filename to save output to
 #' @export
@@ -159,7 +154,7 @@ save_dataframe <- function(df, filename) {
 }
 
 #' print_instrumentation
-#'  Print table of reduce dataframe
+#' @description Print table of reduce dataframe
 #' @param flag_debug Boolean - Enable debug header
 #' @export
 print_instrumentation <- function(flag_debug=TRUE) {

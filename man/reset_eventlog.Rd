@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{reset_eventlog}
 \alias{reset_eventlog}
-\title{reset_event_log
-Assign new eventlog dataframe}
+\title{reset_event_log}
 \usage{
 reset_eventlog()
 }
@@ -11,6 +10,5 @@ reset_eventlog()
 Dataframe for eventlog
 }
 \description{
-reset_event_log
 Assign new eventlog dataframe
 }

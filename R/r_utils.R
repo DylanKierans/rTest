@@ -4,7 +4,7 @@
 # D.Kierans (dylanki@kth.se)
 
 #' unlock_envs
-#'  Unlock package- and name-spaces to change function definitions in packages. 
+#' @description Unlock package- and name-spaces to change function definitions in packages. 
 #'  Counterfunction for `lock_envs`
 #' @param package_name String - name of package
 unlock_envs <- function(package_name){
@@ -20,7 +20,7 @@ unlock_envs <- function(package_name){
 }  
 
 #' lock_envs
-#'  Lock package- and name-spaces to change function definitions in packages
+#' @description Lock package- and name-spaces to change function definitions in packages
 #'  Counterfunction for `unlock_envs`
 #' @param package_name String - name of package
 lock_envs <- function(package_name){
@@ -35,18 +35,18 @@ lock_envs <- function(package_name){
             rlang::env_lock(env)
 }
 
-#' time
-#'  Basic function timer, using R's Sys.time() for now
+#' rTrace_time
+#' @description Basic function timer, using R's Sys.time() for now
 #' @return Current time
-time <- function() {
+rTrace_time <- function() {
     Sys.time()
 }
 
 #' get_env
-#'  Get environment object for this package rTrace
+#' @description Get environment object for this package rTrace
 #' @return Environment
 get_env <- function() {
-   as.environment("package:rTest") 
+   as.environment("package:rTrace") 
 }
 
 

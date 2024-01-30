@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_utils.R
 \name{get_env}
 \alias{get_env}
-\title{get_env
-Get environment object for this package rTrace}
+\title{get_env}
 \usage{
 get_env()
 }
@@ -11,6 +10,5 @@ get_env()
 Environment
 }
 \description{
-get_env
 Get environment object for this package rTrace
 }

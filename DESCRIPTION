@@ -1,4 +1,4 @@
-Package: rTest
+Package: rTrace
 Title: Test Package for C LibOTF Wrapper
 Version: 0.0.1.0
 Authors@R: 

@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{reduce_dataframe}
 \alias{reduce_dataframe}
-\title{reduce_dataframe
-Reset function_count and function_time info to zero}
+\title{reduce_dataframe}
 \usage{
 reduce_dataframe(df)
 }
@@ -11,6 +10,5 @@ reduce_dataframe(df)
 \item{df}{Dataframe - Created by create_dataframe() for collecting tracing info}
 }
 \description{
-reduce_dataframe
 Reset function_count and function_time info to zero
 }

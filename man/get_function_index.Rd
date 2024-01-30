@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{get_function_index}
 \alias{get_function_index}
-\title{get_function_index
-Get function index from func_list}
+\title{get_function_index}
 \usage{
 get_function_index(func_list, func_ptr, func_name)
 }
@@ -18,6 +17,5 @@ get_function_index(func_list, func_ptr, func_name)
 index Integer - for func_name in func_list, else NULL if not found
 }
 \description{
-get_function_index
 Get function index from func_list
 }

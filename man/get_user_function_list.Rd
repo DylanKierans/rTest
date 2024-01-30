@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{get_user_function_list}
 \alias{get_user_function_list}
-\title{get_user_function_list
-Get all user-defined functions in global_env}
+\title{get_user_function_list}
 \usage{
 get_user_function_list(flag_debug = FALSE)
 }
@@ -14,6 +13,5 @@ get_user_function_list(flag_debug = FALSE)
 user_func_list Function[] - List of user-defined functions
 }
 \description{
-get_user_function_list
 Get all user-defined functions in global_env
 }

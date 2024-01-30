@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrument_all_functions}
 \alias{instrument_all_functions}
-\title{instrument_all_functions
-Instrument all functions}
+\title{instrument_all_functions}
 \usage{
 instrument_all_functions(
   package_list = NULL,
@@ -19,6 +18,5 @@ instrument_all_functions(
 \item{flag_debug}{Boolean - Enable debug statements}
 }
 \description{
-instrument_all_functions
 Instrument all functions
 }

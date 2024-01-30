@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{print_instrumentation}
 \alias{print_instrumentation}
-\title{print_instrumentation
-Print table of reduce dataframe}
+\title{print_instrumentation}
 \usage{
 print_instrumentation(flag_debug = TRUE)
 }
@@ -11,6 +10,5 @@ print_instrumentation(flag_debug = TRUE)
 \item{flag_debug}{Boolean - Enable debug header}
 }
 \description{
-print_instrumentation
 Print table of reduce dataframe
 }

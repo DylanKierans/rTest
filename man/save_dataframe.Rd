@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_event_instrumentation_loggers.R
 \name{save_dataframe}
 \alias{save_dataframe}
-\title{save_dataframe
-Write dataframe to file (preferably reduced)}
+\title{save_dataframe}
 \usage{
 save_dataframe(df, filename)
 }
@@ -13,6 +12,5 @@ save_dataframe(df, filename)
 \item{filename}{String - Filename to save output to}
 }
 \description{
-save_dataframe
 Write dataframe to file (preferably reduced)
 }

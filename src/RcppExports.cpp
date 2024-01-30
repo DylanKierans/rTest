@@ -12,7 +12,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // helloWorld
 RcppExport SEXP helloWorld();
-RcppExport SEXP _rTest_helloWorld() {
+RcppExport SEXP _rTrace_helloWorld() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,7 +22,7 @@ END_RCPP
 }
 // init_Archive
 RcppExport SEXP init_Archive();
-RcppExport SEXP _rTest_init_Archive() {
+RcppExport SEXP _rTrace_init_Archive() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -32,7 +32,7 @@ END_RCPP
 }
 // finalize_Archive
 RcppExport SEXP finalize_Archive();
-RcppExport SEXP _rTest_finalize_Archive() {
+RcppExport SEXP _rTrace_finalize_Archive() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -42,7 +42,7 @@ END_RCPP
 }
 // init_EvtWriter
 RcppExport SEXP init_EvtWriter();
-RcppExport SEXP _rTest_init_EvtWriter() {
+RcppExport SEXP _rTrace_init_EvtWriter() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -52,7 +52,7 @@ END_RCPP
 }
 // finalize_EvtWriter
 RcppExport SEXP finalize_EvtWriter();
-RcppExport SEXP _rTest_finalize_EvtWriter() {
+RcppExport SEXP _rTrace_finalize_EvtWriter() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -62,7 +62,7 @@ END_RCPP
 }
 // init_GlobalDefWriter
 RcppExport SEXP init_GlobalDefWriter();
-RcppExport SEXP _rTest_init_GlobalDefWriter() {
+RcppExport SEXP _rTrace_init_GlobalDefWriter() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -72,7 +72,7 @@ END_RCPP
 }
 // finalize_GlobalDefWriter
 RcppExport SEXP finalize_GlobalDefWriter();
-RcppExport SEXP _rTest_finalize_GlobalDefWriter() {
+RcppExport SEXP _rTrace_finalize_GlobalDefWriter() {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -82,7 +82,7 @@ END_RCPP
 }
 // globalDefWriter_WriteString
 RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
-RcppExport SEXP _rTest_globalDefWriter_WriteString(SEXP stringRefValueSEXP) {
+RcppExport SEXP _rTrace_globalDefWriter_WriteString(SEXP stringRefValueSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -93,7 +93,7 @@ END_RCPP
 }
 // globalDefWriter_WriteRegion
 RcppExport uint64_t globalDefWriter_WriteRegion(int stringRef_RegionName);
-RcppExport SEXP _rTest_globalDefWriter_WriteRegion(SEXP stringRef_RegionNameSEXP) {
+RcppExport SEXP _rTrace_globalDefWriter_WriteRegion(SEXP stringRef_RegionNameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -104,7 +104,7 @@ END_RCPP
 }
 // globalDefWriter_WriteSystemTreeNode
 RcppExport SEXP globalDefWriter_WriteSystemTreeNode(int stringRef_name, int stringRef_class);
-RcppExport SEXP _rTest_globalDefWriter_WriteSystemTreeNode(SEXP stringRef_nameSEXP, SEXP stringRef_classSEXP) {
+RcppExport SEXP _rTrace_globalDefWriter_WriteSystemTreeNode(SEXP stringRef_nameSEXP, SEXP stringRef_classSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -116,7 +116,7 @@ END_RCPP
 }
 // globalDefWriter_WriteLocation
 RcppExport SEXP globalDefWriter_WriteLocation(int stringRef_name);
-RcppExport SEXP _rTest_globalDefWriter_WriteLocation(SEXP stringRef_nameSEXP) {
+RcppExport SEXP _rTrace_globalDefWriter_WriteLocation(SEXP stringRef_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -127,7 +127,7 @@ END_RCPP
 }
 // evtWriter_Write
 RcppExport SEXP evtWriter_Write(int regionRef, bool event_type);
-RcppExport SEXP _rTest_evtWriter_Write(SEXP regionRefSEXP, SEXP event_typeSEXP) {
+RcppExport SEXP _rTrace_evtWriter_Write(SEXP regionRefSEXP, SEXP event_typeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -139,22 +139,22 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rTest_helloWorld", (DL_FUNC) &_rTest_helloWorld, 0},
-    {"_rTest_init_Archive", (DL_FUNC) &_rTest_init_Archive, 0},
-    {"_rTest_finalize_Archive", (DL_FUNC) &_rTest_finalize_Archive, 0},
-    {"_rTest_init_EvtWriter", (DL_FUNC) &_rTest_init_EvtWriter, 0},
-    {"_rTest_finalize_EvtWriter", (DL_FUNC) &_rTest_finalize_EvtWriter, 0},
-    {"_rTest_init_GlobalDefWriter", (DL_FUNC) &_rTest_init_GlobalDefWriter, 0},
-    {"_rTest_finalize_GlobalDefWriter", (DL_FUNC) &_rTest_finalize_GlobalDefWriter, 0},
-    {"_rTest_globalDefWriter_WriteString", (DL_FUNC) &_rTest_globalDefWriter_WriteString, 1},
-    {"_rTest_globalDefWriter_WriteRegion", (DL_FUNC) &_rTest_globalDefWriter_WriteRegion, 1},
-    {"_rTest_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTest_globalDefWriter_WriteSystemTreeNode, 2},
-    {"_rTest_globalDefWriter_WriteLocation", (DL_FUNC) &_rTest_globalDefWriter_WriteLocation, 1},
-    {"_rTest_evtWriter_Write", (DL_FUNC) &_rTest_evtWriter_Write, 2},
+    {"_rTrace_helloWorld", (DL_FUNC) &_rTrace_helloWorld, 0},
+    {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 0},
+    {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
+    {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},
+    {"_rTrace_finalize_EvtWriter", (DL_FUNC) &_rTrace_finalize_EvtWriter, 0},
+    {"_rTrace_init_GlobalDefWriter", (DL_FUNC) &_rTrace_init_GlobalDefWriter, 0},
+    {"_rTrace_finalize_GlobalDefWriter", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter, 0},
+    {"_rTrace_globalDefWriter_WriteString", (DL_FUNC) &_rTrace_globalDefWriter_WriteString, 1},
+    {"_rTrace_globalDefWriter_WriteRegion", (DL_FUNC) &_rTrace_globalDefWriter_WriteRegion, 1},
+    {"_rTrace_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTrace_globalDefWriter_WriteSystemTreeNode, 2},
+    {"_rTrace_globalDefWriter_WriteLocation", (DL_FUNC) &_rTrace_globalDefWriter_WriteLocation, 1},
+    {"_rTrace_evtWriter_Write", (DL_FUNC) &_rTrace_evtWriter_Write, 2},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_rTest(DllInfo *dll) {
+RcppExport void R_init_rTrace(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

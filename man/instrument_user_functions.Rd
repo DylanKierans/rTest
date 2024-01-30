@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrument_user_functions}
 \alias{instrument_user_functions}
-\title{instrument_user_functions
-Instrument user functions}
+\title{instrument_user_functions}
 \usage{
 instrument_user_functions(flag_debug = FALSE)
 }
@@ -11,6 +10,5 @@ instrument_user_functions(flag_debug = FALSE)
 \item{flag_debug}{Boolean - Enable debug statements}
 }
 \description{
-instrument_user_functions
 Instrument user functions
 }

@@ -2,12 +2,10 @@
 % Please edit documentation in R/r_instrument.R
 \name{instrumentation_finalize}
 \alias{instrumentation_finalize}
-\title{instrumentation_finalize
-Close otf2 objs for instrumentation}
+\title{instrumentation_finalize}
 \usage{
 instrumentation_finalize()
 }
 \description{
-instrumentation_finalize
 Close otf2 objs for instrumentation
 }

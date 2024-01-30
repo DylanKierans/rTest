@@ -2,8 +2,7 @@
 % Please edit documentation in R/r_instrument.R
 \name{replace_function}
 \alias{replace_function}
-\title{replace_function
-Replace library function definition in package- and name-space}
+\title{replace_function}
 \usage{
 replace_function(new_func, func_name, package_name, env_is_locked = TRUE)
 }
@@ -17,6 +16,5 @@ replace_function(new_func, func_name, package_name, env_is_locked = TRUE)
 \item{env_is_locked}{Boolean - True if function name-/package- space is locked}
 }
 \description{
-replace_function
 Replace library function definition in package- and name-space
 }
