@@ -1,5 +1,5 @@
   <!-- badges: start -->
-[![R-CMD-check](https://github.com/DylanKierans/rTest/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/DylanKierans/rTest/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/DylanKierans/rTrace/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/DylanKierans/rTrace/actions/workflows/R-CMD-check.yaml)
   <!-- badges: end -->
 
 # rTrace - LibOTF2 Wrapper for R
@@ -17,7 +17,7 @@ Installation steps:
 
 2. Clone git repository
 
-3. Install from source with R command: `install.packages("/path/to/rTest/repo",repos=NULL,type="source")`
+3. Install from source with R command, replacing path: `install.packages("/path/to/rTrace/repo",repos=NULL,type="source")`
 
 4. Verify installation by loading package with R command: `library("rTrace")`
 
@@ -45,11 +45,9 @@ Dylan Kierans
 
 ## License 
 
-GPL3
+Licensed under GPL-3.0
 
 ## TODO
-
-* Simplify init/finalize process
 
 * Clean up naming convention for:
     * Functions
