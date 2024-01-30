@@ -21,6 +21,31 @@ Installation steps:
 
 4. Verify installation by loading package with R command: `library("rTrace")`
 
+## Usage
+
+```R
+# <import packages>
+# <define user functions>
+
+instrumentation_init()
+instrument_all_functions()
+
+# <...enter relevant area...>
+instrumentation_enable()
+# <...do work...>
+instrumentation_disable()
+# <...exit relevant area...>
+
+instrumentation_finalize()
+```
+
+## Authors 
+
+Dylan Kierans
+
+## License 
+
+GPL3
 
 ## TODO
 
