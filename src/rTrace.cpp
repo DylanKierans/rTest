@@ -1,4 +1,4 @@
-// @file rTest.cpp
+// @file rTrace.cpp
 // @brief Rcpp functions for underlying otf2 library
 // @date 2024-01-16
 // @version 0.01
@@ -6,7 +6,6 @@
 // @todo Error checking
 // @todo Update OTF2_GlobalDefWriter_WriteString() and related functions to take input string rather than int
 // @todo Fix timing offset problems
-// @todo TRACE_LENGTH, automate at end of process?
 
 #include "Rcpp.h"
 #include <otf2/otf2.h>
@@ -26,11 +25,6 @@ static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static uint64_t NUM_STRINGREF=0; ///* Number of events recorded with WriteString
 static uint64_t NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
 
-#ifdef DUMMY_TIMESTEPS
-const OTF2_TimeStamp TRACE_LENGTH = 1E3;
-#else
-const OTF2_TimeStamp TRACE_LENGTH = 5E6;
-#endif
 
 ///////////////////////////////
 // Function declrations
@@ -189,7 +183,7 @@ RcppExport SEXP finalize_GlobalDefWriter() {
             global_def_writer /* writerHandle */,
             1 /* resolution - 1 tick per second */,
             0 /* epoch - 0 for dummy */,
-            TRACE_LENGTH /* traceLength */,
+            NUM_EVENTS /* traceLength */,
             OTF2_UNDEFINED_TIMESTAMP );
 #else
     // We need to define the clock used for this trace and the overall timestamp range.
