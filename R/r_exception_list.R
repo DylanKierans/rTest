@@ -73,7 +73,13 @@ get_function_exception_list <- function() {
 get_function_methods <- function(function_list) {
     function_method_list <- c()
     for (function_exception in function_list) {
-        function_methods <- utils::methods(function_exception)
+
+        suppressWarnings( function_methods <- utils::methods(function_exception) )
+        ## Hide warnings produced by utils::methods
+        #tryCatch(
+        #    { function_methods <- utils::methods(function_exception) },
+        #   warning = function(w){NULL}
+        #)
 
         # Methods exist
         if (length(function_methods) > 0 ){

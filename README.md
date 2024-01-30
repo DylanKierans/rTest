@@ -25,3 +25,5 @@ This is a test package for creating a high-level otf2 wrapper for R. Wrapper bui
 
 * Compile functions with `cmpfun` (disabled for speed during testing)
 
+* Allow users to specify functions to instrument or add exceptions
+

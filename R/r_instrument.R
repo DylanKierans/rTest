@@ -1,5 +1,17 @@
 #' @name r_intrument.R
 #' file
+#' Usage:
+#'  <import packages>
+#'  <define user functions>
+#'  instrumentation_init()
+#'  instrument_all_functions()
+#'  <...>
+#'  <enter relevant area>
+#'  instrumentation_enable()
+#'  <do work>
+#'  instrumentation_disable()
+#'  <exit relevant area>
+#'  instrumentation_finalize()
 # @todo - Consider effects on wrapping user defined functions
 # @todo - R error checking
 # @todo - C error checking
@@ -16,45 +28,6 @@ suppressPackageStartupMessages({
     library("rlang", quietly=TRUE)
     library("compiler", quietly=TRUE)
 })
-
-
-########################################################################
-# SECTION - Instrument Flags
-########################################################################
-#' @name MAX_FUNCTION_DEPTH
-#' @description Max depth of functions to creat instrumententation events for
-pkg.env$MAX_FUNCTION_DEPTH <- 10 
-
-#' @name UNLOCK_ENVS
-#' @description Keep package envs unlocked when instrumenting functions
-pkg.env$UNLOCK_ENVS <- TRUE # Not sure if this is safe to set TRUE, but should be quicker!
-
-########################################################################
-# SECTION - Output Flags
-########################################################################
-#' @name PRINT_SKIPS
-#' @description Print which functions are being skipped due to exception
-pkg.env$PRINT_SKIPS <- TRUE
-
-#' @name PRINT_INSTURMENTS
-#' @description Print which functions are being instrumented
-pkg.env$PRINT_INSTRUMENTS <- TRUE
-
-#' @name PRINT_FUNC_INDEXES
-#' @description Print function indexes when called (only intended for verbose debugging)
-pkg.env$PRINT_FUNC_INDEXES <- FALSE
-
-########################################################################
-# SECTION - Init section for instrumentation
-# ~~~ DO NOT CHANGE ~~~
-########################################################################
-#' @name INSTRUMENTATION_ENABLED
-#' @description Current status of instrumentation
-pkg.env$INSTRUMENTATION_ENABLED=FALSE
-
-#' @name FUNCTION_DEPTH
-#' @description Current instrumentation depth
-pkg.env$FUNCTION_DEPTH <- 0
 
 
 ########################################################################
@@ -92,7 +65,7 @@ insert_instrumentation <- function(func, func_name, func_index, regionRef, packa
             if (pkg.env$FUNCTION_DEPTH < 0 )  
             {
                 print("Warning: Disabling instrumentation - Function_depth < 0.")
-                disable_instrumentation()
+                instrumentation_disable()
             }
 
             ## Append to depth counter
@@ -328,10 +301,12 @@ print_function_from_index <- function(func_indexes) {
 #' @param env_is_locked Boolean - True if function name-/package- space is locked
 #' @param function_exception_list Object[] - List of function exceptions to skip
 #' @param function_methods_exception_list Object[] - List of function method exceptions to skip
+#' @param flag_user_function Boolean - Enable if user defined function (in .GlobalEnv)
 #' @param flag_debug Boolean - Enable debug output
 #' @export 
 try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked, 
-    function_exception_list, function_methods_exception_list, flag_debug=F)
+    function_exception_list, function_methods_exception_list, 
+    flag_user_function=F, flag_debug=F)
 {
     func_global_index <- func_info$func_global_index
     func_local_index <- func_info$func_local_index
@@ -358,7 +333,11 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     }
 
     ## Test if function should be skipped
-    env <-  as.environment( paste0("package:",package_name) )
+    if (flag_user_function) {
+        env <- .GlobalEnv
+    } else {
+        env <-  as.environment( paste0("package:",package_name) )
+    }
     if ( skip_function(func_ptr, func_name, env, function_exception_list, function_methods_exception_list)) {
         return(NULL) # break or return(NULL)
     }
@@ -388,6 +367,7 @@ create_otf2_event <- function(func_name) {
         regionRef
 }
 
+
 #' instrument_all_functions
 #'  Instrument all functions
 #' @param package_list String[] - Array of package names to instrument, if none instrument all packages
@@ -396,9 +376,6 @@ create_otf2_event <- function(func_name) {
 #' @export
 instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
 {
-    ## Initiate OTF2 GlobalDefWriter
-    rTest_init_GlobalDefWriter()
-
     if (is.null(package_list)){ ## Get all packages from env if none given
         package_list <- .packages()
     }
@@ -572,9 +549,12 @@ instrument_user_functions <- function(flag_debug=FALSE)
         func_info <- data.frame(func_global_index, func_local_index, func_name, package_name)
 
         ## Instrumentation writes entry and leave events in wrapper
-        try_insert_instrumentation(func_info, func_ptrs, FALSE, flag_debug)
+        try_insert_instrumentation(func_info, func_ptrs, FALSE, 
+                                   function_exception_list, 
+                                   function_methods_exception_list,
+                                   flag_user_function=T, flag_debug)
     }
-    print(paste0("Completed package: ", package_name))
+    print(paste0("Completed package: ", package_name)) # User functions
 
 }
 
@@ -618,10 +598,11 @@ test_instrumentation <- function(func_ptr, func_name, expr, flag_debug=F) {
 #######################################################################
 # ENABLE/DISABLE INSTRUMENTATION
 #######################################################################
-#' enable_instrumentation
+
+#' instrumentation_enable
 #'  Enable instrumentation and reset function depth
 #' @export
-enable_instrumentation <- function(){
+instrumentation_enable <- function(){
     if (is_instrumentation_enabled()){
         print("Warning: Instrumentation already enabled!")
     }
@@ -632,16 +613,16 @@ enable_instrumentation <- function(){
     }
 }
 
-#' disable_instrumentation
+#' instrumentation_disable
 #'  Disable instrumentation
 #' @export
-disable_instrumentation <- function(){
+instrumentation_disable <- function(){
     if (!is_instrumentation_enabled()){
         print("Warning: Instrumentation already disabled!")
     }
     else {
         if (pkg.env$FUNCTION_DEPTH != 0){ print("Warning: Function depth non-zero relative to start region.") }
-        pkg.env$INSTRUMENTATION_ENABLED <<- FALSE
+        pkg.env$INSTRUMENTATION_ENABLED <- FALSE
         rTest_finalize_EvtWriter()
     }
 }
@@ -652,6 +633,67 @@ disable_instrumentation <- function(){
 #' @export
 is_instrumentation_enabled <- function() {
     pkg.env$INSTRUMENTATION_ENABLED
+}
+
+#' instrumentation_init
+#'  Create otf2 objs for instrumentation, and initiate global vars
+#' @param r_profiling Boolean - True to enable R-based eventlogger and runtime info
+#' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
+#' @export
+instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
+{
+    if (r_profiling) {
+        pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe()
+        pkg.env$PROFILE_EVENTLOG <- create_eventlog()
+    }
+
+    ### SECTION - Instrument Flags ###
+    # @name MAX_FUNCTION_DEPTH
+    #' @description Max depth of functions to creat instrumententation events for
+    pkg.env$MAX_FUNCTION_DEPTH <- 10 
+
+    # @name UNLOCK_ENVS
+    #' @description Keep package envs unlocked when instrumenting functions
+    pkg.env$UNLOCK_ENVS <- TRUE # Not sure if this is safe to set TRUE, but should be quicker!
+
+    ### SECTION - Output Flags ###
+    # @name PRINT_SKIPS
+    #' @description Print which functions are being skipped due to exception
+    pkg.env$PRINT_SKIPS <- verbose_wrapping
+
+    # @name PRINT_INSTURMENTS
+    #' @description Print which functions are being instrumented
+    pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
+
+    # @name PRINT_FUNC_INDEXES
+    #' @description Print function indexes when called (only intended for verbose debugging)
+    pkg.env$PRINT_FUNC_INDEXES <- FALSE
+
+    ### SECTION - Init section for instrumentation ###
+    # @name INSTRUMENTATION_ENABLED
+    #' @description Current status of instrumentation
+    pkg.env$INSTRUMENTATION_ENABLED=FALSE
+
+    # @name FUNCTION_DEPTH
+    #' @description Current instrumentation depth
+    pkg.env$FUNCTION_DEPTH <- 0
+
+    ## Initiate OTF2 Archive
+    rTest_init_Archive()
+
+    ## Initiate OTF2 GlobalDefWriter
+    rTest_init_GlobalDefWriter()
+}
+
+#' instrumentation_finalize
+#'  Close otf2 objs for instrumentation
+#' @export
+instrumentation_finalize <- function()
+{
+    rTest_globalDefWriter_WriteSystemTreeNode(0,0)
+    rTest_globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
+    rTest_finalize_GlobalDefWriter()
+    rTest_finalize_Archive()
 }
 
 

@@ -11,6 +11,7 @@ try_insert_instrumentation(
   env_is_locked,
   function_exception_list,
   function_methods_exception_list,
+  flag_user_function = F,
   flag_debug = F
 )
 }
@@ -24,6 +25,8 @@ try_insert_instrumentation(
 \item{function_exception_list}{Object[] - List of function exceptions to skip}
 
 \item{function_methods_exception_list}{Object[] - List of function method exceptions to skip}
+
+\item{flag_user_function}{Boolean - Enable if user defined function (in .GlobalEnv)}
 
 \item{flag_debug}{Boolean - Enable debug output}
 }

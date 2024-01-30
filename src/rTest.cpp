@@ -12,13 +12,8 @@
 #include <otf2/otf2.h>
 #include <sys/time.h>
 
-#ifndef DEBUG
-#define DEBUG
-#endif /* ifndef DEBUG */
-
-//#ifndef DUMMY_TIMESTEPS
-//#define DUMMY_TIMESTEPS
-//#endif /* ifndef DUMMY_TIMESTEPS */
+//#define DEBUG /* Uncomment to enable verbose debug info */
+//#define DUMMY_TIMESTEPS /* Uncomment for 1s timestep for each subsequent event call */
 
 using namespace Rcpp;
 
@@ -67,18 +62,14 @@ RcppExport SEXP helloWorld(){
 static OTF2_TimeStamp get_time() {
     static OTF2_TimeStamp wtime;
 #ifdef DUMMY_TIMESTEPS
-    // Dummy timesteps
 #ifdef DEBUG
     Rcout << "time: " << wtime << "\n";
 #endif 
     return wtime++;
+#else // Wall clock time O(E-6)
 
-#else 
-
-    // Wall clock time O(E-6)
 	struct timeval t;
 	gettimeofday(&t, NULL);
-	//double wtime = (double)(t.tv_sec + t.tv_usec*1e-6);
     wtime = t.tv_sec*1E6 + t.tv_usec;
 #ifdef DEBUG
     Rcout << "time: " << wtime << "\n";
@@ -111,7 +102,6 @@ static OTF2_FlushCallbacks flush_callbacks =
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_Archive() {
-    //static OTF2_Archive* archive = OTF2_Archive_Open( "ArchivePath",
     archive = OTF2_Archive_Open( "ArchivePath",
                                                "ArchiveName",
                                                OTF2_FILEMODE_WRITE,

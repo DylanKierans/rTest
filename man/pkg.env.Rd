@@ -20,7 +20,7 @@ Used for storing package level variables (flags eg INSTRUMENTATION_ENABLED, and 
 \item PRINT_FUNC_INDEXES
 }}
 \format{
-An object of class \code{environment} of length 7.
+An object of class \code{environment} of length 0.
 }
 \usage{
 pkg.env

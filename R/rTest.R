@@ -36,4 +36,4 @@ rTest_helloWorld_wrapper <- function() {
 #'  - PRINT_INSTRUMENTS
 #'  - PRINT_SKIPS
 #'  - PRINT_FUNC_INDEXES
-pkg.env <- new.env()
+pkg.env <- new.env(parent = emptyenv())
