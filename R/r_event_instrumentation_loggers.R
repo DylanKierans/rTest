@@ -5,11 +5,11 @@
 # section - event log
 #######################################################################
 
-#' profile_create_eventlog
+#' create_eventlog
 #'  See return
 #' @return Dataframe for event logging
 #' @export
-profile_create_eventlog <- function() {
+create_eventlog <- function() {
     ## Sections in eventlog - region, event_type, time
     region <- integer()
     event_type <- logical() #' 1 for enter, 0 for exit
@@ -27,12 +27,12 @@ profile_create_eventlog <- function() {
     df # Kept for compatability after change
 }
 
-#' profile_event_create
+#' event_create
 #'  Create new start or end event in global eventlog
 #' @param region Integer - Index of event/function in INSTRUMENTATION_DF
 #' @param event_type Boolean - TRUE for start, FALSE for end event
 #' @param timestamp numeric - Time of event occurence
-profile_event_create <- function(region, event_type, timestamp) {
+event_create <- function(region, event_type, timestamp) {
     new_row <- list(as.integer(region), event_type, timestamp)
 
     ## DEBUGGING - Check datatypes
@@ -42,29 +42,29 @@ profile_event_create <- function(region, event_type, timestamp) {
     pkg.env$PROFILE_EVENTLOG_NROWS <- pkg.env$PROFILE_EVENTLOG_NROWS + 1
 }
 
-#' profile_reset_event_log
+#' reset_event_log
 #'  Assign new eventlog dataframe 
 #' @return Dataframe for eventlog
-profile_reset_eventlog <- function() {
-    #PROFILE_EVENTLOG <<- profile_create_eventlog()
-    pkg.env$PROFILE_EVENTLOG <- profile_create_eventlog()
+reset_eventlog <- function() {
+    #PROFILE_EVENTLOG <<- create_eventlog()
+    pkg.env$PROFILE_EVENTLOG <- create_eventlog()
 }
 
 
-#' profile_print_eventlog
+#' print_eventlog
 #'  Print global event log
 #' @param df - Dataframe object for eventlog
-profile_print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
+print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
     print(df)
 }
 
 
-#' profile_save_eventlog
+#' save_eventlog
 #'  Save event log to file
 #' @param filename String - Name of file to save eventlog to, .csv
 #' @param df - Dataframe object for eventlog
 #' @param flag_debug Boolean - True to enable debug statements
-profile_save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALSE) {
+save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALSE) {
     print(paste0("############## SAVING TO FILE: ", filename, "###############"))
     utils::write.csv(df, filename, row.names=FALSE)
     print("############## SAVED TO FILE ###############")
@@ -78,19 +78,19 @@ profile_save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_de
 # BASE VALS: package:function, ncalls, total_time
 # EXTRA VALS: min time, max time, call stack
 
-#' profile_create_dataframe
+#' create_dataframe
 #'  See return
 #' @param flag_debug Boolean - Enabled debug state,emts
 #' @return Dataframe containing each function with information on function name,
 #'      package, count of function calls, total time spent in function
 #' @export
-profile_create_dataframe <- function(flag_debug=FALSE) {
+create_dataframe <- function(flag_debug=FALSE) {
     packages <- .packages()
-    num_functions_per_package <- profile_total_num_functions()
+    num_functions_per_package <- total_num_functions()
     num_functions_total <- sum(num_functions_per_package)
 
     ## Sections in dataframe
-    function_names <- names(profile_get_function_list())
+    function_names <- names(get_function_list())
     package_list <- array(,num_functions_total) 
     count <- integer(num_functions_total)
     total_time <- numeric(num_functions_total)
@@ -126,11 +126,11 @@ profile_create_dataframe <- function(flag_debug=FALSE) {
                function_count=count, function_time=total_time )
 }
 
-#' profile_reset_dataframe
+#' reset_dataframe
 #'  Reset function_count and function_time info to zero
-#' @param df Dataframe - Created by profile_create_dataframe() for collecting tracing info
+#' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @export
-profile_reset_dataframe <- function(df) {
+reset_dataframe <- function(df) {
     num_functions <- length(df[["functions"]])
     for ( i in 1:num_functions ){
         df[["function_count"]][i] <- 0
@@ -138,32 +138,32 @@ profile_reset_dataframe <- function(df) {
     }
 }
 
-#' profile_reduce_dataframe
+#' reduce_dataframe
 #'  Reset function_count and function_time info to zero
-#' @param df Dataframe - Created by profile_create_dataframe() for collecting tracing info
+#' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @export
-profile_reduce_dataframe <- function(df) {
+reduce_dataframe <- function(df) {
     num_functions <- length(df[["functions"]])
     non_zero_count_indices <- ( df[["function_count"]] != 0 )
     reduced_df <- df[non_zero_count_indices,]
     reduced_df
 }
 
-#' profile_save_dataframe
+#' save_dataframe
 #'  Write dataframe to file (preferably reduced)
-#' @param df Dataframe - Created by profile_create_dataframe() for collecting tracing info
+#' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @param filename String - Filename to save output to
 #' @export
-profile_save_dataframe <- function(df, filename) {
+save_dataframe <- function(df, filename) {
     utils::write.table(df,filename,sep=",",row.names=FALSE)
 }
 
-#' profile_print_instrumentation
+#' print_instrumentation
 #'  Print table of reduce dataframe
 #' @param flag_debug Boolean - Enable debug header
 #' @export
-profile_print_instrumentation <- function(flag_debug=TRUE) {
-    reduced_df <- profile_reduce_dataframe(pkg.env$PROFILE_INSTRUMENTATION_DF)
+print_instrumentation <- function(flag_debug=TRUE) {
+    reduced_df <- reduce_dataframe(pkg.env$PROFILE_INSTRUMENTATION_DF)
     if (flag_debug) {
         print("########### INSTRUMENTATION_DATAFRAME ############")
     }

@@ -5,7 +5,7 @@
 # @todo - C error checking
 # @todo - Should only compile function if previous version compiled
 # @todo - Make sure PROFILE_INSTRUMENTATION_DF exists
-# @todo - Isolate .profile_wrapper_expression
+# @todo - Isolate .wrapper_expression
 # @todo - ensure parent thread with isForkedChild()
 # @todo - reduce function exception list
 # @todo - reduce usage to rTrace_init, rTrace_finalize, rTrace_start, rTrace_stop
@@ -13,14 +13,9 @@
 suppressPackageStartupMessages({
     library("R.utils", quietly=TRUE)
     library("methods", quietly=TRUE)
-    library("stats", quietly=TRUE)
     library("rlang", quietly=TRUE)
-    library("pryr", quietly=TRUE)
     library("compiler", quietly=TRUE)
 })
-#source("R/r_exception_list.R")
-#source("R/r_utils.R")
-#source("R/r_event_instrumentation_loggers.R")
 
 
 ########################################################################
@@ -66,7 +61,7 @@ pkg.env$FUNCTION_DEPTH <- 0
 # SECTION
 ########################################################################
 
-#' profile_insert_instrumentation
+#' insert_instrumentation
 #'  Insert instrumentation prefix for package_name:::func
 #' @param func Object - Pointer to function closure to update
 #' @param func_name String - function name
@@ -76,10 +71,10 @@ pkg.env$FUNCTION_DEPTH <- 0
 #' @param flag_user_function Boolean - True if instrumenting user functoin
 #' @param env_is_locked Boolean - True if function name-/package- space is locked
 #' @export
-profile_insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
+insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
 
     ## Version 7
-    .profile_wrapper_expression <- eval( substitute(
+    .wrapper_expression <- eval( substitute(
     expression(
     { 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
@@ -97,7 +92,7 @@ profile_insert_instrumentation <- function(func, func_name, func_index, regionRe
             if (pkg.env$FUNCTION_DEPTH < 0 )  
             {
                 print("Warning: Disabling instrumentation - Function_depth < 0.")
-                profile_disable_instrumentation()
+                disable_instrumentation()
             }
 
             ## Append to depth counter
@@ -115,8 +110,8 @@ profile_insert_instrumentation <- function(func, func_name, func_index, regionRe
                 on.exit( pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][X_func_index_X] <- pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][X_func_index_X] + t0, add=TRUE )
 
                 ## Eventlog
-                profile_event_create(as.integer(X_func_index_X), TRUE, time())
-                on.exit( profile_event_create(as.integer(X_func_index_X), FALSE, time()), add=TRUE )
+                event_create(as.integer(X_func_index_X), TRUE, time())
+                on.exit( event_create(as.integer(X_func_index_X), FALSE, time()), add=TRUE )
 
                 ## OTF2 Event
                 rTest_evtWriter_Write(X_regionRef_X,T)
@@ -132,39 +127,39 @@ profile_insert_instrumentation <- function(func, func_name, func_index, regionRe
 
     ## Copy and wrap function definition
     orig_func_body <- body(func)[1:length(body(func))]
-    body(func) <- as.call(c(as.name("{"), .profile_wrapper_expression, orig_func_body))
+    body(func) <- as.call(c(as.name("{"), .wrapper_expression, orig_func_body))
 
     ## TODO: Not byte-compiling now in order to speed up
     #func <- compiler::cmpfun(func) ## Should only compile if original is compiled
 
     ## Replace function in package and namespace
     if (flag_user_function) {
-        profile_replace_user_function(func, func_name, package_name)
+        replace_user_function(func, func_name, package_name)
     } else {
-        profile_replace_function(func, func_name, package_name, env_is_locked=env_is_locked)
+        replace_function(func, func_name, package_name, env_is_locked=env_is_locked)
     }
 
 }
 
 
 
-#' profile_replace_user_function
+#' replace_user_function
 #'  Replace user function definition
 #' @param new_func Function, function object with new definition
 #' @param func_name String, name of function
 #' @param package_name String, name of package function
 #' @param env Environment, environment function exists in (default .GlobalEnv)
-profile_replace_user_function <- function(new_func, func_name, package_name, env=.GlobalEnv) {
+replace_user_function <- function(new_func, func_name, package_name, env=.GlobalEnv) {
     assign(func_name, new_func, envir = env)
 }
 
-#' profile_replace_function
+#' replace_function
 #'  Replace library function definition in package- and name-space
 #' @param new_func Function object with new definition
 #' @param func_name String, name of function
 #' @param package_name String, name of package function
 #' @param env_is_locked Boolean - True if function name-/package- space is locked
-profile_replace_function <- function(new_func, func_name, package_name, env_is_locked=TRUE) {
+replace_function <- function(new_func, func_name, package_name, env_is_locked=TRUE) {
 
     if (env_is_locked) {
         # namespace
@@ -200,14 +195,14 @@ profile_replace_function <- function(new_func, func_name, package_name, env_is_l
 # section
 #######################################################################
   
-#' profile_get_function_list
+#' get_function_list
 #'  Get all functions in package (else all if no arg given)
 #' @param packages String[] - Full name of package if specific package, else all available packages
 #' @param flag_full_name Boolean - TRUE if full name of package passed using input packages (eg "package:stats")
 #' @param flag_debug Boolean - Enable debugging statements
 #' @return func_list Function[] - List of function ptrs
 #' @export
-profile_get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_debug=FALSE) {
+get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_debug=FALSE) {
     func_list <- list()     # list of function pointers
 
     if (is.null(packages)){ packages <- .packages() }
@@ -230,12 +225,12 @@ profile_get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_
     func_list 
 }
 
-#' profile_get_user_function_list
+#' get_user_function_list
 #'  Get all user-defined functions in global_env
 #' @param flag_debug Boolean - Enable debug output
 #' @return user_func_list Function[] - List of user-defined functions
 #' @export
-profile_get_user_function_list <- function(flag_debug=FALSE) {
+get_user_function_list <- function(flag_debug=FALSE) {
     objs <- mget(ls(envir=.GlobalEnv), inherits=T)
     user_func_list <- Filter(is.function, objs)
 
@@ -248,13 +243,13 @@ profile_get_user_function_list <- function(flag_debug=FALSE) {
 }
 
 
-#' profile_total_num_functions
+#' total_num_functions
 #'  Find total number of loaded packages and functions
 #' @param debug_flag Boolean - TRUE to print debug information
 #' @param flag_user_functions Boolean - True if also flagging user functions
 #' @return Int[] Number of functions per package
 #' @export
-profile_total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FALSE) {
+total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FALSE) {
 
     packages <- .packages()
     full_packages <- paste0("package:",packages)
@@ -264,13 +259,13 @@ profile_total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FA
     ## Iterate through all packages
     for (i in 1:length(packages)) {
         package <- packages[i]
-        function_ptrs <- profile_get_function_list(packages=c(package))
+        function_ptrs <- get_function_list(packages=c(package))
         num_functions[i] <- length(function_ptrs)
     }
 
     ## Append number of user functions if enabled
     if (flag_user_functions){
-        function_ptrs <- profile_get_user_function_list()
+        function_ptrs <- get_user_function_list()
         append(num_functions, length(function_ptrs))
     }
 
@@ -290,14 +285,14 @@ profile_total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FA
 # section - function list helper functions
 #######################################################################
 
-#' profile_get_function_index
+#' get_function_index
 #'  Get function index from func_list
 #' @param func_ptr Object - Function
 #' @param func_list Object[] - Array of functions
 #' @param func_name String - Name of function
 #' @return index Integer - for func_name in func_list, else NULL if not found
 #' @export
-profile_get_function_index <- function(func_list, func_ptr, func_name){
+get_function_index <- function(func_list, func_ptr, func_name){
 
     # Cycle through list for match
     for (i in 1:length(func_list)) {
@@ -314,7 +309,7 @@ profile_get_function_index <- function(func_list, func_ptr, func_name){
 #' @param func_indexes Int[] 
 #' @export 
 print_function_from_index <- function(func_indexes) {
-    func_ptrs <- profile_get_function_list()
+    func_ptrs <- get_function_list()
     for (func_index in func_indexes) {
         print(names(func_ptrs)[func_index])
     }
@@ -323,11 +318,11 @@ print_function_from_index <- function(func_indexes) {
 
 
 #######################################################################
-# section
+# section - Check valid function for instrumentation
 #######################################################################
 
-#' profile_try_insert_instrumentation
-#'  Checks function exceptions and calls profile_insert_instrumentation() if success
+#' try_insert_instrumentation
+#'  Checks function exceptions and calls insert_instrumentation() if success
 #' @param func_info Dataframe (struct) containing func_index info, func_name and packagE_name
 #' @param func_ptrs Function[] - List of function objects
 #' @param env_is_locked Boolean - True if function name-/package- space is locked
@@ -335,7 +330,7 @@ print_function_from_index <- function(func_indexes) {
 #' @param function_methods_exception_list Object[] - List of function method exceptions to skip
 #' @param flag_debug Boolean - Enable debug output
 #' @export 
-profile_try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked, 
+try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked, 
     function_exception_list, function_methods_exception_list, flag_debug=F)
 {
     func_global_index <- func_info$func_global_index
@@ -364,12 +359,12 @@ profile_try_insert_instrumentation <- function(func_info, func_ptrs, env_is_lock
 
     ## Test if function should be skipped
     env <-  as.environment( paste0("package:",package_name) )
-    if ( profile_skip_function(func_ptr, func_name, env, function_exception_list, function_methods_exception_list)) {
+    if ( skip_function(func_ptr, func_name, env, function_exception_list, function_methods_exception_list)) {
         return(NULL) # break or return(NULL)
     }
 
     ## Create otf2 region and event descriptions
-    regionRef <- profile_create_otf2_event(func_name)
+    regionRef <- create_otf2_event(func_name)
 
     ## Label as instrumented in instrumentation dataframe
     pkg.env$PROFILE_INSTRUMENTATION_DF[["function_instrumented"]][func_global_index] <-  TRUE
@@ -380,27 +375,26 @@ profile_try_insert_instrumentation <- function(func_info, func_ptrs, env_is_lock
     }
 
     ## Wrap function with debug info
-    profile_insert_instrumentation(func_ptr, func_name, func_global_index, regionRef, package_name, env_is_locked=!pkg.env$UNLOCK_ENVS)
+    insert_instrumentation(func_ptr, func_name, func_global_index, regionRef, package_name, env_is_locked=!pkg.env$UNLOCK_ENVS)
 }
 
-#' profile_create_otf2_event
+#' create_otf2_event
 #'  Creates stringRef and regionRef for func_name
 #' @param func_name String - Name of function
 #' @return regionRef Int - Index of stringRef for function
-#' @export
-profile_create_otf2_event <- function(func_name) {
+create_otf2_event <- function(func_name) {
         stringRef <- rTest_globalDefWriter_WriteString(func_name)
         regionRef <- rTest_globalDefWriter_WriteRegion(stringRef)
         regionRef
 }
 
-#' profile_instrument_all_functions
+#' instrument_all_functions
 #'  Instrument all functions
 #' @param package_list String[] - Array of package names to instrument, if none instrument all packages
 #' @param flag_user_functions Boolean - True if also flagging user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
-profile_instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
+instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
 {
     ## Initiate OTF2 GlobalDefWriter
     rTest_init_GlobalDefWriter()
@@ -415,13 +409,13 @@ profile_instrument_all_functions <- function(package_list=NULL, flag_user_functi
     package_exception_list <-  get_package_exception_list()
 
     ## Needed for finding index offset
-    num_func_per_package <- profile_total_num_functions(flag_user_functions=flag_user_functions)
+    num_func_per_package <- total_num_functions(flag_user_functions=flag_user_functions)
 
     ## Cycle through every package
     for (package_name in package_list) {
 
         ## Get function pointers and names
-        func_ptrs <- profile_get_function_list(packages=package_name)
+        func_ptrs <- get_function_list(packages=package_name)
         func_names <- names(func_ptrs)
         func_num <- length(func_ptrs)
 
@@ -458,7 +452,7 @@ profile_instrument_all_functions <- function(package_list=NULL, flag_user_functi
             func_info <- data.frame(func_global_index, func_local_index, func_name, package_name)
 
             ## Instrumentation writes entry and leave events in wrapper
-            profile_try_insert_instrumentation(func_info, func_ptrs, !pkg.env$UNLOCK_ENVS, function_exception_list, function_methods_exception_list, flag_debug)
+            try_insert_instrumentation(func_info, func_ptrs, !pkg.env$UNLOCK_ENVS, function_exception_list, function_methods_exception_list, flag_debug)
         }
 
         if (pkg.env$UNLOCK_ENVS) { lock_envs(package_name) }
@@ -466,14 +460,14 @@ profile_instrument_all_functions <- function(package_list=NULL, flag_user_functi
     }
 
     if (flag_user_functions) {
-        profile_instrument_user_functions(flag_debug=flag_debug) 
+        instrument_user_functions(flag_debug=flag_debug) 
         print("Completed package: User functions")
     }
     print("COMPLETED FUNCTION WRAPPING")
 
 }
 
-#' profile_skip_function
+#' skip_function
 #'  Check if function should be skipped for instrumentation. Reasons 
 #'  for skipping include function in FUNCTION_EXCEPTION_LIST, primitive
 #'  functions, functions used in instrumentation wrapper (to avoid recursion)
@@ -485,7 +479,7 @@ profile_instrument_all_functions <- function(package_list=NULL, flag_user_functi
 #' @param function_methods_exception_list Object[] - List of function methods to skip, generated by get_function_methods(function_exception_list)
 #' @return Boolean - TRUE if skip, else FALSE
 #' @export
-profile_skip_function <- function(func_ptr, func_name, env, 
+skip_function <- function(func_ptr, func_name, env, 
                                   function_exception_list, 
                                   function_methods_exception_list)
 {
@@ -532,18 +526,18 @@ profile_skip_function <- function(func_ptr, func_name, env,
 }
 
 
-#' profile_instrument_user_functions
+#' instrument_user_functions
 #'  Instrument user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
-profile_instrument_user_functions <- function(flag_debug=FALSE) 
+instrument_user_functions <- function(flag_debug=FALSE) 
 {
     INHERITS <- TRUE
     package_name <- "User functions" # Placeholder for consistency in debug statments
 
 
     ## Get function pointers and names
-    func_ptrs <- profile_get_user_function_list()
+    func_ptrs <- get_user_function_list()
     func_names <- names(func_ptrs)
     func_num <- length(func_ptrs)
     env = .GlobalEnv
@@ -553,7 +547,7 @@ profile_instrument_user_functions <- function(flag_debug=FALSE)
     function_methods_exception_list <- get_function_methods(function_exception_list)
 
     ## Function index offset
-    num_func_per_package <- profile_total_num_functions()
+    num_func_per_package <- total_num_functions()
     func_global_index <- sum(num_func_per_package)
 
     ## DEBUGGING
@@ -578,42 +572,7 @@ profile_instrument_user_functions <- function(flag_debug=FALSE)
         func_info <- data.frame(func_global_index, func_local_index, func_name, package_name)
 
         ## Instrumentation writes entry and leave events in wrapper
-        profile_try_insert_instrumentation(func_info, func_ptrs, FALSE, flag_debug)
-
-        #func_index <- func_index + 1
-        #func_name <- func_names[i]
-
-        ### Make sure function exists
-        #if ( !is.null(func_ptrs[i][[func_name]]) ){ 
-        #    func_ptr <- func_ptrs[i][[func_name]] 
-        #}
-        #else { 
-        #    print(paste0("ERROR: Function not found - `",func_name,"`"))
-        #    stop()
-        #}
-
-        ### DEBUGGING - Display current function (before checks)
-        #if (flag_debug) {
-        #    print("#######################################")
-        #    print(paste0("i=(",i," of ", func_num,")"))
-        #    print(paste0("package: ", package_name, ", function: ", func_name))
-        #    print(utils::str(body(func_ptr))) 
-        #    print(utils::head(func_ptr))
-        #}
-
-        ### Test if function should be skipped
-        #if ( profile_skip_function(func_ptr, func_name, env, function_exception_list, function_methods_exception_list)) 
-        #{
-        #    next 
-        #}
-
-        ### Label as instrumented in instrumentation dataframe
-        #pkg.env$PROFILE_INSTRUMENTATION_DF[["func_instrumented"]][func_index] <- TRUE
-
-        ### Wrap function with debug info
-        #if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: function `", func_name,"`"))
-        #profile_instrument_user_function(func_ptr, func_name, func_index, NULL)
-
+        try_insert_instrumentation(func_info, func_ptrs, FALSE, flag_debug)
     }
     print(paste0("Completed package: ", package_name))
 
@@ -632,8 +591,8 @@ profile_instrument_user_functions <- function(flag_debug=FALSE)
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
 test_instrumentation <- function(func_ptr, func_name, expr, flag_debug=F) {
-    func_ptrs <- profile_get_function_list()
-    index_func <- profile_get_function_index(func_ptrs, func_ptr, func_name)
+    func_ptrs <- get_function_list()
+    index_func <- get_function_index(func_ptrs, func_ptr, func_name)
 
     if (flag_debug){
         print(paste0("Num functions:",length(func_ptrs),", index of function:",index_func))
@@ -659,11 +618,11 @@ test_instrumentation <- function(func_ptr, func_name, expr, flag_debug=F) {
 #######################################################################
 # ENABLE/DISABLE INSTRUMENTATION
 #######################################################################
-#' profile_enable_instrumentation
+#' enable_instrumentation
 #'  Enable instrumentation and reset function depth
 #' @export
-profile_enable_instrumentation <- function(){
-    if (profile_is_instrumentation_enabled()){
+enable_instrumentation <- function(){
+    if (is_instrumentation_enabled()){
         print("Warning: Instrumentation already enabled!")
     }
     else {
@@ -673,11 +632,11 @@ profile_enable_instrumentation <- function(){
     }
 }
 
-#' profile_disable_instrumentation
+#' disable_instrumentation
 #'  Disable instrumentation
 #' @export
-profile_disable_instrumentation <- function(){
-    if (!profile_is_instrumentation_enabled()){
+disable_instrumentation <- function(){
+    if (!is_instrumentation_enabled()){
         print("Warning: Instrumentation already disabled!")
     }
     else {
@@ -687,11 +646,11 @@ profile_disable_instrumentation <- function(){
     }
 }
 
-#' profile_is_instrumentation_enabled
+#' is_instrumentation_enabled
 #'  Return current instrumentation status
 #' @return BOOLEAN - Instrumentation status
 #' @export
-profile_is_instrumentation_enabled <- function() {
+is_instrumentation_enabled <- function() {
     pkg.env$INSTRUMENTATION_ENABLED
 }
 
