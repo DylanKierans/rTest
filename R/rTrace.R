@@ -1,3 +1,21 @@
+# @name rTrace
+# @author D.Kierans, \email{dylanki@@kth.se}
+# @references \url{https://github.com/DylanKierans/rTrace}
+# @usage Usage:
+# \describe{
+#  <import packages>
+#  <define user functions>
+#  instrumentation_init()
+#  instrument_all_functions()
+#  <...>
+#  <enter relevant area>
+#  instrumentation_enable()
+#  <do work>
+#  instrumentation_disable()
+#  <exit relevant area>
+#  instrumentation_finalize()
+# }
+
 #' @useDynLib rTrace
 #' @importFrom Rcpp evalCpp 
 #' @importFrom methods is
@@ -5,6 +23,8 @@
 #' @importFrom R.utils isPackageLoaded
 #' @importFrom rlang env_unlock env_lock env_binding_unlock env_binding_lock 
 #' @exportPattern "^[[:alpha:]]+"
+
+
 
 if (!require("Rcpp")) install.packages("Rcpp")
 library("Rcpp")

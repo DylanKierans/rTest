@@ -1,6 +1,6 @@
-#' @name file - exception_list.R
-#' @description List of functions to not profile, due to recursion problems amongst others
-#'  (will hopefully reduce with otf2 C/C++ implimentation)
+# @name exception_list.R
+# @description List of functions to not profile, due to recursion problems amongst others
+#  (will hopefully reduce with otf2 C/C++ implimentation)
 library("R.utils")
 library("methods")
 

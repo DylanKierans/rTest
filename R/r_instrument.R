@@ -1,35 +1,17 @@
-#' @name r_instrument.R
-#' @description Main file for instrumentation componenets
-#' @usage Usage:
-#' \describe{
-#'  <import packages>
-#'  <define user functions>
-#'  instrumentation_init()
-#'  instrument_all_functions()
-#'  <...>
-#'  <enter relevant area>
-#'  instrumentation_enable()
-#'  <do work>
-#'  instrumentation_disable()
-#'  <exit relevant area>
-#'  instrumentation_finalize()
-#' }
 # @todo - Consider effects on wrapping user defined functions
 # @todo - R error checking
 # @todo - C error checking
-# @todo - Should only compile function if previous version compiled
 # @todo - Make sure PROFILE_INSTRUMENTATION_DF exists
 # @todo - Isolate .wrapper_expression
 # @todo - ensure parent thread with isForkedChild()
 # @todo - reduce function exception list
-# @todo - reduce usage to rTrace_init, rTrace_finalize, rTrace_start, rTrace_stop
 
-suppressPackageStartupMessages({
-    library("R.utils", quietly=TRUE)
-    library("methods", quietly=TRUE)
-    library("rlang", quietly=TRUE)
-    library("compiler", quietly=TRUE)
-})
+#suppressPackageStartupMessages({
+#    library("R.utils", quietly=TRUE)
+#    library("methods", quietly=TRUE)
+#    library("rlang", quietly=TRUE)
+#    library("compiler", quietly=TRUE)
+#})
 
 
 ########################################################################
@@ -376,7 +358,7 @@ create_otf2_event <- function(func_name) {
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
-instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
+instrument_all_functions <- function(package_list=NULL, flag_user_functions=FALSE, flag_debug=FALSE) 
 {
     ## Make sure instrumentation_init() has been called
     if (!is_instrumentation_init()){

@@ -6,7 +6,7 @@
 \usage{
 instrument_all_functions(
   package_list = NULL,
-  flag_user_functions = TRUE,
+  flag_user_functions = FALSE,
   flag_debug = FALSE
 )
 }
