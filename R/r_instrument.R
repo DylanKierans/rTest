@@ -383,7 +383,6 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         print("ERROR: Must first call `instrumentation_init()` before instrumenting functions.")
         stop()
     }
-    print("DEBUG")
 
     if (is.null(package_list)){ ## Get all packages from env if none given
         package_list <- .packages()
@@ -449,7 +448,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         instrument_user_functions(flag_debug=flag_debug) 
         print("Instrumented user functions")
     }
-    print("COMPLETED FUNCTION WRAPPING")
+    print("COMPLETED INSTRUMENTATION")
 
 }
 
@@ -696,6 +695,8 @@ instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
 
     ## Initiate OTF2 GlobalDefWriter
     init_GlobalDefWriter()
+
+    return(invisible(NULL))
 }
 
 #' is_instrumentation_init
