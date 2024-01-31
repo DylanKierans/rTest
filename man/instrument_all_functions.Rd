@@ -13,7 +13,7 @@ instrument_all_functions(
 \arguments{
 \item{package_list}{String[] - Array of package names to instrument, if none instrument all packages}
 
-\item{flag_user_functions}{Boolean - True if also flagging user functions}
+\item{flag_user_functions}{Boolean - TRUE if also flagging user functions}
 
 \item{flag_debug}{Boolean - Enable debug statements}
 }

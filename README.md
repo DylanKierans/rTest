@@ -11,15 +11,13 @@ Wrapper built using [`Rcpp`](https://cran.r-project.org/web/packages/Rcpp/index.
 
 ## Installation
 
-Installation steps:
+Install [`libotf2`](https://www.vi-hps.org/projects/score-p/) dependency, then install from source:
 
-1. Install dependencies: [`libotf2`](https://www.vi-hps.org/projects/score-p/)
-
-2. Clone git repository
-
-3. Install from source with R command, replacing path: `install.packages("/path/to/rTrace/repo",repos=NULL,type="source")`
-
-4. Verify installation by loading package with R command: `library("rTrace")`
+```
+install.packages("devtools") # if not yet installed
+library(devtools)
+install_github("DylanKierans/rTrace")
+```
 
 ## Usage
 

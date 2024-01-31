@@ -13,9 +13,11 @@ helloWorld <- function() {
 }
 
 #' Initialize static otf2 {archive} objs
+#' @param archivePath Path to the archive i.e. the directory where the anchor file is located.
+#' @param archiveName Name of the archive. It is used to generate sub paths e.g. 'archiveName.otf2'.
 #' @return R_NilValue
-init_Archive <- function() {
-    .Call('_rTrace_init_Archive', PACKAGE = 'rTrace')
+init_Archive <- function(archivePath = "./rTrace", archiveName = "rTrace") {
+    .Call('_rTrace_init_Archive', PACKAGE = 'rTrace', archivePath, archiveName)
 }
 
 #' Close static otf2 {archive, evt_writer} objs

@@ -21,12 +21,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // init_Archive
-RcppExport SEXP init_Archive();
-RcppExport SEXP _rTrace_init_Archive() {
+RcppExport SEXP init_Archive(Rcpp::String archivePath, Rcpp::String archiveName);
+RcppExport SEXP _rTrace_init_Archive(SEXP archivePathSEXP, SEXP archiveNameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(init_Archive());
+    Rcpp::traits::input_parameter< Rcpp::String >::type archivePath(archivePathSEXP);
+    Rcpp::traits::input_parameter< Rcpp::String >::type archiveName(archiveNameSEXP);
+    rcpp_result_gen = Rcpp::wrap(init_Archive(archivePath, archiveName));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -140,7 +142,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_helloWorld", (DL_FUNC) &_rTrace_helloWorld, 0},
-    {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 0},
+    {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 2},
     {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
     {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},
     {"_rTrace_finalize_EvtWriter", (DL_FUNC) &_rTrace_finalize_EvtWriter, 0},

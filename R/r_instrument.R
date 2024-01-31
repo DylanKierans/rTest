@@ -43,8 +43,8 @@ suppressPackageStartupMessages({
 #' @param func_index Integer - index of function in function_list in PROFILE_INSTRUMENTATION_DF
 #' @param regionRef Integer - OTF2 regionRef index
 #' @param package_name String - package name
-#' @param flag_user_function Boolean - True if instrumenting user functoin
-#' @param env_is_locked Boolean - True if function name-/package- space is locked
+#' @param flag_user_function Boolean - TRUE if instrumenting user functoin
+#' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
 #' @export
 insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
 
@@ -133,7 +133,7 @@ replace_user_function <- function(new_func, func_name, package_name, env=.Global
 #' @param new_func Function object with new definition
 #' @param func_name String, name of function
 #' @param package_name String, name of package function
-#' @param env_is_locked Boolean - True if function name-/package- space is locked
+#' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
 replace_function <- function(new_func, func_name, package_name, env_is_locked=TRUE) {
 
     if (env_is_locked) {
@@ -221,7 +221,7 @@ get_user_function_list <- function(flag_debug=FALSE) {
 #' total_num_functions
 #' @description Find total number of loaded packages and functions
 #' @param debug_flag Boolean - TRUE to print debug information
-#' @param flag_user_functions Boolean - True if also flagging user functions
+#' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @return Int[] Number of functions per package
 #' @export
 total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FALSE) {
@@ -300,7 +300,7 @@ print_function_from_index <- function(func_indexes) {
 #' @description Checks function exceptions and calls insert_instrumentation() if success
 #' @param func_info Dataframe (struct) containing func_index info, func_name and packagE_name
 #' @param func_ptrs Function[] - List of function objects
-#' @param env_is_locked Boolean - True if function name-/package- space is locked
+#' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
 #' @param function_exception_list Object[] - List of function exceptions to skip
 #' @param function_methods_exception_list Object[] - List of function method exceptions to skip
 #' @param flag_user_function Boolean - Enable if user defined function (in .GlobalEnv)
@@ -373,11 +373,18 @@ create_otf2_event <- function(func_name) {
 #' instrument_all_functions
 #' @description Instrument all functions
 #' @param package_list String[] - Array of package names to instrument, if none instrument all packages
-#' @param flag_user_functions Boolean - True if also flagging user functions
+#' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
 instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
 {
+    ## Make sure instrumentation_init() has been called
+    if (!is_instrumentation_init()){
+        print("ERROR: Must first call `instrumentation_init()` before instrumenting functions.")
+        stop()
+    }
+    print("DEBUG")
+
     if (is.null(package_list)){ ## Get all packages from env if none given
         package_list <- .packages()
     }
@@ -435,12 +442,12 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         }
 
         if (pkg.env$UNLOCK_ENVS) { lock_envs(package_name) }
-        print(paste0("Completed package: ", package_name))
+        print(paste0("Instrumented package: ", package_name))
     }
 
     if (flag_user_functions) {
         instrument_user_functions(flag_debug=flag_debug) 
-        print("Completed package: User functions")
+        print("Instrumented user functions")
     }
     print("COMPLETED FUNCTION WRAPPING")
 
@@ -556,7 +563,7 @@ instrument_user_functions <- function(flag_debug=FALSE)
                                    function_methods_exception_list,
                                    flag_user_function=T, flag_debug)
     }
-    print(paste0("Completed package: ", package_name)) # User functions
+    print(paste0("Instrumented functions from package: ", package_name)) # User functions
 
 }
 
@@ -639,7 +646,7 @@ is_instrumentation_enabled <- function() {
 
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
-#' @param r_profiling Boolean - True to enable R-based eventlogger and runtime info
+#' @param r_profiling Boolean - TRUE to enable R-based eventlogger and runtime info
 #' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
 #' @export
 instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
@@ -648,6 +655,10 @@ instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
         pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe()
         pkg.env$PROFILE_EVENTLOG <- create_eventlog()
     }
+
+    # @name INSTRUMENTATION_INIT
+    # @description Checked when instrumenting functions to ensure init() has been called
+    pkg.env$INSTRUMENTATION_INIT <- TRUE
 
     ### SECTION - Instrument Flags ###
     # @name MAX_FUNCTION_DEPTH
@@ -681,10 +692,20 @@ instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
     pkg.env$FUNCTION_DEPTH <- 0
 
     ## Initiate OTF2 Archive
-    rTrace_init_Archive()
+    init_Archive()
 
     ## Initiate OTF2 GlobalDefWriter
-    rTrace_init_GlobalDefWriter()
+    init_GlobalDefWriter()
+}
+
+#' is_instrumentation_init
+#' @description Error catching function to ensure instrumentation_init() has been called
+#' @return TRUE if init, else FALSE
+is_instrumentation_init <- function() {
+    if ( exists("INSTRUMENTATION_INIT", where=pkg.env) ){
+        return(pkg.env$INSTRUMENTATION_INIT)
+    }
+    return(FALSE)
 }
 
 #' instrumentation_finalize
@@ -692,10 +713,25 @@ instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
 #' @export
 instrumentation_finalize <- function()
 {
-    rTrace_globalDefWriter_WriteSystemTreeNode(0,0)
-    rTrace_globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
-    rTrace_finalize_GlobalDefWriter()
-    rTrace_finalize_Archive()
+    ## Revert value for INSTRUMENTATION_INIT
+    if (!is_instrumentation_init()){
+        print("ERROR: Cannot call `instrumentation_finalize` before `instrumentation_init`.")
+        stop()
+    }
+    pkg.env$INSTRUMENTATION_INIT <- FALSE
+
+    ## Ensure instrumententation disabled
+    if (is_instrumentation_enabled()){
+        warning("WARNING: Instrumentation currently enabled, will force disable before finalizing.")
+        instrumentation_disable
+    }
+
+    ## Close GlobalDefWriter and Archive
+    globalDefWriter_WriteSystemTreeNode(0,0)
+    globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
+    finalize_GlobalDefWriter()
+    finalize_Archive()
+    return(invisible(NULL))
 }
 
 

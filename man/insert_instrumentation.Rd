@@ -25,9 +25,9 @@ insert_instrumentation(
 
 \item{package_name}{String - package name}
 
-\item{flag_user_function}{Boolean - True if instrumenting user functoin}
+\item{flag_user_function}{Boolean - TRUE if instrumenting user functoin}
 
-\item{env_is_locked}{Boolean - True if function name-/package- space is locked}
+\item{env_is_locked}{Boolean - TRUE if function name-/package- space is locked}
 }
 \description{
 Insert instrumentation prefix for package_name:::func

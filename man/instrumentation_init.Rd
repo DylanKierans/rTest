@@ -7,7 +7,7 @@
 instrumentation_init(r_profiling = T, verbose_wrapping = F)
 }
 \arguments{
-\item{r_profiling}{Boolean - True to enable R-based eventlogger and runtime info}
+\item{r_profiling}{Boolean - TRUE to enable R-based eventlogger and runtime info}
 
 \item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout}
 }

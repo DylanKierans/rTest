@@ -9,7 +9,7 @@ total_num_functions(debug_flag = FALSE, flag_user_functions = FALSE)
 \arguments{
 \item{debug_flag}{Boolean - TRUE to print debug information}
 
-\item{flag_user_functions}{Boolean - True if also flagging user functions}
+\item{flag_user_functions}{Boolean - TRUE if also flagging user functions}
 }
 \value{
 Int[] Number of functions per package

@@ -19,7 +19,7 @@ try_insert_instrumentation(
 
 \item{func_ptrs}{Function[] - List of function objects}
 
-\item{env_is_locked}{Boolean - True if function name-/package- space is locked}
+\item{env_is_locked}{Boolean - TRUE if function name-/package- space is locked}
 
 \item{function_exception_list}{Object[] - List of function exceptions to skip}
 

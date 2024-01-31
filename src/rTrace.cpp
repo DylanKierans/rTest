@@ -93,11 +93,13 @@ static OTF2_FlushCallbacks flush_callbacks =
 
 
 //' Initialize static otf2 {archive} objs
+//' @param archivePath Path to the archive i.e. the directory where the anchor file is located.
+//' @param archiveName Name of the archive. It is used to generate sub paths e.g. 'archiveName.otf2'.
 //' @return R_NilValue
 // [[Rcpp::export]]
-RcppExport SEXP init_Archive() {
-    archive = OTF2_Archive_Open( "ArchivePath",
-                                               "ArchiveName",
+RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String archiveName="rTrace") {
+    archive = OTF2_Archive_Open( archivePath.get_cstring(),
+                                               archiveName.get_cstring(),
                                                OTF2_FILEMODE_WRITE,
                                                1024 * 1024 /* event chunk size */,
                                                4 * 1024 * 1024 /* def chunk size*/,

@@ -13,7 +13,7 @@ replace_function(new_func, func_name, package_name, env_is_locked = TRUE)
 
 \item{package_name}{String, name of package function}
 
-\item{env_is_locked}{Boolean - True if function name-/package- space is locked}
+\item{env_is_locked}{Boolean - TRUE if function name-/package- space is locked}
 }
 \description{
 Replace library function definition in package- and name-space
