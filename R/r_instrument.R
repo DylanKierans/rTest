@@ -436,9 +436,13 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=FALS
 
 #' skip_function
 #' @description Check if function should be skipped for instrumentation. Reasons 
-#'  for skipping include function in FUNCTION_EXCEPTION_LIST, primitive
-#'  functions, functions used in instrumentation wrapper (to avoid recursion)
-#'  etc
+#'  for skipping include :
+#'      1) function in FUNCTION_EXCEPTION_LIST
+#'      2) function in FUNCTION_METHODS_EXCEPTION_LIST
+#'      3) primitive functions, 
+#'      4) non-language function (symbol)
+#'      5) functions used in instrumentation wrapper (to avoid recursion)
+#'      5) isS3stdGeneric
 #' @param func_ptr Object - Pointer to function object
 #' @param func_name String - Name of function
 #' @param env Environment - Environment function is in
@@ -462,13 +466,7 @@ skip_function <- function(func_ptr, func_name, env,
         return(TRUE)
     }
 
-    ## DEBUGGING: Skip if primitive function (some are problematic)
-    if ( is.primitive(func_ptr) ) {
-        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is PRIMITVE function"))
-        return(TRUE)
-    }
-
-    ## Skip if in exception list - ugly fix
+    ## 1 - Skip if in exception list
     for (func_exception in function_exception_list) {
         if (identical(func_exception, func_ptr)){
             if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is in exception list"))
@@ -476,15 +474,31 @@ skip_function <- function(func_ptr, func_name, env,
         }
     }
 
-    ## Skip method if from FUNCTION_METHODS_EXCEPTION_LIST
+    ## 2 - Skip method if from FUNCTION_METHODS_EXCEPTION_LIST
     if ( is.element(func_name, function_methods_exception_list) ){
         if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is in method exception list"))
         return(TRUE)
     }
 
-    ## Skip if not language body (symbol in na.null() was causing issues)
+    ## 3 - Skip if primitive function - DEBUGGING (some are problematic)
+    if ( is.primitive(func_ptr) ) {
+        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is PRIMITVE function"))
+        return(TRUE)
+    }
+
+    ## 4 - Skip if not language body - DEBUGGING (symbol in na.null() was causing issues)
     if ( typeof(body(func_ptr)) != "language" ) {
         if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` body is type: ", typeof(body(func_ptr))))
+        return(TRUE)
+    }
+
+    ## 5 - Standard generic function
+    if ( utils::isS3stdGeneric(func_ptr) ) {
+        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type S3 Standard Generic" ))
+        return(TRUE)
+    }
+    if ( methods::isGeneric(func_name) ) {
+        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type Generic Function" ))
         return(TRUE)
     }
 
@@ -500,7 +514,7 @@ skip_function <- function(func_ptr, func_name, env,
 instrument_user_functions <- function(flag_debug=FALSE) 
 {
     INHERITS <- TRUE
-    package_name <- "User functions" # Placeholder for consistency in debug statments
+    package_name <- "user_functions" # Placeholder for consistency
 
 
     ## Get function pointers and names
@@ -628,12 +642,18 @@ is_instrumentation_enabled <- function() {
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
 #' @param r_profiling Boolean - TRUE to enable R-based eventlogger and runtime info
+#' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
 #' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
 #' @export
-instrumentation_init <- function(r_profiling=T, verbose_wrapping=F)
+instrumentation_init <- function(r_profiling=T, flag_user_functions=T, verbose_wrapping=F)
 {
     if (r_profiling) {
-        pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe()
+        pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
+        print(length(.packages()))
+        print(dim(pkg.env$PROFILE_INSTRUMENTATION_DF))
+        tmp <- (total_num_functions(flag_user_functions=flag_user_functions))
+        print(tmp)
+        print(sum(tmp))
         pkg.env$PROFILE_EVENTLOG <- create_eventlog()
     }
 

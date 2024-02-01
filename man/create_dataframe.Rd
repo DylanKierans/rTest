@@ -4,9 +4,11 @@
 \alias{create_dataframe}
 \title{create_dataframe}
 \usage{
-create_dataframe(flag_debug = FALSE)
+create_dataframe(flag_user_functions = FALSE, flag_debug = FALSE)
 }
 \arguments{
+\item{flag_user_functions}{Boolean - TRUE to include user functions in dataframe}
+
 \item{flag_debug}{Boolean - Enabled debug state,emts}
 }
 \value{

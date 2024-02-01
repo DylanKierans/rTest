@@ -28,7 +28,11 @@ Boolean - TRUE if skip, else FALSE
 }
 \description{
 Check if function should be skipped for instrumentation. Reasons
-for skipping include function in FUNCTION_EXCEPTION_LIST, primitive
-functions, functions used in instrumentation wrapper (to avoid recursion)
-etc
+for skipping include :
+1) function in FUNCTION_EXCEPTION_LIST
+2) function in FUNCTION_METHODS_EXCEPTION_LIST
+3) primitive functions,
+4) non-language function (symbol)
+5) functions used in instrumentation wrapper (to avoid recursion)
+5) isS3stdGeneric
 }

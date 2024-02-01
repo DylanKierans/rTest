@@ -4,11 +4,14 @@
 \alias{reduce_dataframe}
 \title{reduce_dataframe}
 \usage{
-reduce_dataframe(df)
+reduce_dataframe(df = pkg.env$PROFILE_INSTRUMENTATION_DF)
 }
 \arguments{
 \item{df}{Dataframe - Created by create_dataframe() for collecting tracing info}
 }
+\value{
+reduced_df Dataframe - All entries of functions which were called
+}
 \description{
-Reset function_count and function_time info to zero
+Reduce dataframe to non-zero function_count entries
 }

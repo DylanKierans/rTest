@@ -4,7 +4,7 @@
 \alias{reset_dataframe}
 \title{reset_dataframe}
 \usage{
-reset_dataframe(df)
+reset_dataframe(df = pkg.env$PROFILE_INSTRUMENTATION_DF)
 }
 \arguments{
 \item{df}{Dataframe - Created by create_dataframe() for collecting tracing info}

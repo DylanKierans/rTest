@@ -41,7 +41,6 @@ event_create <- function(region, event_type, timestamp) {
 #' @description Assign new eventlog dataframe 
 #' @return Dataframe for eventlog
 reset_eventlog <- function() {
-    #PROFILE_EVENTLOG <<- create_eventlog()
     pkg.env$PROFILE_EVENTLOG <- create_eventlog()
 }
 
@@ -49,6 +48,7 @@ reset_eventlog <- function() {
 #' print_eventlog
 #' @description Print global event log
 #' @param df - Dataframe object for eventlog
+#' @export
 print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
     print(df)
 }
@@ -59,10 +59,11 @@ print_eventlog <- function(df=pkg.env$PROFILE_EVENTLOG) {
 #' @param filename String - Name of file to save eventlog to, .csv
 #' @param df - Dataframe object for eventlog
 #' @param flag_debug Boolean - True to enable debug statements
+#' @export
 save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALSE) {
-    print(paste0("############## SAVING TO FILE: ", filename, "###############"))
+    if (flag_debug) print(paste0("############## SAVING TO FILE: ", filename, "###############"))
     utils::write.csv(df, filename, row.names=FALSE)
-    print("############## SAVED TO FILE ###############")
+    if (flag_debug) print("############## SAVED TO FILE ###############")
 }
 
 
@@ -76,13 +77,18 @@ save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALS
 #' create_dataframe
 #' @description See return
 #' @param flag_debug Boolean - Enabled debug state,emts
+#' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
 #' @return Dataframe containing each function with information on function name,
 #'      package, count of function calls, total time spent in function
-#' @export
-create_dataframe <- function(flag_debug=FALSE) {
+create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     packages <- .packages()
-    num_functions_per_package <- total_num_functions()
+    num_functions_per_package <- total_num_functions(flag_user_functions=flag_user_functions)
     num_functions_total <- sum(num_functions_per_package)
+
+    if (flag_user_functions) { packages <- append(packages, "user_functions") }
+    print(paste0("Length of packages after append: ", length(packages)))
+    print(paste0("Length of num_functions: ", length(num_functions_per_package)))
+    print(paste0("Total num_functions: ", sum(num_functions_per_package)))
 
     ## Sections in dataframe
     function_names <- names(get_function_list())
@@ -102,10 +108,10 @@ create_dataframe <- function(flag_debug=FALSE) {
 
     # package each entry in function_names belongs to
     index <- 0
-    for (i in 1:length(packages)) {
-        if (num_functions_per_package[i] > 0 ) {
-            index_end <- index+num_functions_per_package[i]
-            package_list[index:index_end] <- packages[i]
+    for (i_package in 1:length(packages)) {
+        if (num_functions_per_package[i_package] > 0 ) {
+            index_end <- index+num_functions_per_package[i_package]
+            package_list[index:index_end] <- packages[i_package]
             index <- index_end
         }
     }
@@ -124,8 +130,7 @@ create_dataframe <- function(flag_debug=FALSE) {
 #' reset_dataframe
 #' @description Reset function_count and function_time info to zero
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
-#' @export
-reset_dataframe <- function(df) {
+reset_dataframe <- function(df=pkg.env$PROFILE_INSTRUMENTATION_DF) {
     num_functions <- length(df[["functions"]])
     for ( i in 1:num_functions ){
         df[["function_count"]][i] <- 0
@@ -134,10 +139,10 @@ reset_dataframe <- function(df) {
 }
 
 #' reduce_dataframe
-#' @description Reset function_count and function_time info to zero
+#' @description Reduce dataframe to non-zero function_count entries
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
-#' @export
-reduce_dataframe <- function(df) {
+#' @return reduced_df Dataframe - All entries of functions which were called
+reduce_dataframe <- function(df=pkg.env$PROFILE_INSTRUMENTATION_DF) {
     num_functions <- length(df[["functions"]])
     non_zero_count_indices <- ( df[["function_count"]] != 0 )
     reduced_df <- df[non_zero_count_indices,]
@@ -148,20 +153,30 @@ reduce_dataframe <- function(df) {
 #' @description Write dataframe to file (preferably reduced)
 #' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @param filename String - Filename to save output to
+#' @param flag_reduced Boolean - True to display only non-zero count functions, else display all
 #' @export
-save_dataframe <- function(df, filename) {
-    utils::write.table(df,filename,sep=",",row.names=FALSE)
+save_dataframe <- function(filename, df=pkg.env$PROFILE_INSTRUMENTATION_DF, flag_reduced=TRUE) {
+    if(flag_reduced) {
+        utils::write.table(reduce_dataframe(df),filename,sep=",",row.names=FALSE)
+    } else {
+        utils::write.table(df,filename,sep=",",row.names=FALSE)
+    }
 }
 
 #' print_instrumentation
 #' @description Print table of reduce dataframe
+#' @param df Dataframe - Created by create_dataframe() for collecting tracing info
 #' @param flag_debug Boolean - Enable debug header
+#' @param flag_reduced Boolean - True to display only non-zero count functions, else display all
 #' @export
-print_instrumentation <- function(flag_debug=TRUE) {
-    reduced_df <- reduce_dataframe(pkg.env$PROFILE_INSTRUMENTATION_DF)
+print_dataframe <- function(df=pkg.env$PROFILE_INSTRUMENTATION_DF, flag_reduced=TRUE, flag_debug=TRUE) {
     if (flag_debug) {
         print("########### INSTRUMENTATION_DATAFRAME ############")
     }
-    print(reduced_df)
+    if (flag_reduced) {
+        print(reduce_dataframe(df))
+    } else {
+        print(df)
+    }
 }
 
