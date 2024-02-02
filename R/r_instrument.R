@@ -71,8 +71,8 @@ insert_instrumentation <- function(func, func_name, func_index, regionRef, packa
                 on.exit( event_create(as.integer(X_func_index_X), FALSE, rTrace_time()), add=TRUE )
 
                 ## OTF2 Event
-                rTrace_evtWriter_Write(X_regionRef_X,T)
-                on.exit(rTrace_evtWriter_Write(X_regionRef_X,F), add=TRUE)
+                evtWriter_Write(X_regionRef_X,T)
+                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
             }
 
         }
@@ -196,7 +196,7 @@ get_user_function_list <- function(flag_debug=FALSE) {
         print("List of user functions: ")
         print(names(user_func_list))
     }
-    invisible(user_func_list)
+    user_func_list
 }
 
 
@@ -361,7 +361,7 @@ create_otf2_event <- function(func_name) {
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @export
-instrument_all_functions <- function(package_list=NULL, flag_user_functions=FALSE, flag_debug=FALSE) 
+instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_debug=FALSE) 
 {
     ## Make sure instrumentation_init() has been called
     if (!is_instrumentation_init()){
@@ -615,8 +615,10 @@ instrumentation_enable <- function(){
     else {
         pkg.env$FUNCTION_DEPTH <- 0
         pkg.env$INSTRUMENTATION_ENABLED <- TRUE
-        rTrace_init_EvtWriter()
+        #init_EvtWriter()
+        evtWriter_MeasurementOnOff(TRUE)
     }
+    invisible(NULL)
 }
 
 #' instrumentation_disable
@@ -629,8 +631,10 @@ instrumentation_disable <- function(){
     else {
         if (pkg.env$FUNCTION_DEPTH != 0){ print("Warning: Function depth non-zero relative to start region.") }
         pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-        rTrace_finalize_EvtWriter()
+        #finalize_EvtWriter()
+        evtWriter_MeasurementOnOff(FALSE)
     }
+    invisible(NULL)
 }
 
 #' is_instrumentation_enabled
@@ -651,11 +655,6 @@ instrumentation_init <- function(r_profiling=T, flag_user_functions=T, verbose_w
 {
     if (r_profiling) {
         pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
-        print(length(.packages()))
-        print(dim(pkg.env$PROFILE_INSTRUMENTATION_DF))
-        tmp <- (total_num_functions(flag_user_functions=flag_user_functions))
-        print(tmp)
-        print(sum(tmp))
         pkg.env$PROFILE_EVENTLOG <- create_eventlog()
     }
 
@@ -700,6 +699,9 @@ instrumentation_init <- function(r_profiling=T, flag_user_functions=T, verbose_w
     ## Initiate OTF2 GlobalDefWriter
     init_GlobalDefWriter()
 
+    ## Initiate OTF2 EvtWriter
+    init_EvtWriter()
+
     return(invisible(NULL))
 }
 
@@ -728,8 +730,11 @@ instrumentation_finalize <- function()
     ## Ensure instrumententation disabled
     if (is_instrumentation_enabled()){
         warning("WARNING: Instrumentation currently enabled, will force disable before finalizing.")
-        instrumentation_disable
+        instrumentation_disable()
     }
+
+    # Close EvtWriter
+    finalize_EvtWriter()
 
     ## Close GlobalDefWriter and Archive
     globalDefWriter_WriteSystemTreeNode(0,0)

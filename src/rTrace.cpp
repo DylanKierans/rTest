@@ -7,6 +7,7 @@
 // @todo Update OTF2_GlobalDefWriter_WriteString() and related functions to take input string rather than int
 // @todo Fix timing offset problems
 
+#include "OTF2_EvtWriter.h"
 #include "Rcpp.h"
 #include <otf2/otf2.h>
 #include <sys/time.h>
@@ -157,6 +158,28 @@ RcppExport SEXP finalize_EvtWriter() {
     OTF2_Archive_CloseEvtFiles( archive );
     return(R_NilValue);
 }
+
+
+//' Enable or disable event measurement
+//' @param measurementMode True to enable, else disable
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode) {
+    // Enable/disable measurement
+    if (measurementMode){
+        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+                NULL /* attributeList */, 
+                get_time(), 
+                OTF2_MEASUREMENT_ON);
+    } else {
+        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+                NULL /* attributeList */, 
+                get_time(), 
+                OTF2_MEASUREMENT_OFF);
+    }
+    return(R_NilValue);
+}
+
 
 //' Init static otf2 {globaldefwriter} obj
 //' @return R_NilValue

@@ -38,6 +38,13 @@ finalize_EvtWriter <- function() {
     .Call('_rTrace_finalize_EvtWriter', PACKAGE = 'rTrace')
 }
 
+#' Enable or disable event measurement
+#' @param measurementMode True to enable, else disable
+#' @return R_NilValue
+evtWriter_MeasurementOnOff <- function(measurementMode) {
+    .Call('_rTrace_evtWriter_MeasurementOnOff', PACKAGE = 'rTrace', measurementMode)
+}
+
 #' Init static otf2 {globaldefwriter} obj
 #' @return R_NilValue
 init_GlobalDefWriter <- function() {

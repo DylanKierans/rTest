@@ -4,12 +4,12 @@
 \alias{total_num_functions}
 \title{total_num_functions}
 \usage{
-total_num_functions(debug_flag = FALSE, flag_user_functions = FALSE)
+total_num_functions(flag_user_functions = FALSE, debug_flag = FALSE)
 }
 \arguments{
-\item{debug_flag}{Boolean - TRUE to print debug information}
-
 \item{flag_user_functions}{Boolean - TRUE if also flagging user functions}
+
+\item{debug_flag}{Boolean - TRUE to print debug information}
 }
 \value{
 Int[] Number of functions per package

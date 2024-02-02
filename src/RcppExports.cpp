@@ -62,6 +62,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// evtWriter_MeasurementOnOff
+RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode);
+RcppExport SEXP _rTrace_evtWriter_MeasurementOnOff(SEXP measurementModeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< bool >::type measurementMode(measurementModeSEXP);
+    rcpp_result_gen = Rcpp::wrap(evtWriter_MeasurementOnOff(measurementMode));
+    return rcpp_result_gen;
+END_RCPP
+}
 // init_GlobalDefWriter
 RcppExport SEXP init_GlobalDefWriter();
 RcppExport SEXP _rTrace_init_GlobalDefWriter() {
@@ -146,6 +157,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
     {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},
     {"_rTrace_finalize_EvtWriter", (DL_FUNC) &_rTrace_finalize_EvtWriter, 0},
+    {"_rTrace_evtWriter_MeasurementOnOff", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff, 1},
     {"_rTrace_init_GlobalDefWriter", (DL_FUNC) &_rTrace_init_GlobalDefWriter, 0},
     {"_rTrace_finalize_GlobalDefWriter", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter, 0},
     {"_rTrace_globalDefWriter_WriteString", (DL_FUNC) &_rTrace_globalDefWriter_WriteString, 1},
