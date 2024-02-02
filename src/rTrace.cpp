@@ -7,7 +7,7 @@
 // @todo Update OTF2_GlobalDefWriter_WriteString() and related functions to take input string rather than int
 // @todo Fix timing offset problems
 
-#include "OTF2_EvtWriter.h"
+//#include "OTF2_EvtWriter.h"
 #include "Rcpp.h"
 #include <otf2/otf2.h>
 #include <sys/time.h>
