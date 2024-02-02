@@ -202,11 +202,11 @@ get_user_function_list <- function(flag_debug=FALSE) {
 
 #' total_num_functions
 #' @description Find total number of loaded packages and functions
-#' @param debug_flag Boolean - TRUE to print debug information
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
+#' @param debug_flag Boolean - TRUE to print debug information
 #' @return Int[] Number of functions per package
 #' @export
-total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FALSE) {
+total_num_functions <- function(flag_user_functions=FALSE, debug_flag=FALSE) {
 
     packages <- .packages()
     full_packages <- paste0("package:",packages)
@@ -223,7 +223,7 @@ total_num_functions <- function(debug_flag=FALSE, flag_user_functions=FALSE) {
     ## Append number of user functions if enabled
     if (flag_user_functions){
         function_ptrs <- get_user_function_list()
-        append(num_functions, length(function_ptrs))
+        num_functions <- append(num_functions, length(function_ptrs))
     }
 
     ## DEBUGGING
@@ -333,12 +333,15 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     pkg.env$PROFILE_INSTRUMENTATION_DF[["function_instrumented"]][func_global_index] <-  TRUE
 
     if (pkg.env$PRINT_INSTRUMENTS) {
-        print(paste0("INSTRUMENTING: function `", func_name,"`"))
-        print(paste0("func_name:", func_name,", regionRef: ", regionRef))
+        print(paste0("INSTRUMENTING: function `", func_name,"`",
+                    ", regionRef: ", regionRef))
     }
 
     ## Wrap function with debug info
-    insert_instrumentation(func_ptr, func_name, func_global_index, regionRef, package_name, env_is_locked=!pkg.env$UNLOCK_ENVS)
+    insert_instrumentation(func_ptr, func_name, func_global_index, 
+                           regionRef, package_name, 
+                           env_is_locked=!pkg.env$UNLOCK_ENVS, 
+                           flag_user_function=flag_user_function)
 }
 
 #' create_otf2_event
@@ -558,7 +561,6 @@ instrument_user_functions <- function(flag_debug=FALSE)
                                    function_methods_exception_list,
                                    flag_user_function=T, flag_debug)
     }
-    print(paste0("Instrumented functions from package: ", package_name)) # User functions
 
 }
 

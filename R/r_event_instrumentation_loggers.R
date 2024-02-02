@@ -74,6 +74,7 @@ save_eventlog <- function(filename, df=pkg.env$PROFILE_EVENTLOG, flag_debug=FALS
 # BASE VALS: package:function, ncalls, total_time
 # EXTRA VALS: min time, max time, call stack
 
+
 #' create_dataframe
 #' @description See return
 #' @param flag_debug Boolean - Enabled debug state,emts
@@ -86,12 +87,10 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     num_functions_total <- sum(num_functions_per_package)
 
     if (flag_user_functions) { packages <- append(packages, "user_functions") }
-    print(paste0("Length of packages after append: ", length(packages)))
-    print(paste0("Length of num_functions: ", length(num_functions_per_package)))
-    print(paste0("Total num_functions: ", sum(num_functions_per_package)))
 
     ## Sections in dataframe
     function_names <- names(get_function_list())
+    if (flag_user_functions) { function_names <- append(function_names, names(get_user_function_list())) }
     package_list <- array(,num_functions_total) 
     count <- integer(num_functions_total)
     total_time <- numeric(num_functions_total)
@@ -107,21 +106,17 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     }
 
     # package each entry in function_names belongs to
-    index <- 0
+    index <- 1
     for (i_package in 1:length(packages)) {
-        if (num_functions_per_package[i_package] > 0 ) {
-            index_end <- index+num_functions_per_package[i_package]
-            package_list[index:index_end] <- packages[i_package]
-            index <- index_end
-        }
+        tmp <- num_functions_per_package[i_package]
+        package_list[index:(index-1+tmp)] <- packages[i_package]
+        index <- index+tmp
     }
 
     # Init count and time arrays
-    for (i in 1:num_functions_total) {
-        count[i] <- 0L
-        total_time[i] <- 0.0
-        instrumented[i] <- FALSE
-    }
+    count[1:num_functions_total] <- 0L
+    total_time[1:num_functions_total] <- 0.0
+    instrumented[1:num_functions_total] <- FALSE
 
     data.frame( packages=package_list, functions=function_names, function_instrumented=instrumented,
                function_count=count, function_time=total_time )
