@@ -7,7 +7,6 @@
 // @todo Update OTF2_GlobalDefWriter_WriteString() and related functions to take input string rather than int
 // @todo Fix timing offset problems
 
-//#include "OTF2_EvtWriter.h"
 #include "Rcpp.h"
 #include <otf2/otf2.h>
 #include <sys/time.h>
@@ -25,6 +24,9 @@ static OTF2_GlobalDefWriter* global_def_writer;
 static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static uint64_t NUM_STRINGREF=0; ///* Number of events recorded with WriteString
 static uint64_t NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
+                                 
+// DEBUGGING
+static int id;
 
 
 ///////////////////////////////
@@ -248,7 +250,7 @@ RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName) {
             OTF2_REGION_ROLE_FUNCTION,
             OTF2_PARADIGM_USER,
             OTF2_REGION_FLAG_NONE,
-            0 /* source file */,
+            1 /* source file */,
             0 /* begin lno */, 
             0 /* end lno */ );
 
@@ -331,3 +333,69 @@ RcppExport SEXP evtWriter_Write(int regionRef, bool event_type)
 }
 
 
+
+///////////////////////////////
+// Testing
+///////////////////////////////
+
+//' Simple multiply+add operation for timing
+//' @param n Number of loops
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport double mult_add_n(int n){
+    double a=0.1;
+    double b=0.2;
+    double c=0.3;
+    double d;
+
+    d=(a*b)+c;
+    for (int i=0; i<n; ++i){
+        d = (a*b)+c;
+    }
+	return ( (a*b)+c );
+}
+
+//' S_abcn
+//' @param n Number of loops
+//' @param a a
+//' @param b b
+//' @param c c
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport double mult_add_abcn(const double a, const double b, 
+        const double c, const int n){
+    double *d = (double*) malloc(n*sizeof(*d));
+    d[0]=(a*b)+c;
+    for (int i=0; i<n; ++i){
+        d[i] = (a*b)+c;
+    }
+    free(d);
+	return ( (a*b)+c );
+}
+
+//' S_abc
+//' @param a a
+//' @param b b
+//' @param c c
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport double mult_add_abc(const double a, const double b, const double c){
+	return ( (a*b)+c );
+}
+
+
+//' set_id
+//' @param idnew new id
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP set_id(const int idnew) {
+    id = idnew;    
+    return (R_NilValue);
+}
+
+//' get_id
+//' @return id int
+// [[Rcpp::export]]
+RcppExport int get_id() {
+    return (id);
+}

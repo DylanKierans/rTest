@@ -150,6 +150,65 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mult_add_n
+RcppExport double mult_add_n(int n);
+RcppExport SEXP _rTrace_mult_add_n(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(mult_add_n(n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mult_add_abcn
+RcppExport double mult_add_abcn(const double a, const double b, const double c, const int n);
+RcppExport SEXP _rTrace_mult_add_abcn(SEXP aSEXP, SEXP bSEXP, SEXP cSEXP, SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< const double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< const double >::type c(cSEXP);
+    Rcpp::traits::input_parameter< const int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(mult_add_abcn(a, b, c, n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// mult_add_abc
+RcppExport double mult_add_abc(const double a, const double b, const double c);
+RcppExport SEXP _rTrace_mult_add_abc(SEXP aSEXP, SEXP bSEXP, SEXP cSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< const double >::type b(bSEXP);
+    Rcpp::traits::input_parameter< const double >::type c(cSEXP);
+    rcpp_result_gen = Rcpp::wrap(mult_add_abc(a, b, c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// set_id
+RcppExport SEXP set_id(const int idnew);
+RcppExport SEXP _rTrace_set_id(SEXP idnewSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const int >::type idnew(idnewSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_id(idnew));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_id
+RcppExport int get_id();
+RcppExport SEXP _rTrace_get_id() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_id());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_helloWorld", (DL_FUNC) &_rTrace_helloWorld, 0},
@@ -165,6 +224,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTrace_globalDefWriter_WriteSystemTreeNode, 2},
     {"_rTrace_globalDefWriter_WriteLocation", (DL_FUNC) &_rTrace_globalDefWriter_WriteLocation, 1},
     {"_rTrace_evtWriter_Write", (DL_FUNC) &_rTrace_evtWriter_Write, 2},
+    {"_rTrace_mult_add_n", (DL_FUNC) &_rTrace_mult_add_n, 1},
+    {"_rTrace_mult_add_abcn", (DL_FUNC) &_rTrace_mult_add_abcn, 4},
+    {"_rTrace_mult_add_abc", (DL_FUNC) &_rTrace_mult_add_abc, 3},
+    {"_rTrace_set_id", (DL_FUNC) &_rTrace_set_id, 1},
+    {"_rTrace_get_id", (DL_FUNC) &_rTrace_get_id, 0},
     {NULL, NULL, 0}
 };
 

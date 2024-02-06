@@ -41,6 +41,7 @@ get_function_exception_list <- function() {
             sys.function, sys.parent, Ops.difftime, parent.env,
             duplicated, vapply, anyDuplicated, xpdrows.data.frame,
             get('body<-'),
+            tryCatch, # Clobbering trace results
             append) 
     if (R.utils::isPackageLoaded("R.utils")){
         package_function_exception_list <- c(R.utils::isPackageLoaded)

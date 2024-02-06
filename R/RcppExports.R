@@ -96,3 +96,42 @@ evtWriter_Write <- function(regionRef, event_type) {
     .Call('_rTrace_evtWriter_Write', PACKAGE = 'rTrace', regionRef, event_type)
 }
 
+#' Simple multiply+add operation for timing
+#' @param n Number of loops
+#' @return R_NilValue
+mult_add_n <- function(n) {
+    .Call('_rTrace_mult_add_n', PACKAGE = 'rTrace', n)
+}
+
+#' S_abcn
+#' @param n Number of loops
+#' @param a a
+#' @param b b
+#' @param c c
+#' @return R_NilValue
+mult_add_abcn <- function(a, b, c, n) {
+    .Call('_rTrace_mult_add_abcn', PACKAGE = 'rTrace', a, b, c, n)
+}
+
+#' S_abc
+#' @param a a
+#' @param b b
+#' @param c c
+#' @return R_NilValue
+mult_add_abc <- function(a, b, c) {
+    .Call('_rTrace_mult_add_abc', PACKAGE = 'rTrace', a, b, c)
+}
+
+#' set_id
+#' @param idnew new id
+#' @return R_NilValue
+set_id <- function(idnew) {
+    .Call('_rTrace_set_id', PACKAGE = 'rTrace', idnew)
+}
+
+#' get_id
+#' @return id int
+get_id <- function() {
+    .Call('_rTrace_get_id', PACKAGE = 'rTrace')
+}
+
