@@ -63,13 +63,13 @@ jobs:
         if: runner.os == 'linux'
         run: |
            sudo apt-get install libopenmpi-dev
-           export MPI_ROOT=/usr
+           export MPI_ROOT=$(which mpicc | xargs dirname | xargs dirname)
 
       - name: Install openmpi (mac)
         if: runner.os == 'macOS'
         run: |
-          brew install open-mpi
-          export MPI_ROOT=/usr
+           brew install open-mpi
+           export MPI_ROOT=$(which mpicc | xargs dirname | xargs dirname)
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
