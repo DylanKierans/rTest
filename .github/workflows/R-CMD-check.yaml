@@ -52,13 +52,24 @@ jobs:
            sudo make install
            cd ~
            export OTF2_ROOT=/usr/local
-           sudo apt-get install libopenmpi-dev
 
       - name: Install libotf2 (mac)
         if: runner.os == 'macOS'
-        run: 
+        run: |
           brew install otf2
-          brew install openmpi
+
+      # MANUAL OPENMPI INSTALL
+      - name: Install openmpi (linux)
+        if: runner.os == 'linux'
+        run: |
+           sudo apt-get install libopenmpi-dev
+           export MPI_ROOT=/usr
+
+      - name: Install openmpi (mac)
+        if: runner.os == 'macOS'
+        run: |
+          brew install open-mpi
+          export MPI_ROOT=/usr
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:

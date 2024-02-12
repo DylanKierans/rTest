@@ -5,8 +5,8 @@ OTF2_PKG_LIBS=-L${OTF2_ROOT}/lib -L. -lotf2
 # mpi
 #MPI_PKG_CPPFLAGS=$(mpicc -showme:compile)
 #MPI_PKG_LIBS=$(mpicc -showme:link)
-MPI_PKG_CPPFLAGS=-I/home/dylanki/local/openmpi/4.1.6/include
-MPI_PKG_LIBS=-L/home/dylanki/local/openmpi/4.1.6/lib -lmpi
+MPI_PKG_CPPFLAGS=-I${MPI_ROOT}/include
+MPI_PKG_LIBS=-L${MPI_ROOT}/lib -lmpi
 
 PKG_CPPFLAGS=${OTF2_PKG_CPPFLAGS} ${MPI_PKG_CPPFLAGS}
 PKG_LIBS=${OTF2_PKG_LIBS} ${MPI_PKG_LIBS}
