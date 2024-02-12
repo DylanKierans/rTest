@@ -209,6 +209,36 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_pid
+RcppExport int get_pid();
+RcppExport SEXP _rTrace_get_pid() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_pid());
+    return rcpp_result_gen;
+END_RCPP
+}
+// mpi_is_init
+RcppExport bool mpi_is_init();
+RcppExport SEXP _rTrace_mpi_is_init() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(mpi_is_init());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_mpi_rank
+RcppExport int get_mpi_rank();
+RcppExport SEXP _rTrace_get_mpi_rank() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_mpi_rank());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_helloWorld", (DL_FUNC) &_rTrace_helloWorld, 0},
@@ -229,6 +259,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_mult_add_abc", (DL_FUNC) &_rTrace_mult_add_abc, 3},
     {"_rTrace_set_id", (DL_FUNC) &_rTrace_set_id, 1},
     {"_rTrace_get_id", (DL_FUNC) &_rTrace_get_id, 0},
+    {"_rTrace_get_pid", (DL_FUNC) &_rTrace_get_pid, 0},
+    {"_rTrace_mpi_is_init", (DL_FUNC) &_rTrace_mpi_is_init, 0},
+    {"_rTrace_get_mpi_rank", (DL_FUNC) &_rTrace_get_mpi_rank, 0},
     {NULL, NULL, 0}
 };
 

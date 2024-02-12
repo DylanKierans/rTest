@@ -118,8 +118,9 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     total_time[1:num_functions_total] <- 0.0
     instrumented[1:num_functions_total] <- FALSE
 
-    data.frame( packages=package_list, functions=function_names, function_instrumented=instrumented,
-               function_count=count, function_time=total_time )
+    data.frame(packages=package_list, functions=function_names, 
+               function_instrumented=instrumented,
+               function_count=count, function_time=total_time)
 }
 
 #' reset_dataframe

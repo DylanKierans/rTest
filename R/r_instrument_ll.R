@@ -7,6 +7,29 @@
 # @todo - reduce function exception list
 # @todo - instrument_all_functions merge debug flags
 
+#' get_wrapper_expression
+#' @description Returns wrapper expression
+get_wrapper_expression <- function() {
+    wrapper_expression <- expression(
+    { 
+        if (pkg.env$INSTRUMENTATION_ENABLED) {
+            NULL
+            ## Append to depth counter
+            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
+            on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
+
+            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
+            {
+                ## OTF2 Event
+                evtWriter_Write(X_regionRef_X,T)
+                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
+            }
+
+        }
+    }
+    )
+    wrapper_expression
+}
 
 ########################################################################
 # SECTION - LOW LEVEL INSTRUMENTATION
@@ -121,6 +144,8 @@ insert_instrumentation <- function(func, func_name, func_index, regionRef, packa
     ) )
     }
 
+    .wrapper_expression= eval(substitute(get_wrapper_expression(),
+                        list(X_regionRef_X=regionRef)))
 
     ## Copy and wrap function definition
     orig_func_body <- body(func)[1:length(body(func))]

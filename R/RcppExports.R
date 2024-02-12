@@ -135,3 +135,18 @@ get_id <- function() {
     .Call('_rTrace_get_id', PACKAGE = 'rTrace')
 }
 
+#' get_pid
+get_pid <- function() {
+    .Call('_rTrace_get_pid', PACKAGE = 'rTrace')
+}
+
+#' get_mpi_rank
+mpi_is_init <- function() {
+    .Call('_rTrace_mpi_is_init', PACKAGE = 'rTrace')
+}
+
+#' get_mpi_rank
+get_mpi_rank <- function() {
+    .Call('_rTrace_get_mpi_rank', PACKAGE = 'rTrace')
+}
+
