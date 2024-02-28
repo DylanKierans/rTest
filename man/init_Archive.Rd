@@ -9,7 +9,7 @@ init_Archive(archivePath = "./rTrace", archiveName = "rTrace")
 \arguments{
 \item{archivePath}{Path to the archive i.e. the directory where the anchor file is located.}
 
-\item{archiveName}{Name of the archive. It is used to generate sub paths e.g. 'archiveName.otf2'.}
+\item{archiveName}{Name of the archive. It is used to generate sub paths e.g. "archiveName.otf2"}
 }
 \value{
 R_NilValue

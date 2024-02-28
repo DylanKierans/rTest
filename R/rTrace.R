@@ -29,13 +29,6 @@
 if (!require("Rcpp")) install.packages("Rcpp")
 library("Rcpp")
 
-#' rTrace_helloWorld_wrapper 
-#' @export
-rTrace_helloWorld_wrapper <- function() {
-    cat("Wrapper for R/helloWorld.R::rTrace_helloWorld\n")
-    rTrace_helloWorld()
-}
-
 #' pkg.env
 #' @description Package-level environment used for storing package variables
 #' @format

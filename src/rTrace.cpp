@@ -29,6 +29,9 @@ static OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
 bool IS_MPI = false;
 
+// Multithreading 
+static int MASTER_PID=-1;
+
 // Counters
 static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static uint64_t NUM_STRINGREF=0; ///* Number of events recorded with WriteString
@@ -48,22 +51,13 @@ RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
 // Function definitions
 ///////////////////////////////
 
-//' Simple hello world function streaming to Rcout
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP helloWorld(){
-    Rcout << "Hello World!\n";
-	return (R_NilValue);
-}
-
-
 /////
 // OTF2 Functions
 /////
 
-//' This example uses a function delivering dummy timestamps
-//'     Walltime O(E-6)
-//' @return time - Current time
+// This example uses a function delivering dummy timestamps
+//     Walltime O(E-6)
+// @return time - Current time
 static OTF2_TimeStamp get_time() {
     static OTF2_TimeStamp wtime;
 #ifdef DUMMY_TIMESTEPS
@@ -105,10 +99,16 @@ static OTF2_FlushCallbacks flush_callbacks =
 
 //' Initialize static otf2 {archive} objs
 //' @param archivePath Path to the archive i.e. the directory where the anchor file is located.
-//' @param archiveName Name of the archive. It is used to generate sub paths e.g. 'archiveName.otf2'.
+//' @param archiveName Name of the archive. It is used to generate sub paths e.g. "archiveName.otf2"
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String archiveName="rTrace") {
+
+//init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String archiveName="rTrace", isSerial=true)
+
+    // Should only be done on master
+    MASTER_PID=getpid(); 
+
     archive = OTF2_Archive_Open( archivePath.get_cstring(),
                                                archiveName.get_cstring(),
                                                OTF2_FILEMODE_WRITE,
@@ -122,9 +122,13 @@ RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String a
 
     // We will operate in a serial context.
     OTF2_Archive_SetSerialCollectiveCallbacks( archive );
-
-    // TODO
-    // if (MPI) { OTF2_Archive_SetCollectiveCallbacks( archive ); }
+    /*
+    if (isSerial) {
+        OTF2_Archive_SetSerialCollectiveCallbacks( archive );
+    } else { // mpi/multiprocessing (alternatives for openmp/pthreads)
+        OTF2_Archive_SetCollectiveCallbacks( archive );
+    }
+    */
 
     // Now we can create the event files. Though physical files aren't created yet.
     OTF2_Archive_OpenEvtFiles( archive );
@@ -386,52 +390,6 @@ RcppExport SEXP evtWriter_Write(int regionRef, bool event_type)
 // Testing
 ///////////////////////////////
 
-//' Simple multiply+add operation for timing
-//' @param n Number of loops
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport double mult_add_n(int n){
-    double a=0.1;
-    double b=0.2;
-    double c=0.3;
-    double d;
-
-    d=(a*b)+c;
-    for (int i=0; i<n; ++i){
-        d = (a*b)+c;
-    }
-	return ( d );
-}
-
-//' S_abcn
-//' @param n Number of loops
-//' @param a a
-//' @param b b
-//' @param c c
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport double mult_add_abcn(const double a, const double b, 
-        const double c, const int n){
-    double *d = (double*) malloc(n*sizeof(*d));
-    d[0]=(a*b)+c;
-    for (int i=0; i<n; ++i){
-        d[i] = (a*b)+c;
-    }
-    free(d);
-	return ( (a*b)+c );
-}
-
-//' S_abc
-//' @param a a
-//' @param b b
-//' @param c c
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport double mult_add_abc(const double a, const double b, const double c){
-	return ( (a*b)+c );
-}
-
-
 //' set_id
 //' @param idnew new id
 //' @return R_NilValue
@@ -445,7 +403,6 @@ RcppExport SEXP set_id(const int idnew) {
 //' @return id int
 // [[Rcpp::export]]
 RcppExport int get_id() {
-    Rcout << "main thread pid is " << (int) getpid() << "\n";
     return (id);
 }
 
@@ -455,18 +412,83 @@ RcppExport int get_pid() {
     return((int)getpid());
 }
 
-//' get_mpi_rank
+//' get_tid
 // [[Rcpp::export]]
-RcppExport bool mpi_is_init() {
+RcppExport int get_tid() {
+    return((int)gettid());
+}
+
+//' get_ppid
+// [[Rcpp::export]]
+RcppExport int get_ppid() {
+    return((int)getppid());
+}
+
+//' mpi_init
+// [[Rcpp::export]]
+RcppExport int mpi_init() {
     int flag;
+    int fake_argc = 0;
+    char **fake_argv = NULL;
+//char **fake_argv = malloc(1*sizeof(*fake_argv));
+    MPI_Init(&fake_argc, &fake_argv);
+    free(fake_argv);
+
     MPI_Initialized(&flag);
-    return (flag==true);
+    if (flag) {
+        Rcout << "MPI is initialized.\n";
+        return(0);
+    }
+    Rcout << "MPI UNABLE to initialize.\n";
+    return (-1);
+}
+
+//' mpi_finalize
+// [[Rcpp::export]]
+RcppExport SEXP mpi_finalize() {
+    MPI_Finalize();
+    return(R_NilValue);
+}
+
+//' mpi_is_init
+// [[Rcpp::export]]
+RcppExport int mpi_is_init() {
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        return(0);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
 }
 
 //' get_mpi_rank
 // [[Rcpp::export]]
 RcppExport int get_mpi_rank() {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    return(rank);
+    int rank, init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        return(rank);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
 }
+
+//' get_mpi_size
+// [[Rcpp::export]]
+RcppExport int get_mpi_size() {
+    int size, init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        return(size);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
+}
+
+
