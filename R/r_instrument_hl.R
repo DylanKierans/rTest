@@ -56,6 +56,10 @@ is_instrumentation_enabled <- function() {
 #' @export
 instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 {
+    # @name PROFILE_INSTRUMENTATION_DF
+    # @description Contains function name, package, and instrumentation flag
+    pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
+
     # @name INSTRUMENTATION_INIT
     # @description Checked when instrumenting functions to ensure init() has been called
     pkg.env$INSTRUMENTATION_INIT <- TRUE

@@ -185,13 +185,13 @@ get_user_function_list <- function(flag_debug=FALSE) {
 }
 
 
-#' total_num_functions
+#' get_num_functions
 #' @description Find total number of loaded packages and functions
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @param debug_flag Boolean - TRUE to print debug information
 #' @return Int[] Number of functions per package
 #' @export
-total_num_functions <- function(flag_user_functions=FALSE, debug_flag=FALSE) {
+get_num_functions <- function(flag_user_functions=FALSE, debug_flag=FALSE) {
 
     packages <- .packages()
     full_packages <- paste0("package:",packages)
@@ -213,7 +213,7 @@ total_num_functions <- function(flag_user_functions=FALSE, debug_flag=FALSE) {
 
     ## DEBUGGING
     if (debug_flag) {
-        print("########## PROFILE_TOTAL_NUM_FUNCTIONS() ############")
+        print("########## PROFILE_get_num_functions() ############")
         print(paste0("Total - number of packages: ", num_packages, 
                      ", number of functions: ", sum(num_functions)))
     }
@@ -335,8 +335,8 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
 #' @param func_name String - Name of function
 #' @return regionRef Int - Index of stringRef for function
 create_otf2_event <- function(func_name) {
-    stringRef <- rTrace_globalDefWriter_WriteString(func_name)
-    regionRef <- rTrace_globalDefWriter_WriteRegion(stringRef)
+    stringRef <- globalDefWriter_WriteString(func_name)
+    regionRef <- globalDefWriter_WriteRegion(stringRef)
     regionRef
 }
 
@@ -366,7 +366,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     package_exception_list <-  get_package_exception_list()
 
     ## Needed for finding index offset
-    num_func_per_package <- total_num_functions(flag_user_functions=flag_user_functions)
+    num_func_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
 
     ## Cycle through every package
     for (package_name in package_list) {
@@ -518,7 +518,7 @@ instrument_user_functions <- function(flag_debug=FALSE)
     function_methods_exception_list <- get_function_methods(function_exception_list)
 
     ## Function index offset
-    num_func_per_package <- total_num_functions()
+    num_func_per_package <- get_num_functions()
     func_global_index <- sum(num_func_per_package)
 
     ## DEBUGGING
@@ -550,6 +550,59 @@ instrument_user_functions <- function(flag_debug=FALSE)
     }
 
 }
+
+
+#######################################################################
+# section - dataframe
+#######################################################################
+
+#' create_dataframe
+#' @description See return
+#' @param flag_debug Boolean - Enabled debug state,emts
+#' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
+#' @return Dataframe containing each function with information on function name,
+#'      package, count of function calls, total time spent in function
+create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
+    packages <- .packages()
+    num_functions_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
+    num_functions_total <- sum(num_functions_per_package)
+
+    if (flag_user_functions) { packages <- append(packages, "user_functions") }
+
+    ## Sections in dataframe
+    function_names <- names(get_function_list())
+    if (flag_user_functions) { function_names <- append(function_names, names(get_user_function_list())) }
+    package_list <- array(,num_functions_total) 
+    #count <- integer(num_functions_total)
+    #total_time <- numeric(num_functions_total)
+    instrumented <- logical(num_functions_total)
+
+    ## DEBUGGING:
+    if (flag_debug) {
+        print("################ DATAFRAME #################")
+        print(length(function_names))
+        print(num_functions_total)
+        print(num_functions_per_package)
+        print(package_list)
+    }
+
+    # package each entry in function_names belongs to
+    index <- 1
+    for (i_package in 1:length(packages)) {
+        tmp <- num_functions_per_package[i_package]
+        package_list[index:(index-1+tmp)] <- packages[i_package]
+        index <- index+tmp
+    }
+
+    # Init count and time arrays
+    #count[1:num_functions_total] <- 0L
+    #total_time[1:num_functions_total] <- 0.0
+    instrumented[1:num_functions_total] <- FALSE
+
+    #data.frame(packages=package_list, functions=function_names, function_instrumented=instrumented, function_count=count, function_time=total_time)
+    data.frame(packages=package_list, functions=function_names, function_instrumented=instrumented)
+}
+
 
 
 #######################################################################
