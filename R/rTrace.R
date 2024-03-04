@@ -39,8 +39,6 @@ library("Rcpp")
 #'  \item{MAX_FUNCTION_DEPTH}{}
 #'  \item{FUNCTION_DEPTH}{}
 #'  \item{UNLOCK_ENVS}{}
-#'  \item{PROFILE_EVENTLOG}{}
-#'  \item{PROFILE_EVENTLOG_NROWS}{}
 #'  \item{PROFILE_INSTRUMENTATION_DF}{}
 #'  \item{PRINT_INSTRUMENTS}{}
 #'  \item{PRINT_SKIPS}{}

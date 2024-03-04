@@ -51,17 +51,11 @@ is_instrumentation_enabled <- function() {
 
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
-#' @param r_profiling Boolean - TRUE to enable R-based eventlogger and runtime info
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
 #' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
 #' @export
-instrumentation_init <- function(r_profiling=T, flag_user_functions=T, verbose_wrapping=F)
+instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 {
-    if (r_profiling) {
-        pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
-        pkg.env$PROFILE_EVENTLOG <- create_eventlog()
-    }
-
     # @name INSTRUMENTATION_INIT
     # @description Checked when instrumenting functions to ensure init() has been called
     pkg.env$INSTRUMENTATION_INIT <- TRUE

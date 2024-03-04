@@ -27,7 +27,6 @@ static OTF2_Archive* archive;
 static OTF2_EvtWriter* evt_writer;
 static OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
-bool IS_MPI = false;
 
 // Multithreading 
 static int MASTER_PID=-1;
@@ -36,6 +35,10 @@ static int MASTER_PID=-1;
 static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static uint64_t NUM_STRINGREF=0; ///* Number of events recorded with WriteString
 static uint64_t NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
+
+// TODO - implement this offset. can still use num_stringref for non-function defns
+//  Will make easier for non-Fork process spawning. func_stringRef = func_index + offset_stringref
+static uint64_t OFFSET_STRINGREF=100; ///* Number of stringRef offset before starting function names
                                  
 // DEBUGGING
 static int id;
@@ -122,13 +125,6 @@ RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String a
 
     // We will operate in a serial context.
     OTF2_Archive_SetSerialCollectiveCallbacks( archive );
-    /*
-    if (isSerial) {
-        OTF2_Archive_SetSerialCollectiveCallbacks( archive );
-    } else { // mpi/multiprocessing (alternatives for openmp/pthreads)
-        OTF2_Archive_SetCollectiveCallbacks( archive );
-    }
-    */
 
     // Now we can create the event files. Though physical files aren't created yet.
     OTF2_Archive_OpenEvtFiles( archive );
@@ -160,8 +156,6 @@ RcppExport SEXP init_EvtWriter() {
     // Get a local event writer for location 0. [ PROC 0? ]
     evt_writer = OTF2_Archive_GetEvtWriter( archive, 0 /* LocationRef */ );
 
-    // TODO
-    // if (MPI) { evt_writer = OTF2_Archive_GetEvtWriter( archive, rank /* LocationRef */ ); }
     return(R_NilValue);
 }
 
@@ -210,9 +204,6 @@ RcppExport SEXP init_GlobalDefWriter() {
     // Now write the global definitions by getting a writer object for it.
     global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
 
-    // TODO:
-    // if (MPI && rank==0) { global_def_writer }
-
     // Define empty string in first stringRef value
     Rcpp::String stringRefValue="";
     globalDefWriter_WriteString(stringRefValue);
@@ -235,19 +226,6 @@ RcppExport SEXP finalize_GlobalDefWriter() {
             OTF2_UNDEFINED_TIMESTAMP );
 #else
     epoch_end =  get_time();
-
-    // TODO
-    /* 
-	OTF2_TimeStamp global_epoch_start, global_epoch_end;
- 	if (MPI) { 
-		MPI_Reduce( &epoch_start, &global_epoch_start, 1, 
-					OTF2_MPI_UINT64_T, MPI_MIN, 0, MPI_COMM_WORLD );
-		MPI_Reduce( &epoch_end, &global_epoch_end, 1, 
-					OTF2_MPI_UINT64_T, MPI_MAX, 0, MPI_COMM_WORLD );
-		epoch_start = global_epoch_start;
-		epoch_end = global_epoch_end;
-	}
-    */
 
     // We need to define the clock used for this trace and the overall timestamp range.
     OTF2_GlobalDefWriter_WriteClockProperties( 
@@ -290,9 +268,6 @@ RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName) {
             0 /* begin lno */, 
             0 /* end lno */ );
 
-	// TODO
-    // if (MPI) { OTF2_GlobalDefWriter_WriteRegion( OTF2_REGION_ROLE_BARRIER, OTF2_PARADIGM_MPI, OTF2_REGION_FLAG_NONE,
-
     return(NUM_REGIONREF++);
 }
 
@@ -320,18 +295,6 @@ RcppExport SEXP globalDefWriter_WriteSystemTreeNode( int stringRef_name, int str
             0 /* system tree */,
             OTF2_UNDEFINED_LOCATION_GROUP /* creating process */ );
 
-	// TODO
-/*
-	if (MPI) {
-		for (i=0; i<size; ++i){
-			sprintf( process_name, "MPI Rank %d", i );
-			Rcpp::String stringRefValue = process_name;
-			stringRef = globalDefWriter_WriteString(stringRefValue)
-			OTF2_GlobalDefWriter_WriteLocationGroup(global_def_writer, i, stringRef, OTF2_LOCATION_GROUP_TYPE_PROCESS, 0 // system tree);
-			OTF2_GlobalDefWriter_WriteLocation(global_def_writer, i, 1, OTF2_LOCATION_TYPE_CPU_THREAD, NUM_EVENTS, i);
-		}
-	}
-*/
     return(R_NilValue);
 }
 

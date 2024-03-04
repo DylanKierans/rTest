@@ -28,6 +28,23 @@ get_wrapper_expression <- function() {
         }
     }
     )
+
+    ## Version 9 - only otf2, no max depth
+    #if (VERSION_9) {
+    #.wrapper_expression <- eval( substitute(
+    #expression(
+    #{ 
+    #    if (pkg.env$INSTRUMENTATION_ENABLED) {
+    #        ## OTF2 Event
+    #        evtWriter_Write(X_regionRef_X,T)
+    #        on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
+    #    }
+    #}
+    #)
+    #        , list(X_regionRef_X=regionRef)
+    #) )
+    #}
+
     wrapper_expression
 }
 
@@ -46,104 +63,7 @@ get_wrapper_expression <- function() {
 #' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
 #' @export
 insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
-
-    VERSION_7 <- FALSE
-    VERSION_8 <- TRUE
-    VERSION_9 <- FALSE
-
-    ## Version 7 - R and otf2
-    if (VERSION_7) {
-        .wrapper_expression <- eval( substitute(
-        expression(
-        { 
-            if (pkg.env$PRINT_FUNC_INDEXES){
-                print(paste0("func_index: ", X_func_index_X))
-            }
     
-            if (pkg.env$INSTRUMENTATION_ENABLED) {
-                NULL
-                ## DEBUGGING
-                #print("Hello World!") 
-                #on.exit(print("Finish!"),add=TRUE)
-    
-                ## Depth counter error check
-                if (pkg.env$FUNCTION_DEPTH < 0 )  
-                {
-                    print("Warning: Disabling instrumentation - Function_depth < 0.")
-                    instrumentation_disable()
-                }
-    
-                ## Append to depth counter
-                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-                on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
-    
-                if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
-                {
-                    ## Function count
-                    on.exit( pkg.env$PROFILE_INSTRUMENTATION_DF[["function_count"]][X_func_index_X] <- pkg.env$PROFILE_INSTRUMENTATION_DF[["function_count"]][X_func_index_X] + 1, add=TRUE )
-    
-                    ## Function timing
-                    t0 <- rTrace_time()
-                    on.exit( t0 <- rTrace_time() - t0, add=TRUE)
-                    on.exit( pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][X_func_index_X] <- pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][X_func_index_X] + t0, add=TRUE )
-    
-                    ## Eventlog
-                    event_create(as.integer(X_func_index_X), TRUE, rTrace_time())
-                    on.exit( event_create(as.integer(X_func_index_X), FALSE, rTrace_time()), add=TRUE )
-    
-                    ## OTF2 Event
-                    evtWriter_Write(X_regionRef_X,T)
-                    on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
-                }
-    
-            }
-        }
-        )
-                , list(X_func_index_X=func_index, X_regionRef_X=regionRef)
-        ) )
-   } 
-    
-    if (VERSION_8) {
-    ## Version 8 - only otf2
-    .wrapper_expression <- eval( substitute(
-    expression(
-    { 
-        if (pkg.env$INSTRUMENTATION_ENABLED) {
-            NULL
-            ## Append to depth counter
-            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-            on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
-
-            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
-            {
-                ## OTF2 Event
-                evtWriter_Write(X_regionRef_X,T)
-                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
-            }
-
-        }
-    }
-    )
-            , list(X_regionRef_X=regionRef)
-    ) )
-    }
-
-    ## Version 9 - only otf2, no max depth
-    if (VERSION_9) {
-    .wrapper_expression <- eval( substitute(
-    expression(
-    { 
-        if (pkg.env$INSTRUMENTATION_ENABLED) {
-            ## OTF2 Event
-            evtWriter_Write(X_regionRef_X,T)
-            on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
-        }
-    }
-    )
-            , list(X_regionRef_X=regionRef)
-    ) )
-    }
-
     .wrapper_expression= eval(substitute(get_wrapper_expression(),
                         list(X_regionRef_X=regionRef)))
 
@@ -409,14 +329,15 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
                            flag_user_function=flag_user_function)
 }
 
+# @TODO : zmq this
 #' create_otf2_event
 #' @description Creates stringRef and regionRef for func_name
 #' @param func_name String - Name of function
 #' @return regionRef Int - Index of stringRef for function
 create_otf2_event <- function(func_name) {
-        stringRef <- rTrace_globalDefWriter_WriteString(func_name)
-        regionRef <- rTrace_globalDefWriter_WriteRegion(stringRef)
-        regionRef
+    stringRef <- rTrace_globalDefWriter_WriteString(func_name)
+    regionRef <- rTrace_globalDefWriter_WriteRegion(stringRef)
+    regionRef
 }
 
 
@@ -665,5 +586,4 @@ test_instrumentation <- function(func_ptr, func_name, expr, flag_debug=F) {
         print(func_ptr)
     }
 }
-
 
