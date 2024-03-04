@@ -113,28 +113,3 @@ get_ppid <- function() {
     .Call('_rTrace_get_ppid', PACKAGE = 'rTrace')
 }
 
-#' mpi_init
-mpi_init <- function() {
-    .Call('_rTrace_mpi_init', PACKAGE = 'rTrace')
-}
-
-#' mpi_finalize
-mpi_finalize <- function() {
-    .Call('_rTrace_mpi_finalize', PACKAGE = 'rTrace')
-}
-
-#' mpi_is_init
-mpi_is_init <- function() {
-    .Call('_rTrace_mpi_is_init', PACKAGE = 'rTrace')
-}
-
-#' get_mpi_rank
-get_mpi_rank <- function() {
-    .Call('_rTrace_get_mpi_rank', PACKAGE = 'rTrace')
-}
-
-#' get_mpi_size
-get_mpi_size <- function() {
-    .Call('_rTrace_get_mpi_size', PACKAGE = 'rTrace')
-}
-

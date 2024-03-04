@@ -191,56 +191,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// mpi_init
-RcppExport int mpi_init();
-RcppExport SEXP _rTrace_mpi_init() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(mpi_init());
-    return rcpp_result_gen;
-END_RCPP
-}
-// mpi_finalize
-RcppExport SEXP mpi_finalize();
-RcppExport SEXP _rTrace_mpi_finalize() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(mpi_finalize());
-    return rcpp_result_gen;
-END_RCPP
-}
-// mpi_is_init
-RcppExport int mpi_is_init();
-RcppExport SEXP _rTrace_mpi_is_init() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(mpi_is_init());
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_mpi_rank
-RcppExport int get_mpi_rank();
-RcppExport SEXP _rTrace_get_mpi_rank() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_mpi_rank());
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_mpi_size
-RcppExport int get_mpi_size();
-RcppExport SEXP _rTrace_get_mpi_size() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_mpi_size());
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 2},
@@ -260,11 +210,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_get_pid", (DL_FUNC) &_rTrace_get_pid, 0},
     {"_rTrace_get_tid", (DL_FUNC) &_rTrace_get_tid, 0},
     {"_rTrace_get_ppid", (DL_FUNC) &_rTrace_get_ppid, 0},
-    {"_rTrace_mpi_init", (DL_FUNC) &_rTrace_mpi_init, 0},
-    {"_rTrace_mpi_finalize", (DL_FUNC) &_rTrace_mpi_finalize, 0},
-    {"_rTrace_mpi_is_init", (DL_FUNC) &_rTrace_mpi_is_init, 0},
-    {"_rTrace_get_mpi_rank", (DL_FUNC) &_rTrace_get_mpi_rank, 0},
-    {"_rTrace_get_mpi_size", (DL_FUNC) &_rTrace_get_mpi_size, 0},
     {NULL, NULL, 0}
 };
 
