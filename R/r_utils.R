@@ -42,11 +42,3 @@ rTrace_time <- function() {
     Sys.time()
 }
 
-#' get_env
-#' @description Get environment object for this package rTrace
-#' @return Environment
-get_env <- function() {
-   as.environment("package:rTrace") 
-}
-
-

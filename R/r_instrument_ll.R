@@ -12,6 +12,7 @@
 get_wrapper_expression <- function() {
     wrapper_expression <- expression(
     { 
+
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             NULL
             ## Append to depth counter
@@ -28,22 +29,6 @@ get_wrapper_expression <- function() {
         }
     }
     )
-
-    ## Version 9 - only otf2, no max depth
-    #if (VERSION_9) {
-    #.wrapper_expression <- eval( substitute(
-    #expression(
-    #{ 
-    #    if (pkg.env$INSTRUMENTATION_ENABLED) {
-    #        ## OTF2 Event
-    #        evtWriter_Write(X_regionRef_X,T)
-    #        on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
-    #    }
-    #}
-    #)
-    #        , list(X_regionRef_X=regionRef)
-    #) )
-    #}
 
     wrapper_expression
 }
@@ -64,7 +49,7 @@ get_wrapper_expression <- function() {
 #' @export
 insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
     
-    .wrapper_expression= eval(substitute(get_wrapper_expression(),
+    .wrapper_expression = eval(substitute(get_wrapper_expression(),
                         list(X_regionRef_X=regionRef)))
 
     ## Copy and wrap function definition
