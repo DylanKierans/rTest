@@ -99,8 +99,6 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     # @description Current instrumentation depth
     pkg.env$FUNCTION_DEPTH <- 0
 
-    pkg.env$R_PROFILING <- FALSE
-
     ## Initiate OTF2 Archive
     init_Archive()
 
