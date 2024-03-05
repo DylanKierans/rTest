@@ -8,10 +8,12 @@ This is a development package for creating a high-level otf2 wrapper for tracing
 
 Wrapper built using [`Rcpp`](https://cran.r-project.org/web/packages/Rcpp/index.html).
 
+Using `ZeroMQ` socket to communicate with process responsible for otf2 logging.
+
 
 ## Installation
 
-Install [`libotf2`](https://www.vi-hps.org/projects/score-p/) dependency. Then install `rTrace` from github with:
+Install [`libotf2`](https://www.vi-hps.org/projects/score-p/), and [`zeromq`](https://github.com/zeromq) dependency. Then install `rTrace` from github with:
 
 ```R
 install.packages("devtools") # if not yet installed

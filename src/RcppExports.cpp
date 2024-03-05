@@ -10,6 +10,37 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// init_otf2_logger
+RcppExport SEXP init_otf2_logger();
+RcppExport SEXP _rTrace_init_otf2_logger() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(init_otf2_logger());
+    return rcpp_result_gen;
+END_RCPP
+}
+// define_otf2_event_client
+RcppExport uint64_t define_otf2_event_client(Rcpp::String func_name);
+RcppExport SEXP _rTrace_define_otf2_event_client(SEXP func_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::String >::type func_name(func_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(define_otf2_event_client(func_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// finalize_EvtWriter_client
+RcppExport SEXP finalize_EvtWriter_client();
+RcppExport SEXP _rTrace_finalize_EvtWriter_client() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(finalize_EvtWriter_client());
+    return rcpp_result_gen;
+END_RCPP
+}
 // init_Archive
 RcppExport SEXP init_Archive(Rcpp::String archivePath, Rcpp::String archiveName);
 RcppExport SEXP _rTrace_init_Archive(SEXP archivePathSEXP, SEXP archiveNameSEXP) {
@@ -128,6 +159,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// evtWriter_Write_client
+RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type);
+RcppExport SEXP _rTrace_evtWriter_Write_client(SEXP regionRefSEXP, SEXP event_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type regionRef(regionRefSEXP);
+    Rcpp::traits::input_parameter< bool >::type event_type(event_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(evtWriter_Write_client(regionRef, event_type));
+    return rcpp_result_gen;
+END_RCPP
+}
 // evtWriter_Write
 RcppExport SEXP evtWriter_Write(int regionRef, bool event_type);
 RcppExport SEXP _rTrace_evtWriter_Write(SEXP regionRefSEXP, SEXP event_typeSEXP) {
@@ -193,6 +236,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 0},
+    {"_rTrace_define_otf2_event_client", (DL_FUNC) &_rTrace_define_otf2_event_client, 1},
+    {"_rTrace_finalize_EvtWriter_client", (DL_FUNC) &_rTrace_finalize_EvtWriter_client, 0},
     {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 2},
     {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
     {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},
@@ -204,6 +250,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_globalDefWriter_WriteRegion", (DL_FUNC) &_rTrace_globalDefWriter_WriteRegion, 1},
     {"_rTrace_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTrace_globalDefWriter_WriteSystemTreeNode, 2},
     {"_rTrace_globalDefWriter_WriteLocation", (DL_FUNC) &_rTrace_globalDefWriter_WriteLocation, 1},
+    {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},
     {"_rTrace_evtWriter_Write", (DL_FUNC) &_rTrace_evtWriter_Write, 2},
     {"_rTrace_set_id", (DL_FUNC) &_rTrace_set_id, 1},
     {"_rTrace_get_id", (DL_FUNC) &_rTrace_get_id, 0},

@@ -7,6 +7,22 @@
 # @todo - reduce function exception list
 # @todo - instrument_all_functions merge debug flags
 
+
+#######################################################################
+# section - Update for ZMQ
+#######################################################################
+# @TODO : zmq this
+#' create_otf2_event
+#' @description Creates stringRef and regionRef for func_name
+#' @param func_name String - Name of function
+#' @return regionRef Int - Index of stringRef for function
+create_otf2_event <- function(func_name) {
+    stringRef <- globalDefWriter_WriteString(func_name)
+    regionRef <- globalDefWriter_WriteRegion(stringRef)
+    regionRef
+}
+
+# @TODONE: zmq this
 #' get_wrapper_expression
 #' @description Returns wrapper expression
 get_wrapper_expression <- function() {
@@ -21,9 +37,13 @@ get_wrapper_expression <- function() {
 
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
             {
-                ## OTF2 Event
-                evtWriter_Write(X_regionRef_X,T)
-                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
+#                ## OTF2 Event
+#                evtWriter_Write(X_regionRef_X,T)
+#                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
+
+                ## zmq version - OTF2 Event
+                evtWriter_Write_client(X_regionRef_X,T)
+                on.exit(evtWriter_Write_client(X_regionRef_X,F), add=TRUE)
             }
 
         }
@@ -32,6 +52,7 @@ get_wrapper_expression <- function() {
 
     wrapper_expression
 }
+
 
 ########################################################################
 # SECTION - LOW LEVEL INSTRUMENTATION
@@ -67,8 +88,6 @@ insert_instrumentation <- function(func, func_name, func_index, regionRef, packa
     }
 
 }
-
-
 
 #' replace_user_function
 #' @description Replace user function definition
@@ -169,7 +188,6 @@ get_user_function_list <- function(flag_debug=FALSE) {
     user_func_list
 }
 
-
 #' get_num_functions
 #' @description Find total number of loaded packages and functions
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
@@ -248,6 +266,7 @@ print_function_from_index <- function(func_indexes) {
 # section - Check valid function for instrumentation
 #######################################################################
 
+# @DONE: zmq this
 #' try_insert_instrumentation
 #' @description Checks function exceptions and calls insert_instrumentation() if success
 #' @param func_info Dataframe (struct) containing func_index info, func_name and packagE_name
@@ -296,8 +315,11 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
         return(NULL) # break or return(NULL)
     }
 
-    ## Create otf2 region and event descriptions
-    regionRef <- create_otf2_event(func_name)
+#    ## Create otf2 region and event descriptions
+#    regionRef <- create_otf2_event(func_name)
+
+    # ZMQ version
+    regionRef <- define_otf2_event_client(func_name)
 
     ## Label as instrumented in instrumentation dataframe
     pkg.env$PROFILE_INSTRUMENTATION_DF[["function_instrumented"]][func_global_index] <-  TRUE
@@ -314,16 +336,6 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
                            flag_user_function=flag_user_function)
 }
 
-# @TODO : zmq this
-#' create_otf2_event
-#' @description Creates stringRef and regionRef for func_name
-#' @param func_name String - Name of function
-#' @return regionRef Int - Index of stringRef for function
-create_otf2_event <- function(func_name) {
-    stringRef <- globalDefWriter_WriteString(func_name)
-    regionRef <- globalDefWriter_WriteRegion(stringRef)
-    regionRef
-}
 
 
 #' instrument_all_functions
@@ -535,6 +547,7 @@ instrument_user_functions <- function(flag_debug=FALSE)
     }
 
 }
+
 
 
 #######################################################################

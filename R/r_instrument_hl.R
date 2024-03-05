@@ -4,6 +4,7 @@
 # SECTION - HIGH LEVEL, ENABLE/DISABLE INSTRUMENTATION
 #######################################################################
 
+# @TODO: zmq this
 #' instrumentation_enable
 #' @description Enable instrumentation and reset function depth
 #' @export
@@ -12,32 +13,46 @@ instrumentation_enable <- function(){
         print("Warning: Instrumentation already enabled!")
     }
     else if (!pkg.env$EVTWRITER_INIT) {
-        pkg.env$EVTWRITER_INIT <- TRUE
         pkg.env$FUNCTION_DEPTH <- 0
         init_EvtWriter()
+        pkg.env$EVTWRITER_INIT <- TRUE
     } else {
         pkg.env$FUNCTION_DEPTH <- 0
-        evtWriter_MeasurementOnOff(TRUE)
+        #evtWriter_MeasurementOnOff(TRUE)
     }
     pkg.env$INSTRUMENTATION_ENABLED <- TRUE
     invisible(NULL)
 }
 
+## @TODO: zmq this
+##' instrumentation_disable
+##' @description Disable instrumentation
+##' @export
+#instrumentation_disable <- function(){
+#    if (!is_instrumentation_enabled()){
+#        print("Warning: Instrumentation already disabled!")
+#    }
+#    else {
+#        if (pkg.env$FUNCTION_DEPTH != 0){ 
+#            print(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
+#        }
+#        pkg.env$INSTRUMENTATION_ENABLED <- FALSE
+#        #finalize_EvtWriter()
+#        #evtWriter_MeasurementOnOff(FALSE)
+#    }
+#    invisible(NULL)
+#}
+
+
+# @TODO: zmq this
 #' instrumentation_disable
 #' @description Disable instrumentation
 #' @export
 instrumentation_disable <- function(){
-    if (!is_instrumentation_enabled()){
-        print("Warning: Instrumentation already disabled!")
-    }
-    else {
-        if (pkg.env$FUNCTION_DEPTH != 0){ 
-            print(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
-        }
-        pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-        #finalize_EvtWriter()
-        evtWriter_MeasurementOnOff(FALSE)
-    }
+    # Send signal to logger to end evtWriter_server()
+    finalize_EvtWriter_client()
+
+    pkg.env$INSTRUMENTATION_ENABLED <- FALSE
     invisible(NULL)
 }
 
@@ -49,6 +64,9 @@ is_instrumentation_enabled <- function() {
     pkg.env$INSTRUMENTATION_ENABLED
 }
 
+
+
+# @TODONE: zmq this
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
@@ -99,14 +117,17 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     # @description Current instrumentation depth
     pkg.env$FUNCTION_DEPTH <- 0
 
-    ## Initiate OTF2 Archive
-    init_Archive()
+#    ## Initiate OTF2 Archive
+#    init_Archive()
+#
+#    ## Initiate OTF2 GlobalDefWriter
+#    init_GlobalDefWriter()
+#
+#    ## Initiate OTF2 EvtWriter
+#    init_EvtWriter()
 
-    ## Initiate OTF2 GlobalDefWriter
-    init_GlobalDefWriter()
-
-    ## Initiate OTF2 EvtWriter
-    init_EvtWriter()
+    ## Initiate new proc
+    init_otf2_logger()
 
     return(invisible(NULL))
 }
@@ -121,6 +142,7 @@ is_instrumentation_init <- function() {
     return(FALSE)
 }
 
+# @TODO: zmq this
 #' instrumentation_finalize
 #' @description Close otf2 objs for instrumentation
 #' @export
