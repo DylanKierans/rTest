@@ -21,7 +21,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // define_otf2_event_client
-RcppExport uint64_t define_otf2_event_client(Rcpp::String func_name);
+RcppExport int define_otf2_event_client(Rcpp::String func_name);
 RcppExport SEXP _rTrace_define_otf2_event_client(SEXP func_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -111,28 +111,6 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(finalize_GlobalDefWriter());
-    return rcpp_result_gen;
-END_RCPP
-}
-// globalDefWriter_WriteString
-RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
-RcppExport SEXP _rTrace_globalDefWriter_WriteString(SEXP stringRefValueSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::String >::type stringRefValue(stringRefValueSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteString(stringRefValue));
-    return rcpp_result_gen;
-END_RCPP
-}
-// globalDefWriter_WriteRegion
-RcppExport uint64_t globalDefWriter_WriteRegion(int stringRef_RegionName);
-RcppExport SEXP _rTrace_globalDefWriter_WriteRegion(SEXP stringRef_RegionNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type stringRef_RegionName(stringRef_RegionNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteRegion(stringRef_RegionName));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -246,8 +224,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_evtWriter_MeasurementOnOff", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff, 1},
     {"_rTrace_init_GlobalDefWriter", (DL_FUNC) &_rTrace_init_GlobalDefWriter, 0},
     {"_rTrace_finalize_GlobalDefWriter", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter, 0},
-    {"_rTrace_globalDefWriter_WriteString", (DL_FUNC) &_rTrace_globalDefWriter_WriteString, 1},
-    {"_rTrace_globalDefWriter_WriteRegion", (DL_FUNC) &_rTrace_globalDefWriter_WriteRegion, 1},
     {"_rTrace_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTrace_globalDefWriter_WriteSystemTreeNode, 2},
     {"_rTrace_globalDefWriter_WriteLocation", (DL_FUNC) &_rTrace_globalDefWriter_WriteLocation, 1},
     {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},

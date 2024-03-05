@@ -39,15 +39,15 @@ static void *pusher;    // zmq socket
 
 struct zmq_otf2_event {
     OTF2_TimeStamp time;
-    uint64_t regionRef;
+    OTF2_RegionRef regionRef;
     pid_t pid;
     bool event_type;
 } zmq_otf2_event;
 
 // Counters
 static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
-static uint64_t NUM_STRINGREF=0; ///* Number of events recorded with WriteString
-static uint64_t NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
+static OTF2_StringRef NUM_STRINGREF=0; ///* Number of events recorded with WriteString
+static OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
 
 // DEBUGGING
 static int id;
@@ -56,8 +56,8 @@ static int id;
 ///////////////////////////////
 // Function declrations
 ///////////////////////////////
-RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue);
-RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName);
+OTF2_StringRef globalDefWriter_WriteString(Rcpp::String stringRefValue);
+OTF2_RegionRef globalDefWriter_WriteRegion(OTF2_StringRef stringRef_RegionName);
 RcppExport SEXP init_Archive(Rcpp::String, Rcpp::String);
 RcppExport SEXP init_EvtWriter();
 RcppExport SEXP init_GlobalDefWriter();
@@ -192,8 +192,11 @@ void globalDefWriter_server() { // Server
             buffer [zmq_ret] = '\0';
             //printf ("[%d] Received: %s\n", iter, buffer);
             // Define as stringRef, regionRef
-            int stringRef = globalDefWriter_WriteString(buffer);
-            int regionRef = globalDefWriter_WriteRegion(stringRef);
+            OTF2_StringRef stringRef = globalDefWriter_WriteString(buffer);
+            OTF2_RegionRef regionRef = globalDefWriter_WriteRegion(stringRef);
+
+            // DEBUGGING
+            //Rcout << "Server - func_name: "<< buffer << ", regionRef:" << regionRef << std::endl;
 
             // Return regionRef ID
             zmq_ret = zmq_send (responder, &regionRef, sizeof(regionRef), 0);
@@ -211,15 +214,19 @@ void globalDefWriter_server() { // Server
 //' @param func_name Name of function to create event for
 //' @return regionRef regionRef for use when logging events
 // [[Rcpp::export]]
-RcppExport uint64_t  define_otf2_event_client(Rcpp::String func_name) {
-    u_int64_t regionRef;
+RcppExport int define_otf2_event_client(Rcpp::String func_name) {
+    OTF2_RegionRef regionRef;
     char buffer[LEN];
     //buffer = func_name.get_cstring();
     int send_ret = zmq_send(requester, func_name.get_cstring(), LEN*sizeof(*buffer), 0);
     if (send_ret < 0 ) { report_and_exit("client zmq_send"); }
     int recv_ret = zmq_recv(requester, &regionRef, sizeof(regionRef), 0);
     if (recv_ret < 0 ) { report_and_exit("client zmq_recv"); }
-    return regionRef;
+
+    // DEBUGGING
+    //Rcout << "func_name: " << func_name.get_cstring() << std::endl;
+    //Rcout << "regionRef: " << regionRef << std::endl;
+    return (int)regionRef;
 }
 
 //' finalize_EvtWriter_client
@@ -382,8 +389,7 @@ RcppExport SEXP finalize_GlobalDefWriter() {
 //' Define new id-value pair in globaldefwriter
 //' @param stringRefValue String assigned to given id
 //' @return NUM_STRINGREF 
-// [[Rcpp::export]]
-RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue)
+OTF2_StringRef globalDefWriter_WriteString(Rcpp::String stringRefValue)
 {
     OTF2_GlobalDefWriter_WriteString(global_def_writer, NUM_STRINGREF, stringRefValue.get_cstring() );
     return(NUM_STRINGREF++); // ++ applied after return value!
@@ -394,8 +400,7 @@ RcppExport uint64_t globalDefWriter_WriteString(Rcpp::String stringRefValue)
 //'     Define new region description in global writer
 //' @param stringRef_RegionName Name to be associated with region
 //' @return regionRef id/index for string
-// [[Rcpp::export]]
-RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName) {
+OTF2_RegionRef globalDefWriter_WriteRegion(OTF2_StringRef stringRef_RegionName) {
     OTF2_GlobalDefWriter_WriteRegion( global_def_writer,
             NUM_REGIONREF /* RegionRef */,
             stringRef_RegionName /* region name - stringRef */,
@@ -408,7 +413,7 @@ RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName) {
             0 /* begin lno */, 
             0 /* end lno */ );
 
-    return(NUM_REGIONREF++);
+    return((int)NUM_REGIONREF++);
 }
 
 
@@ -418,9 +423,9 @@ RcppExport uint64_t globalDefWriter_WriteRegion( int stringRef_RegionName) {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP globalDefWriter_WriteSystemTreeNode( int stringRef_name, int stringRef_class) {
-    uint64_t stringRef_SystemTreeNodeName = globalDefWriter_WriteString("MyHost");
-    uint64_t stringRef_SystemTreeNodeClass = globalDefWriter_WriteString("node");
-    uint64_t stringRef_GroupName = globalDefWriter_WriteString("Initial Process");
+    OTF2_StringRef stringRef_SystemTreeNodeName = globalDefWriter_WriteString("MyHost");
+    OTF2_StringRef stringRef_SystemTreeNodeClass = globalDefWriter_WriteString("node");
+    OTF2_StringRef stringRef_GroupName = globalDefWriter_WriteString("Initial Process");
 
     // Write the system tree incl definition for location group to global definition writer.
     OTF2_GlobalDefWriter_WriteSystemTreeNode( global_def_writer,
@@ -443,7 +448,7 @@ RcppExport SEXP globalDefWriter_WriteSystemTreeNode( int stringRef_name, int str
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP globalDefWriter_WriteLocation( int stringRef_name ) {
-    uint64_t stringRef_LocationName = globalDefWriter_WriteString("Main thread");
+    OTF2_StringRef stringRef_LocationName = globalDefWriter_WriteString("Main thread");
     
     // Get location id
     //OTF2_LocationRef locationRef;

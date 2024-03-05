@@ -11,16 +11,16 @@
 #######################################################################
 # section - Update for ZMQ
 #######################################################################
-# @TODO : zmq this
-#' create_otf2_event
-#' @description Creates stringRef and regionRef for func_name
-#' @param func_name String - Name of function
-#' @return regionRef Int - Index of stringRef for function
-create_otf2_event <- function(func_name) {
-    stringRef <- globalDefWriter_WriteString(func_name)
-    regionRef <- globalDefWriter_WriteRegion(stringRef)
-    regionRef
-}
+## @TODO : zmq this
+## create_otf2_event
+## @description Creates stringRef and regionRef for func_name
+## @param func_name String - Name of function
+## @return regionRef Int - Index of stringRef for function
+#create_otf2_event <- function(func_name) {
+#    stringRef <- globalDefWriter_WriteString(func_name)
+#    regionRef <- globalDefWriter_WriteRegion(stringRef)
+#    regionRef
+#}
 
 # @TODONE: zmq this
 #' get_wrapper_expression
@@ -70,8 +70,16 @@ get_wrapper_expression <- function() {
 #' @export
 insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
     
-    .wrapper_expression = eval(substitute(get_wrapper_expression(),
-                        list(X_regionRef_X=regionRef)))
+    ## DEBUGGING
+    #print(paste0("Client - func_name: ", func_name, ", regionRef: ", regionRef))
+    
+
+    # Taken from: https://stackoverflow.com/a/31374476
+    .wrapper_expression = do.call('substitute', list( 
+        get_wrapper_expression()[[1]],
+        list(X_regionRef_X=regionRef)
+    ))
+    .wrapper_expression = as.expression(.wrapper_expression)
 
     ## Copy and wrap function definition
     orig_func_body <- body(func)[1:length(body(func))]
