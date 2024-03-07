@@ -44,14 +44,11 @@ instrumentation_enable <- function(){
 #}
 
 
-# @TODO: zmq this
+# @TODO: Implement this properly
 #' instrumentation_disable
 #' @description Disable instrumentation
 #' @export
 instrumentation_disable <- function(){
-    # Send signal to logger to end evtWriter_server()
-    finalize_EvtWriter_client()
-
     pkg.env$INSTRUMENTATION_ENABLED <- FALSE
     invisible(NULL)
 }
@@ -142,6 +139,37 @@ is_instrumentation_init <- function() {
     return(FALSE)
 }
 
+
+## @TODO: zmq this
+##' instrumentation_finalize
+##' @description Close otf2 objs for instrumentation
+##' @export
+#instrumentation_finalize <- function()
+#{
+#    ## Revert value for INSTRUMENTATION_INIT
+#    if (!is_instrumentation_init()){
+#        print("ERROR: Cannot call `instrumentation_finalize` before `instrumentation_init`.")
+#        stop()
+#    }
+#    pkg.env$INSTRUMENTATION_INIT <- FALSE
+#
+#    ## Ensure instrumententation disabled
+#    if (is_instrumentation_enabled()){
+#        warning("WARNING: Instrumentation currently enabled, will force disable before finalizing.")
+#        instrumentation_disable()
+#    }
+#
+#    # Close EvtWriter
+#    finalize_EvtWriter()
+#
+#    ## Close GlobalDefWriter and Archive
+#    globalDefWriter_WriteSystemTreeNode(0,0)
+#    globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
+#    finalize_GlobalDefWriter()
+#    finalize_Archive()
+#    return(invisible(NULL))
+#
+
 # @TODO: zmq this
 #' instrumentation_finalize
 #' @description Close otf2 objs for instrumentation
@@ -161,14 +189,15 @@ instrumentation_finalize <- function()
         instrumentation_disable()
     }
 
-    # Close EvtWriter
-    finalize_EvtWriter()
+    # DEBUGGING
+    print("Instrumentation_disabled")
 
-    ## Close GlobalDefWriter and Archive
-    globalDefWriter_WriteSystemTreeNode(0,0)
-    globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
-    finalize_GlobalDefWriter()
-    finalize_Archive()
+    print("finalize_EvtWriter_client")
+    finalize_EvtWriter_client()
+    print("End of finalize_EvtWriter_client")
+    print("finalize_otf2_client")
+    finalize_otf2_client()
+    print("End of finalize_otf2_client")
     return(invisible(NULL))
 }
 

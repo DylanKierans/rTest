@@ -72,6 +72,7 @@ insert_instrumentation <- function(func, func_name, func_index, regionRef, packa
     
     ## DEBUGGING
     #print(paste0("Client - func_name: ", func_name, ", regionRef: ", regionRef))
+    if (func_name=="test"){print(paste0("test_index: ", func_index, ", regionRef: ", regionRef));}
     
 
     # Taken from: https://stackoverflow.com/a/31374476
@@ -426,6 +427,9 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         if (flag_print_progress) { print("Instrumented user functions") }
     }
     if (flag_print_progress) { print("COMPLETED INSTRUMENTATION") }
+
+    # Flag end with zmq
+    finalize_GlobalDefWriter_client()
 
 }
 

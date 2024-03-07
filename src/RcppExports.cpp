@@ -20,6 +20,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// finalize_GlobalDefWriter_client
+RcppExport SEXP finalize_GlobalDefWriter_client();
+RcppExport SEXP _rTrace_finalize_GlobalDefWriter_client() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(finalize_GlobalDefWriter_client());
+    return rcpp_result_gen;
+END_RCPP
+}
 // define_otf2_event_client
 RcppExport int define_otf2_event_client(Rcpp::String func_name);
 RcppExport SEXP _rTrace_define_otf2_event_client(SEXP func_nameSEXP) {
@@ -38,6 +48,16 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(finalize_EvtWriter_client());
+    return rcpp_result_gen;
+END_RCPP
+}
+// finalize_otf2_client
+RcppExport SEXP finalize_otf2_client();
+RcppExport SEXP _rTrace_finalize_otf2_client() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(finalize_otf2_client());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -215,8 +235,10 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 0},
+    {"_rTrace_finalize_GlobalDefWriter_client", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter_client, 0},
     {"_rTrace_define_otf2_event_client", (DL_FUNC) &_rTrace_define_otf2_event_client, 1},
     {"_rTrace_finalize_EvtWriter_client", (DL_FUNC) &_rTrace_finalize_EvtWriter_client, 0},
+    {"_rTrace_finalize_otf2_client", (DL_FUNC) &_rTrace_finalize_otf2_client, 0},
     {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 2},
     {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
     {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},

@@ -8,4 +8,6 @@ instrumentation_finalize()
 }
 \description{
 Close otf2 objs for instrumentation
+
+Close otf2 objs for instrumentation
 }

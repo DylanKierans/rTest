@@ -51,10 +51,12 @@ static OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with Writ
 
 // DEBUGGING
 static int id;
+char filename[]="log.log";
+static FILE *fp;
 
 
 ///////////////////////////////
-// Function declrations
+// Function declarations
 ///////////////////////////////
 OTF2_StringRef globalDefWriter_WriteString(Rcpp::String stringRefValue);
 OTF2_RegionRef globalDefWriter_WriteRegion(OTF2_StringRef stringRef_RegionName);
@@ -63,14 +65,19 @@ RcppExport SEXP init_EvtWriter();
 RcppExport SEXP init_GlobalDefWriter();
 RcppExport SEXP finalize_GlobalDefWriter();
 RcppExport SEXP finalize_EvtWriter();
-void evtWriter_server();
 RcppExport SEXP globalDefWriter_WriteSystemTreeNode(int, int);
 RcppExport SEXP globalDefWriter_WriteLocation(int);
 RcppExport SEXP finalize_Archive();
 RcppExport SEXP finalize_EvtWriter_client();
+RcppExport SEXP finalize_otf2_client();
+void evtWriter_server();
 void globalDefWriter_server();
+void finalize_otf2_server();
 
+// Helper functions for debugging
 void report_and_exit(const char* msg);
+void logger_error(const char*, void*);
+void fupdate(FILE*, const char*);
 
 
 ///////////////////////////////
@@ -132,8 +139,16 @@ static OTF2_FlushCallbacks flush_callbacks =
 RcppExport SEXP init_otf2_logger()
 {
     pid_t child_pid = fork();
+    if (child_pid != 0){
+        Rcout << "Parent - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
+    }
     if (child_pid == 0){
         IS_LOGGER = true;
+
+        // Open log file
+        fp = fopen(filename, "w");
+        if (fp==NULL){ logger_error("Opening file", NULL); }
+        fupdate(fp, "File opened\n");
 
         // OTF2 Objs
         Rcpp::String archivePath = "./rTrace";
@@ -141,12 +156,16 @@ RcppExport SEXP init_otf2_logger()
         init_Archive(archivePath, archiveName);
         init_EvtWriter();
         init_GlobalDefWriter();
+        fupdate(fp, "Init of otf2 objs complete\n");
 
         // Server for logging GlobalDefWriter strings&regions
         globalDefWriter_server();
+        fupdate(fp, "globalDefWriter_server complete\n");
 
         // Server listens for events
+        fupdate(fp, "evtWriter\n");
         evtWriter_server();
+        fupdate(fp, "evtWriter complete\n");
 
         // Finalization
         finalize_EvtWriter();
@@ -154,6 +173,7 @@ RcppExport SEXP init_otf2_logger()
         globalDefWriter_WriteLocation(0); // WriteLocation must be called at end of program due to NUM_EVENTS
         finalize_GlobalDefWriter(); // @TODO: Rename to globalDefWriter_Clock
         finalize_Archive();
+        finalize_otf2_server();
     } else {
         IS_LOGGER = false;
         context = zmq_ctx_new ();
@@ -174,9 +194,13 @@ void globalDefWriter_server() { // Server
     context = zmq_ctx_new ();
     void *responder = zmq_socket (context, ZMQ_REP); // ZMQ_PULL
     int rc = zmq_bind (responder, "tcp://*:5555");
-    assert (rc == 0); // errno 98 indicates socket alreayd in use
+    //assert (rc == 0); // errno 98 indicates socket alreayd in use
+    if (rc!=0){ logger_error("Binding responder", responder); }
 
-    //printf("(pid: %d) Listening\n", getpid());
+    // DEBUGGING
+    char buffer[50];
+    snprintf(buffer, 50, "(pid: %d) Listening for globalDefWriter\n", getpid());
+    fupdate(fp, buffer);
 
     int iter=0; ///< Number of messages received
 
@@ -205,8 +229,25 @@ void globalDefWriter_server() { // Server
         }
     }
 
+    // DEBUGGING
     //printf("(pid: %d) Finished listening\n", getpid());
+    snprintf(buffer, 50, "(pid: %d) Finished listening for globalDefWriter\n", getpid());
+    fupdate(fp, buffer);
+
+    // Cleanup socket
     zmq_close(responder);
+}
+
+//' finalize_GlobalDefWriter_client
+//' @return RNilValue
+// [[Rcpp::export]]
+RcppExport SEXP finalize_GlobalDefWriter_client() { // client
+    // Send 0 length signal to end this portion on server
+    zmq_send(requester, NULL, 0, 0);
+
+    // Close requester socket
+    zmq_close(requester);
+    return(R_NilValue);
 }
 
 
@@ -218,7 +259,7 @@ RcppExport int define_otf2_event_client(Rcpp::String func_name) {
     OTF2_RegionRef regionRef;
     char buffer[LEN];
     //buffer = func_name.get_cstring();
-    int send_ret = zmq_send(requester, func_name.get_cstring(), LEN*sizeof(*buffer), 0);
+    int send_ret = zmq_send(requester, func_name.get_cstring(), LEN*sizeof(char), 0);
     if (send_ret < 0 ) { report_and_exit("client zmq_send"); }
     int recv_ret = zmq_recv(requester, &regionRef, sizeof(regionRef), 0);
     if (recv_ret < 0 ) { report_and_exit("client zmq_recv"); }
@@ -233,16 +274,51 @@ RcppExport int define_otf2_event_client(Rcpp::String func_name) {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_EvtWriter_client() {
+    if (pusher == NULL ) { report_and_exit("finalize_EvtWriter_client pusher"); }
+
     int zmq_ret;
     zmq_ret = zmq_send(pusher, NULL, 0, 0); // zmq_otf2_event
     if (zmq_ret < 0 ) { report_and_exit("client finalize_EvtWriter_client"); }
 
-    // Wait for fork to end?
-    int w;
-    wait(&w); 
+    // Cleanup socket
+    zmq_close(pusher);
 
     return(R_NilValue);
 }
+
+//' finalize_otf2_client
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP finalize_otf2_client() {
+    void *syncer_client = zmq_socket(context, ZMQ_PULL); 
+    int rc = zmq_bind (syncer_client, "tcp://*:5557");
+    assert (rc == 0); // errno 98 indicates socket alreayd in use
+
+    int zmq_ret = zmq_recv(syncer_client, NULL, 0, 0); // sent from logger/server at end of events
+    if (zmq_ret < 0 ) { report_and_exit("finalize_otf2_client"); }
+
+    // Clean up zmq socket and context
+    zmq_close(syncer_client);
+    zmq_ctx_destroy(context);
+
+    return(R_NilValue);
+}
+
+
+//' finalize_otf2_server
+//' @return R_NilValue
+void finalize_otf2_server() {
+    void *syncer_server = zmq_socket(context, ZMQ_PUSH); 
+    zmq_connect (syncer_server, "tcp://localhost:5557");
+
+    int zmq_ret = zmq_send(syncer_server, NULL, 0, 0); // sent from logger/server at end of events
+    if (zmq_ret < 0 ) { report_and_exit("finalize_otf2_server"); }
+
+    // Clean up zmq socket and context
+    zmq_close(syncer_server);
+    zmq_ctx_destroy(context);
+}
+
 
 
 //////////////////////////////////////
@@ -265,6 +341,7 @@ RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String a
                                                4 * 1024 * 1024 /* def chunk size*/,
                                                OTF2_SUBSTRATE_POSIX,
                                                OTF2_COMPRESSION_NONE );
+    if (archive == NULL) { logger_error("OTF2_Archive_Open", NULL); }
 
     // Set the previously defined flush callbacks.
     OTF2_Archive_SetFlushCallbacks( archive, &flush_callbacks, NULL );
@@ -282,6 +359,9 @@ RcppExport SEXP init_Archive(Rcpp::String archivePath="./rTrace", Rcpp::String a
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_Archive() {
+    // DEBUGGING
+    if (archive == NULL) { logger_error("finalize_Archive archive", NULL); }
+
     // At the end, close the archive and exit.
     OTF2_Archive_Close( archive );
 
@@ -299,8 +379,14 @@ RcppExport SEXP finalize_Archive() {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_EvtWriter() {
-    // Get a local event writer for location 0. [ PROC 0? ]
-    evt_writer = OTF2_Archive_GetEvtWriter( archive, 0 /* LocationRef */ );
+    // TODO: Remove this export, possibly by not exporting func
+    if (IS_LOGGER){ // Ensure isn't called from main proc!
+        // DEBUGGING: OTF2_Archive_GetEvtWriter throwing error 
+        if (archive == NULL) { logger_error("init_EvtWriter", NULL); }
+
+        // Get a local event writer for location 0. [ PROC 0? ]
+        evt_writer = OTF2_Archive_GetEvtWriter( archive, 0 /* LocationRef */ );
+    }
 
     return(R_NilValue);
 }
@@ -310,6 +396,10 @@ RcppExport SEXP init_EvtWriter() {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_EvtWriter() {
+    // DEBUGGING
+    if (evt_writer == NULL) { logger_error("finalize_EvtWriter evt_writer", NULL); }
+    if (archive == NULL) { logger_error("init_EvtWriter archive", NULL); }
+
     // Now close the event writer, before closing the event files collectively.
     OTF2_EvtWriter_GetNumberOfEvents(evt_writer, &NUM_EVENTS);
     OTF2_Archive_CloseEvtWriter( archive, evt_writer );
@@ -346,10 +436,14 @@ RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode) {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP init_GlobalDefWriter() {
+    // DEBUGGING
+    if (archive == NULL) { logger_error("init_GlobalDefWriter archive", NULL); }
+
     epoch_start = get_time(); // Get init time for finalize
 
     // Now write the global definitions by getting a writer object for it.
     global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
+    if (global_def_writer == NULL) { logger_error("OTF2_Archive_GetGlobalDefWriter", NULL); }
 
     // Define empty string in first stringRef value
     Rcpp::String stringRefValue="";
@@ -496,12 +590,19 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 
 
 void evtWriter_server(){
+
+    if (evt_writer == NULL) { logger_error("evtWriter_server", NULL); }
+
     //  Socket to talk to clients
     void *puller = zmq_socket (context, ZMQ_REP); // ZMQ_PULL
     int rc = zmq_bind (puller, "tcp://*:5556");
-    assert (rc == 0); // errno 98 indicates socket alreayd in use
+    //assert (rc == 0); // errno 98 indicates socket alreayd in use
+    if (rc!=0){ logger_error("Binding puller", puller); }
 
-    //printf("(pid: %d) Listening for tracing events\n", getpid());
+    //fprintf(fp, "(pid: %d) Listening for tracing events\n", getpid());
+    char buffer[50];
+    snprintf(buffer, 50, "(pid: %d) Listening for evtWriter\n", getpid());
+    fupdate(fp, buffer);
 
     // Receive globalDef strings, and return with send regionRef
     while (1) {
@@ -516,6 +617,10 @@ void evtWriter_server(){
         } else if (zmq_ret == 0) { // Signal to stop listening
             break;
         } else {
+            char evt_buffer[100];
+            snprintf(evt_buffer, 100, "Server recv event: %d, pid: %d, time: %lu\n", 
+                buffer.regionRef, buffer.pid, buffer.time);
+            fupdate(fp, evt_buffer);
             // Check type of event for enter or leave
             if (buffer.event_type){
                 OTF2_EvtWriter_Enter( evt_writer, NULL /* attributeList */,
@@ -527,7 +632,12 @@ void evtWriter_server(){
             }
         }
     }
-    //printf("(pid: %d) Ending listening for tracing events\n", getpid());
+    //fprintf(fp, "(pid: %d) Ending listening for tracing events\n", getpid());
+    snprintf(buffer, 50, "(pid: %d) Finished listening for evtWriter\n", getpid());
+    fupdate(fp, buffer);
+
+    // Cleanup socket
+    zmq_close(puller);
 }
 
 //' Write event to evt_writer
@@ -565,6 +675,35 @@ void report_and_exit(const char* msg){
     ;
 }
 
+// Attempt to throw error to parent process
+void logger_error(const char* msg, void *socket){
+    if (fp==NULL){
+        // Open log file
+        fp = fopen("log_failure.log", "w");
+        fprintf(fp, "ERROR: Couldn't find log file pointer, made new one\n");
+        fprintf(fp, "pid: %u, ppid: %u\n", getpid(), getppid());
+        fclose(fp);
+    } else {
+        fprintf(fp, "ERROR: %s\n", msg);
+        fprintf(fp, "File closing\n");
+        fclose(fp);
+    }
+
+    // Cleanup sockets and zmq
+    if (socket!=NULL){ zmq_close(socket); }
+    if (context!=NULL){ zmq_ctx_destroy(context); }
+
+    pid_t ppid = getppid();
+    kill(0, SIGTERM);
+}
+
+void fupdate(FILE *fp, const char* msg){
+    if (fp!=NULL){
+        fprintf(fp, "%s\n", msg);
+        fclose(fp);
+        fp = fopen(filename, "a");
+    }
+}
 
 ///////////////////////////////
 // Testing
