@@ -61,48 +61,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// init_Archive
-RcppExport SEXP init_Archive(Rcpp::String archivePath, Rcpp::String archiveName);
-RcppExport SEXP _rTrace_init_Archive(SEXP archivePathSEXP, SEXP archiveNameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::String >::type archivePath(archivePathSEXP);
-    Rcpp::traits::input_parameter< Rcpp::String >::type archiveName(archiveNameSEXP);
-    rcpp_result_gen = Rcpp::wrap(init_Archive(archivePath, archiveName));
-    return rcpp_result_gen;
-END_RCPP
-}
-// finalize_Archive
-RcppExport SEXP finalize_Archive();
-RcppExport SEXP _rTrace_finalize_Archive() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(finalize_Archive());
-    return rcpp_result_gen;
-END_RCPP
-}
-// init_EvtWriter
-RcppExport SEXP init_EvtWriter();
-RcppExport SEXP _rTrace_init_EvtWriter() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(init_EvtWriter());
-    return rcpp_result_gen;
-END_RCPP
-}
-// finalize_EvtWriter
-RcppExport SEXP finalize_EvtWriter();
-RcppExport SEXP _rTrace_finalize_EvtWriter() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(finalize_EvtWriter());
-    return rcpp_result_gen;
-END_RCPP
-}
 // evtWriter_MeasurementOnOff
 RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode);
 RcppExport SEXP _rTrace_evtWriter_MeasurementOnOff(SEXP measurementModeSEXP) {
@@ -111,49 +69,6 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< bool >::type measurementMode(measurementModeSEXP);
     rcpp_result_gen = Rcpp::wrap(evtWriter_MeasurementOnOff(measurementMode));
-    return rcpp_result_gen;
-END_RCPP
-}
-// init_GlobalDefWriter
-RcppExport SEXP init_GlobalDefWriter();
-RcppExport SEXP _rTrace_init_GlobalDefWriter() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(init_GlobalDefWriter());
-    return rcpp_result_gen;
-END_RCPP
-}
-// finalize_GlobalDefWriter
-RcppExport SEXP finalize_GlobalDefWriter();
-RcppExport SEXP _rTrace_finalize_GlobalDefWriter() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(finalize_GlobalDefWriter());
-    return rcpp_result_gen;
-END_RCPP
-}
-// globalDefWriter_WriteSystemTreeNode
-RcppExport SEXP globalDefWriter_WriteSystemTreeNode(int stringRef_name, int stringRef_class);
-RcppExport SEXP _rTrace_globalDefWriter_WriteSystemTreeNode(SEXP stringRef_nameSEXP, SEXP stringRef_classSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type stringRef_name(stringRef_nameSEXP);
-    Rcpp::traits::input_parameter< int >::type stringRef_class(stringRef_classSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteSystemTreeNode(stringRef_name, stringRef_class));
-    return rcpp_result_gen;
-END_RCPP
-}
-// globalDefWriter_WriteLocation
-RcppExport SEXP globalDefWriter_WriteLocation(int stringRef_name);
-RcppExport SEXP _rTrace_globalDefWriter_WriteLocation(SEXP stringRef_nameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type stringRef_name(stringRef_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(globalDefWriter_WriteLocation(stringRef_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -239,15 +154,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_define_otf2_event_client", (DL_FUNC) &_rTrace_define_otf2_event_client, 1},
     {"_rTrace_finalize_EvtWriter_client", (DL_FUNC) &_rTrace_finalize_EvtWriter_client, 0},
     {"_rTrace_finalize_otf2_client", (DL_FUNC) &_rTrace_finalize_otf2_client, 0},
-    {"_rTrace_init_Archive", (DL_FUNC) &_rTrace_init_Archive, 2},
-    {"_rTrace_finalize_Archive", (DL_FUNC) &_rTrace_finalize_Archive, 0},
-    {"_rTrace_init_EvtWriter", (DL_FUNC) &_rTrace_init_EvtWriter, 0},
-    {"_rTrace_finalize_EvtWriter", (DL_FUNC) &_rTrace_finalize_EvtWriter, 0},
     {"_rTrace_evtWriter_MeasurementOnOff", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff, 1},
-    {"_rTrace_init_GlobalDefWriter", (DL_FUNC) &_rTrace_init_GlobalDefWriter, 0},
-    {"_rTrace_finalize_GlobalDefWriter", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter, 0},
-    {"_rTrace_globalDefWriter_WriteSystemTreeNode", (DL_FUNC) &_rTrace_globalDefWriter_WriteSystemTreeNode, 2},
-    {"_rTrace_globalDefWriter_WriteLocation", (DL_FUNC) &_rTrace_globalDefWriter_WriteLocation, 1},
     {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},
     {"_rTrace_evtWriter_Write", (DL_FUNC) &_rTrace_evtWriter_Write, 2},
     {"_rTrace_set_id", (DL_FUNC) &_rTrace_set_id, 1},

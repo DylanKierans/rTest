@@ -14,7 +14,7 @@ instrumentation_enable <- function(){
     }
     else if (!pkg.env$EVTWRITER_INIT) {
         pkg.env$FUNCTION_DEPTH <- 0
-        init_EvtWriter()
+        #init_EvtWriter()
         pkg.env$EVTWRITER_INIT <- TRUE
     } else {
         pkg.env$FUNCTION_DEPTH <- 0

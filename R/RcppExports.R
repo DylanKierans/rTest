@@ -5,6 +5,28 @@
 #' @return R_NilValue
 NULL
 
+#' Initialize static otf2 {archive} objs
+#' @param archivePath Path to the archive i.e. the directory where the anchor file is located.
+#' @param archiveName Name of the archive. It is used to generate sub paths e.g. "archiveName.otf2"
+#' @return R_NilValue
+NULL
+
+#' Close static otf2 {archive, evt_writer} objs
+NULL
+
+#' Initialize static otf2 {evt_writer} objs
+NULL
+
+#' Close static otf2 {evt_writer} objs
+NULL
+
+#' Init static otf2 {globaldefwriter} obj
+NULL
+
+#' Finalize static otf2 {globaldefwriter} obj
+#'     Write clock information before ending tracing
+NULL
+
 #' Define new id-value pair in globaldefwriter
 #' @param stringRefValue String assigned to given id
 #' @return NUM_STRINGREF 
@@ -14,6 +36,15 @@ NULL
 #'     Define new region description in global writer
 #' @param stringRef_RegionName Name to be associated with region
 #' @return regionRef id/index for string
+NULL
+
+#' Write the system tree including a definition for the location group to the global definition writer.
+#' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
+#' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
+NULL
+
+#' Write a definition for the location to the global definition writer.
+#' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 NULL
 
 #' Fork and initialize zeromq sockets for writing globalDef definitions
@@ -47,65 +78,11 @@ finalize_otf2_client <- function() {
     .Call('_rTrace_finalize_otf2_client', PACKAGE = 'rTrace')
 }
 
-#' Initialize static otf2 {archive} objs
-#' @param archivePath Path to the archive i.e. the directory where the anchor file is located.
-#' @param archiveName Name of the archive. It is used to generate sub paths e.g. "archiveName.otf2"
-#' @return R_NilValue
-init_Archive <- function(archivePath = "./rTrace", archiveName = "rTrace") {
-    .Call('_rTrace_init_Archive', PACKAGE = 'rTrace', archivePath, archiveName)
-}
-
-#' Close static otf2 {archive, evt_writer} objs
-#' @return R_NilValue
-finalize_Archive <- function() {
-    .Call('_rTrace_finalize_Archive', PACKAGE = 'rTrace')
-}
-
-#' Initialize static otf2 {evt_writer} objs
-#' @return R_NilValue
-init_EvtWriter <- function() {
-    .Call('_rTrace_init_EvtWriter', PACKAGE = 'rTrace')
-}
-
-#' Close static otf2 {evt_writer} objs
-#' @return R_NilValue
-finalize_EvtWriter <- function() {
-    .Call('_rTrace_finalize_EvtWriter', PACKAGE = 'rTrace')
-}
-
 #' Enable or disable event measurement
 #' @param measurementMode True to enable, else disable
 #' @return R_NilValue
 evtWriter_MeasurementOnOff <- function(measurementMode) {
     .Call('_rTrace_evtWriter_MeasurementOnOff', PACKAGE = 'rTrace', measurementMode)
-}
-
-#' Init static otf2 {globaldefwriter} obj
-#' @return R_NilValue
-init_GlobalDefWriter <- function() {
-    .Call('_rTrace_init_GlobalDefWriter', PACKAGE = 'rTrace')
-}
-
-#' Finalize static otf2 {globaldefwriter} obj
-#'     Write clock information before ending tracing
-#' @return R_NilValue
-finalize_GlobalDefWriter <- function() {
-    .Call('_rTrace_finalize_GlobalDefWriter', PACKAGE = 'rTrace')
-}
-
-#' Write the system tree including a definition for the location group to the global definition writer.
-#' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
-#' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
-#' @return R_NilValue
-globalDefWriter_WriteSystemTreeNode <- function(stringRef_name, stringRef_class) {
-    .Call('_rTrace_globalDefWriter_WriteSystemTreeNode', PACKAGE = 'rTrace', stringRef_name, stringRef_class)
-}
-
-#' Write a definition for the location to the global definition writer.
-#' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
-#' @return R_NilValue
-globalDefWriter_WriteLocation <- function(stringRef_name) {
-    .Call('_rTrace_globalDefWriter_WriteLocation', PACKAGE = 'rTrace', stringRef_name)
 }
 
 #' Write event to evt_writer

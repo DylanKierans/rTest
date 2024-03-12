@@ -5,8 +5,8 @@
 # \describe{
 #  <import packages>
 #  <define user functions>
-#  instrumentation_init()
-#  instrument_all_functions()
+#  instrumentation_init() - otf2 updated
+#  instrument_all_functions() - otf2 updated
 #  <...>
 #  <enter relevant area>
 #  instrumentation_enable()
