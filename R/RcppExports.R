@@ -11,13 +11,13 @@ NULL
 #' @return R_NilValue
 NULL
 
-#' Close static otf2 {archive, evt_writer} objs
+#' Close static otf2 {archive} objs
 NULL
 
-#' Initialize static otf2 {evt_writer} objs
+#' Initialize static otf2 {evt_writers} objs
 NULL
 
-#' Close static otf2 {evt_writer} objs
+#' Close static otf2 {evt_writers} objs
 NULL
 
 #' Init static otf2 {globaldefwriter} obj
@@ -44,13 +44,14 @@ NULL
 NULL
 
 #' Write a definition for the location to the global definition writer.
-#' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
+#' @param locationID Identifier for location (eg PID)
 NULL
 
 #' Fork and initialize zeromq sockets for writing globalDef definitions
+#' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 #' @return R_NilValue
-init_otf2_logger <- function() {
-    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace')
+init_otf2_logger <- function(max_nprocs) {
+    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs)
 }
 
 #' finalize_GlobalDefWriter_client
@@ -78,13 +79,6 @@ finalize_otf2_client <- function() {
     .Call('_rTrace_finalize_otf2_client', PACKAGE = 'rTrace')
 }
 
-#' Enable or disable event measurement
-#' @param measurementMode True to enable, else disable
-#' @return R_NilValue
-evtWriter_MeasurementOnOff <- function(measurementMode) {
-    .Call('_rTrace_evtWriter_MeasurementOnOff', PACKAGE = 'rTrace', measurementMode)
-}
-
 #' Write event to evt_writer
 #' @param regionRef Region id
 #' @param event_type True for enter, False for leave region
@@ -93,19 +87,24 @@ evtWriter_Write_client <- function(regionRef, event_type) {
     .Call('_rTrace_evtWriter_Write_client', PACKAGE = 'rTrace', regionRef, event_type)
 }
 
-#' Write event to evt_writer
-#' @param regionRef Region id
-#' @param event_type True for enter, False for leave region
+#' set_proc_id
+#' @param id ID value belonging to this R proc
 #' @return R_NilValue
-evtWriter_Write <- function(regionRef, event_type) {
-    .Call('_rTrace_evtWriter_Write', PACKAGE = 'rTrace', regionRef, event_type)
+set_proc_id <- function(id) {
+    .Call('_rTrace_set_proc_id', PACKAGE = 'rTrace', id)
+}
+
+#' get_id
+#' @return id int
+get_proc_id <- function() {
+    .Call('_rTrace_get_proc_id', PACKAGE = 'rTrace')
 }
 
 #' set_id
-#' @param idnew new id
+#' @param newid new id
 #' @return R_NilValue
-set_id <- function(idnew) {
-    .Call('_rTrace_set_id', PACKAGE = 'rTrace', idnew)
+set_id <- function(newid) {
+    .Call('_rTrace_set_id', PACKAGE = 'rTrace', newid)
 }
 
 #' get_id

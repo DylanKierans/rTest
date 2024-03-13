@@ -11,12 +11,13 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // init_otf2_logger
-RcppExport SEXP init_otf2_logger();
-RcppExport SEXP _rTrace_init_otf2_logger() {
+RcppExport SEXP init_otf2_logger(int max_nprocs);
+RcppExport SEXP _rTrace_init_otf2_logger(SEXP max_nprocsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(init_otf2_logger());
+    Rcpp::traits::input_parameter< int >::type max_nprocs(max_nprocsSEXP);
+    rcpp_result_gen = Rcpp::wrap(init_otf2_logger(max_nprocs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -61,17 +62,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// evtWriter_MeasurementOnOff
-RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode);
-RcppExport SEXP _rTrace_evtWriter_MeasurementOnOff(SEXP measurementModeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< bool >::type measurementMode(measurementModeSEXP);
-    rcpp_result_gen = Rcpp::wrap(evtWriter_MeasurementOnOff(measurementMode));
-    return rcpp_result_gen;
-END_RCPP
-}
 // evtWriter_Write_client
 RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type);
 RcppExport SEXP _rTrace_evtWriter_Write_client(SEXP regionRefSEXP, SEXP event_typeSEXP) {
@@ -84,26 +74,35 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// evtWriter_Write
-RcppExport SEXP evtWriter_Write(int regionRef, bool event_type);
-RcppExport SEXP _rTrace_evtWriter_Write(SEXP regionRefSEXP, SEXP event_typeSEXP) {
+// set_proc_id
+RcppExport SEXP set_proc_id(const int id);
+RcppExport SEXP _rTrace_set_proc_id(SEXP idSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< int >::type regionRef(regionRefSEXP);
-    Rcpp::traits::input_parameter< bool >::type event_type(event_typeSEXP);
-    rcpp_result_gen = Rcpp::wrap(evtWriter_Write(regionRef, event_type));
+    Rcpp::traits::input_parameter< const int >::type id(idSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_proc_id(id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_proc_id
+RcppExport int get_proc_id();
+RcppExport SEXP _rTrace_get_proc_id() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_proc_id());
     return rcpp_result_gen;
 END_RCPP
 }
 // set_id
-RcppExport SEXP set_id(const int idnew);
-RcppExport SEXP _rTrace_set_id(SEXP idnewSEXP) {
+RcppExport SEXP set_id(const int newid);
+RcppExport SEXP _rTrace_set_id(SEXP newidSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const int >::type idnew(idnewSEXP);
-    rcpp_result_gen = Rcpp::wrap(set_id(idnew));
+    Rcpp::traits::input_parameter< const int >::type newid(newidSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_id(newid));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -149,14 +148,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 0},
+    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 1},
     {"_rTrace_finalize_GlobalDefWriter_client", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter_client, 0},
     {"_rTrace_define_otf2_event_client", (DL_FUNC) &_rTrace_define_otf2_event_client, 1},
     {"_rTrace_finalize_EvtWriter_client", (DL_FUNC) &_rTrace_finalize_EvtWriter_client, 0},
     {"_rTrace_finalize_otf2_client", (DL_FUNC) &_rTrace_finalize_otf2_client, 0},
-    {"_rTrace_evtWriter_MeasurementOnOff", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff, 1},
     {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},
-    {"_rTrace_evtWriter_Write", (DL_FUNC) &_rTrace_evtWriter_Write, 2},
+    {"_rTrace_set_proc_id", (DL_FUNC) &_rTrace_set_proc_id, 1},
+    {"_rTrace_get_proc_id", (DL_FUNC) &_rTrace_get_proc_id, 0},
     {"_rTrace_set_id", (DL_FUNC) &_rTrace_set_id, 1},
     {"_rTrace_get_id", (DL_FUNC) &_rTrace_get_id, 0},
     {"_rTrace_get_pid", (DL_FUNC) &_rTrace_get_pid, 0},

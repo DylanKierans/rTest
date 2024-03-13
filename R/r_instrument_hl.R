@@ -10,7 +10,7 @@
 #' @export
 instrumentation_enable <- function(){
     if (is_instrumentation_enabled()){
-        print("Warning: Instrumentation already enabled!")
+        message("Instrumentation already enabled!")
     }
     else if (!pkg.env$EVTWRITER_INIT) {
         pkg.env$FUNCTION_DEPTH <- 0
@@ -18,30 +18,30 @@ instrumentation_enable <- function(){
         pkg.env$EVTWRITER_INIT <- TRUE
     } else {
         pkg.env$FUNCTION_DEPTH <- 0
-        #evtWriter_MeasurementOnOff(TRUE)
+        evtWriter_MeasurementOnOff_client(TRUE)
     }
     pkg.env$INSTRUMENTATION_ENABLED <- TRUE
     invisible(NULL)
 }
 
-## @TODO: zmq this
-##' instrumentation_disable
-##' @description Disable instrumentation
-##' @export
-#instrumentation_disable <- function(){
-#    if (!is_instrumentation_enabled()){
-#        print("Warning: Instrumentation already disabled!")
-#    }
-#    else {
-#        if (pkg.env$FUNCTION_DEPTH != 0){ 
-#            print(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
-#        }
-#        pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-#        #finalize_EvtWriter()
-#        #evtWriter_MeasurementOnOff(FALSE)
-#    }
-#    invisible(NULL)
-#}
+# @TODO: zmq this
+#' instrumentation_disable
+#' @description Disable instrumentation
+#' @export
+instrumentation_disable <- function(){
+    if (!is_instrumentation_enabled()){
+        print("Warning: Instrumentation already disabled!")
+    }
+    else {
+        if (pkg.env$FUNCTION_DEPTH != 0){ 
+            print(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
+        }
+        pkg.env$INSTRUMENTATION_ENABLED <- FALSE
+        #finalize_EvtWriter()
+        evtWriter_MeasurementOnOff(FALSE)
+    }
+    invisible(NULL)
+}
 
 
 # @TODO: Implement this properly
@@ -124,7 +124,7 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 #    init_EvtWriter()
 
     ## Initiate new proc
-    init_otf2_logger()
+    init_otf2_logger(parallelly::availableCores())
 
     return(invisible(NULL))
 }
@@ -139,36 +139,6 @@ is_instrumentation_init <- function() {
     return(FALSE)
 }
 
-
-## @TODO: zmq this
-##' instrumentation_finalize
-##' @description Close otf2 objs for instrumentation
-##' @export
-#instrumentation_finalize <- function()
-#{
-#    ## Revert value for INSTRUMENTATION_INIT
-#    if (!is_instrumentation_init()){
-#        print("ERROR: Cannot call `instrumentation_finalize` before `instrumentation_init`.")
-#        stop()
-#    }
-#    pkg.env$INSTRUMENTATION_INIT <- FALSE
-#
-#    ## Ensure instrumententation disabled
-#    if (is_instrumentation_enabled()){
-#        warning("WARNING: Instrumentation currently enabled, will force disable before finalizing.")
-#        instrumentation_disable()
-#    }
-#
-#    # Close EvtWriter
-#    finalize_EvtWriter()
-#
-#    ## Close GlobalDefWriter and Archive
-#    globalDefWriter_WriteSystemTreeNode(0,0)
-#    globalDefWriter_WriteLocation(0) # WriteLocation must be called at end of program due to NUM_EVENTS
-#    finalize_GlobalDefWriter()
-#    finalize_Archive()
-#    return(invisible(NULL))
-#
 
 # @TODO: zmq this
 #' instrumentation_finalize

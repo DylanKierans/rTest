@@ -4,7 +4,10 @@
 \alias{init_otf2_logger}
 \title{Fork and initialize zeromq sockets for writing globalDef definitions}
 \usage{
-init_otf2_logger()
+init_otf2_logger(max_nprocs)
+}
+\arguments{
+\item{max_nprocs}{Maximum number of R processes (ie evtWriters required)}
 }
 \value{
 R_NilValue

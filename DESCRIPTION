@@ -5,7 +5,7 @@ Authors@R:
     person("Dylan", "Kierans", , "dylankierans53@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.2.0)
-Imports: Rcpp, methods, R.utils, rlang
+Imports: Rcpp, methods, R.utils, rlang, parallelly
 LinkingTo: Rcpp
 License: GPL (>= 3)
 Encoding: UTF-8

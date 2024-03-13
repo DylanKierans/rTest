@@ -22,6 +22,7 @@
 #' @importFrom utils head str
 #' @importFrom R.utils isPackageLoaded
 #' @importFrom rlang env_unlock env_lock env_binding_unlock env_binding_lock 
+#' @importFrom parallelly availableCores
 #' @exportPattern "^[[:alpha:]]+"
 
 

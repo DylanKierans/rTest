@@ -3,10 +3,13 @@
 // @date 2024-01-16
 // @version 0.02
 // @author D.Kierans (dylanki@kth.se)
-// @todo Error checking
-// @todo Fix timing offset problems - caused by taking epoch at different time to evtWriter start
-// @todo Fix timing coming from other proc
-// @note Location := thread, LocationGroup := Process, SystemTree := Node
+// @note Location ~= thread, LocationGroup ~= Process, SystemTree ~= Node
+// @todo Look at timing offsets per proc
+// @todo Error checking (otf2 objects existence, sockets, send/recv messages)
+// @todo Signal handling
+// @todo get epochs from Master proc
+// @todo Impliment _enable and _disable correctly
+// @todo Update buffer.pid
 
 #include "Rcpp.h"
 #include <otf2/otf2.h>
@@ -28,9 +31,9 @@
 using namespace Rcpp;
 
 static OTF2_Archive* archive;
-static OTF2_EvtWriter* evt_writer;
 static OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
+static OTF2_EvtWriter** evt_writers;
 
 // ZeroMQ 
 static bool IS_LOGGER=false;
@@ -45,10 +48,24 @@ struct zmq_otf2_event {
     bool event_type;
 } zmq_otf2_event;
 
+struct zmq_otf2_measurement {
+    OTF2_TimeStamp time;
+    pid_t pid;
+    bool measurement_type;
+} zmq_otf2_measurement;
+
+
 // Counters
-static uint64_t NUM_EVENTS=0; ///* Number of events recorded for WriteLocation
 static OTF2_StringRef NUM_STRINGREF=0; ///* Number of events recorded with WriteString
 static OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
+
+// IDs
+static OTF2_LocationRef maxLocationRef=0; ///< Cap per max number of R procs
+// TODO: Update maxUsedLocationRef if forking R procs 
+// if (nprocs>maxUsedLocationRef){ maxUsedLocationRef = nprocs; }
+static OTF2_LocationRef maxUsedLocationRef=1; ///< Maximum number of used R procs <maxLocationRef
+static int locationRef;
+
 
 // DEBUGGING
 static int id;
@@ -65,17 +82,22 @@ RcppExport SEXP finalize_otf2_client();
 // OTF2 Server/logger functions
 void init_Archive_server(Rcpp::String, Rcpp::String);
 void finalize_Archive_server();
-void init_EvtWriter_server(OTF2_LocationRef);
-void finalize_EvtWriter_server();
+void init_EvtWriters_server();
+void finalize_EvtWriters_server();
 void init_GlobalDefWriter_server();
 void finalize_GlobalDefWriter_server();
-void evtWriter_server();
+void evtWriters_server();
 void globalDefWriter_server();
 void finalize_otf2_server();
 OTF2_StringRef globalDefWriter_WriteString_server(Rcpp::String stringRefValue);
 OTF2_RegionRef globalDefWriter_WriteRegion_server(OTF2_StringRef stringRef_RegionName);
-void globalDefWriter_WriteSystemTreeNode_server(int, int);
-void globalDefWriter_WriteLocation_server(int);
+void globalDefWriter_WriteSystemTreeNode_server(OTF2_StringRef, OTF2_StringRef);
+//void globalDefWriter_WriteLocation_server(OTF2_LocationRef, OTF2_LocationGroupRef);
+//void globalDefWriter_WriteLocationGroup_server(OTF2_LocationGroupRef);
+void globalDefWriter_WriteLocations_server();
+void globalDefWriter_WriteLocationGroups_server();
+
+
 
 // Helper functions for debugging
 void report_and_exit(const char* msg);
@@ -133,20 +155,23 @@ static OTF2_FlushCallbacks flush_callbacks =
 };
 
 //////////////////////////////////////
-// TODO
+// Spawn otf2 process, and give task list
+//  Awaits messages from main process at suitable steps
 //////////////////////////////////////
 
 //' Fork and initialize zeromq sockets for writing globalDef definitions
+//' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 //' @return R_NilValue
 // [[Rcpp::export]]
-RcppExport SEXP init_otf2_logger()
+RcppExport SEXP init_otf2_logger(int max_nprocs)
 {
     pid_t child_pid = fork();
-    if (child_pid != 0){
+    if (child_pid != 0){ // DEBUGGING
         Rcout << "Parent - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
     }
     if (child_pid == 0){
         IS_LOGGER = true;
+        maxLocationRef = max_nprocs;
 
         // Open log file
         fp = fopen(filename, "w");
@@ -157,7 +182,9 @@ RcppExport SEXP init_otf2_logger()
         Rcpp::String archivePath = "./rTrace";
         Rcpp::String archiveName = "rTrace";
         init_Archive_server(archivePath, archiveName);
-        init_EvtWriter_server( (OTF2_LocationRef)0 );
+        fupdate(fp, "Init archive complete\n");
+        init_EvtWriters_server( );
+        fupdate(fp, "Init evt_writers complete\n");
         init_GlobalDefWriter_server();
         fupdate(fp, "Init of otf2 objs complete\n");
 
@@ -167,13 +194,18 @@ RcppExport SEXP init_otf2_logger()
 
         // Server listens for events
         fupdate(fp, "evtWriter\n");
-        evtWriter_server();
+        evtWriters_server();
         fupdate(fp, "evtWriter complete\n");
 
         // Finalization
-        finalize_EvtWriter_server();
         globalDefWriter_WriteSystemTreeNode_server(0,0);
-        globalDefWriter_WriteLocation_server(0); // WriteLocation must be called at end of program due to NUM_EVENTS
+        globalDefWriter_WriteLocationGroups_server();
+        globalDefWriter_WriteLocations_server(); ///< Note: WriteLocation must be called at end of program due to NUM_EVENTS
+        //OTF2_LocationGroupRef locationGroupRef = 0;
+        //OTF2_LocationRef locationRef = 0;
+        //globalDefWriter_WriteLocationGroup_server(locationGroupRef);
+        //globalDefWriter_WriteLocation_server(locationGroupRef, locationRef); ///< Note: WriteLocation must be called at end of program due to NUM_EVENTS
+        finalize_EvtWriters_server(); // Moving this after globalDef because num_events used in WriteLocation_server
         finalize_GlobalDefWriter_server(); // @TODO: Rename to globalDefWriter_Clock
         finalize_Archive_server();
         finalize_otf2_server();
@@ -191,6 +223,7 @@ RcppExport SEXP init_otf2_logger()
     }
     return(R_NilValue);
 }
+
 
 // Send 0 length signal to end this portion
 void globalDefWriter_server() { // Server
@@ -239,7 +272,6 @@ void globalDefWriter_server() { // Server
     }
 
     // DEBUGGING
-    //printf("(pid: %d) Finished listening\n", getpid());
     snprintf(buffer, 50, "(pid: %d) Finished listening for globalDefWriter\n", getpid());
     fupdate(fp, buffer);
 
@@ -266,7 +298,7 @@ RcppExport SEXP finalize_GlobalDefWriter_client() { // client
 // [[Rcpp::export]]
 RcppExport int define_otf2_event_client(Rcpp::String func_name) {
     OTF2_RegionRef regionRef;
-    char buffer[LEN];
+    //char buffer[LEN];
     //buffer = func_name.get_cstring();
     int send_ret = zmq_send(requester, func_name.get_cstring(), LEN*sizeof(char), 0);
     if (send_ret < 0 ) { report_and_exit("client zmq_send"); }
@@ -288,7 +320,7 @@ RcppExport SEXP finalize_EvtWriter_client() {
     if (pusher == NULL ) { report_and_exit("finalize_EvtWriter_client pusher"); }
 
     int zmq_ret;
-    zmq_ret = zmq_send(pusher, NULL, 0, 0); // zmq_otf2_event
+    zmq_ret = zmq_send(pusher, NULL, 0, 0); // Send 0 message to Master to sync
     if (zmq_ret < 0 ) { report_and_exit("client finalize_EvtWriter_client"); }
 
     // Cleanup socket
@@ -364,7 +396,7 @@ void init_Archive_server(Rcpp::String archivePath="./rTrace", Rcpp::String archi
 }
 
 
-//' Close static otf2 {archive, evt_writer} objs
+//' Close static otf2 {archive} objs
 void finalize_Archive_server() {
     // DEBUGGING
     if (archive == NULL) { logger_error("finalize_Archive archive", NULL); }
@@ -379,27 +411,43 @@ void finalize_Archive_server() {
 
 
 // TODO: Multiproc this!
-//' Initialize static otf2 {evt_writer} objs
-void init_EvtWriter_server(OTF2_LocationRef locationRef) {
+//' Initialize static otf2 {evt_writers} objs
+void init_EvtWriters_server() {
     if (IS_LOGGER){ // Ensure isn't called from main proc!
         // DEBUGGING: OTF2_Archive_GetEvtWriter throwing error 
-        if (archive == NULL) { logger_error("init_EvtWriter_server", NULL); }
+        if (archive == NULL) { logger_error("init_EvtWriters_server", NULL); }
 
-        // Get a local event writer for location 0. [ PROC 0? ]
-        evt_writer = OTF2_Archive_GetEvtWriter( archive, locationRef );
+        // Make sure maxLocationRef set
+        if (maxLocationRef < 1){ logger_error("init_EvtWriters_server maxLocationRef", NULL); }
+
+        // DEBUGGING
+        char buffer[50];
+        snprintf(buffer, 50, "maxLocationRef: %lu\n", maxLocationRef);
+        fupdate(fp, buffer);
+
+        // Get a event writer for each location
+        evt_writers = (OTF2_EvtWriter**)malloc(maxLocationRef*sizeof(*evt_writers));
+        if (evt_writers == NULL) { logger_error("init_EvtWriters_server evt_writers", NULL); }
+        for (OTF2_LocationRef i=0; i<maxLocationRef; ++i){
+            evt_writers[i] = OTF2_Archive_GetEvtWriter( archive, i );
+        }
+
     }
 }
 
 
-//' Close static otf2 {evt_writer} objs
-void finalize_EvtWriter_server() {
+//' Close static otf2 {evt_writers} objs
+void finalize_EvtWriters_server() {
     // DEBUGGING
-    if (evt_writer == NULL) { logger_error("finalize_EvtWriter_server evt_writer", NULL); }
-    if (archive == NULL) { logger_error("finalize_EvtWriter_server archive", NULL); }
+    if (evt_writers == NULL) { logger_error("finalize_EvtWriters_server evt_writers", NULL); }
+    if (archive == NULL) { logger_error("finalize_EvtWriters_server archive", NULL); }
 
     // Now close the event writer, before closing the event files collectively.
-    OTF2_EvtWriter_GetNumberOfEvents(evt_writer, &NUM_EVENTS);
-    OTF2_Archive_CloseEvtWriter( archive, evt_writer );
+    for (OTF2_LocationRef i=0; i<maxLocationIDs; ++i){
+        if (evt_writers[i] == NULL) { logger_error("finalize_EvtWriters_server evt_writers[i]", NULL); }
+        OTF2_Archive_CloseEvtWriter( archive, evt_writers[i]);
+    }
+    free(evt_writers);
 
     // After we wrote all of the events we close the event files again.
     OTF2_Archive_CloseEvtFiles( archive );
@@ -410,22 +458,58 @@ void finalize_EvtWriter_server() {
 //' Enable or disable event measurement
 //' @param measurementMode True to enable, else disable
 //' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode) {
+void evtWriter_MeasurementOnOff_server(pid_t pid, OTF2_TimeStamp time, bool measurementMode) {
     // Enable/disable measurement
     if (measurementMode){
-        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+        OTF2_EvtWriter_MeasurementOnOff(evt_writers[pid], 
                 NULL /* attributeList */, 
-                get_time(), 
+                time, 
                 OTF2_MEASUREMENT_ON);
     } else {
-        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+        OTF2_EvtWriter_MeasurementOnOff(evt_writers[pid],
                 NULL /* attributeList */, 
-                get_time(), 
+                time, 
                 OTF2_MEASUREMENT_OFF);
     }
+}
+
+// @TODO: zmq this
+//' Enable or disable event measurement
+//' @param measurementMode True to enable, else disable
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP evtWriter_MeasurementOnOff_client(bool measurementMode) {
+    struct zmq_otf2_measurement buffer;
+    buffer.pid = 0; 
+    buffer.time = get_time();
+    buffer.measurementMode = measurementMode;
+
+    zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // zmq_otf2_measurement
+    if (zmq_ret<0){ report_and_exit("zmq_send zmq_otf2_measurement"); }
     return(R_NilValue);
 }
+
+
+//// @TODO: zmq this
+////' Enable or disable event measurement
+////' @param measurementMode True to enable, else disable
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode) {
+//    // Enable/disable measurement
+//    if (measurementMode){
+//        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+//                NULL /* attributeList */, 
+//                get_time(), 
+//                OTF2_MEASUREMENT_ON);
+//    } else {
+//        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
+//                NULL /* attributeList */, 
+//                get_time(), 
+//                OTF2_MEASUREMENT_OFF);
+//    }
+//    return(R_NilValue);
+//}
 
 
 //' Init static otf2 {globaldefwriter} obj
@@ -500,11 +584,11 @@ OTF2_RegionRef globalDefWriter_WriteRegion_server(OTF2_StringRef stringRef_Regio
 }
 
 
-// TODO: Multiproc this! Partial MakeCluster
+// TODO: Get names from sys calls
 //' Write the system tree including a definition for the location group to the global definition writer.
 //' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 //' @param stringRef_class Class to be associated with SystemTreeNode (eg node)
-void globalDefWriter_WriteSystemTreeNode_server( int stringRef_name, int stringRef_class) {
+void globalDefWriter_WriteSystemTreeNode_server( OTF2_StringRef stringRef_name, OTF2_StringRef stringRef_class) {
 
     // TODO: Get NodeName from syscall
     // Write the system tree incl definition for location group to global definition writer.
@@ -515,41 +599,93 @@ void globalDefWriter_WriteSystemTreeNode_server( int stringRef_name, int stringR
             stringRef_SystemTreeNodeName /* StringRef name */,
             stringRef_SystemTreeNodeClass /* StringRef class */,
             OTF2_UNDEFINED_SYSTEM_TREE_NODE /* parent */ );
+}
 
-    // TODO: Multiproc this! MakeCluster
-    // Write LocationGroup (ie proc) information
-    OTF2_StringRef stringRef_GroupName = globalDefWriter_WriteString_server("Initial Process");
+// TODO: multiproc this! locationGroupID_Master
+// Write LocationGroup (ie proc) information
+void globalDefWriter_WriteLocationGroups_server() {
+
+    // Do master process first
+    OTF2_StringRef locationGroupRef_Name_master = globalDefWriter_WriteString_server("Master Process");
     OTF2_GlobalDefWriter_WriteLocationGroup( global_def_writer,
             0 /* OTF2_LocationGroupRef  */,
-            stringRef_GroupName /* name */,
+            locationGroupRef_Name_master /* name */,
             OTF2_LOCATION_GROUP_TYPE_PROCESS /* New LocationGroup for each process */, 
             0 /* system tree */,
             OTF2_UNDEFINED_LOCATION_GROUP /* creating process */ );
-
+ 
+    // Then do all slaves
+    OTF2_StringRef locationGroupRef_Name_slave = globalDefWriter_WriteString_server("Slave Processes");
+    for (OTF2_LocationRef i=1; i<maxUsedLocationRef; ++i){
+        OTF2_GlobalDefWriter_WriteLocationGroup( global_def_writer,
+                i /* OTF2_LocationGroupRef  */,
+                locationGroupRef_Name_slave /* name */,
+                OTF2_LOCATION_GROUP_TYPE_PROCESS /* New LocationGroup for each process */, 
+                0 /* system tree */,
+                OTF2_UNDEFINED_LOCATION_GROUP /* creating process */ );
+    }
 }
 
-// TODO: Multiproc this (NUM_EVENTS only)
+// TODO: multiproc this! locationGroupID_Master
+//void globalDefWriter_WriteLocationGroup_server(OTF2_LocationGroupRef locationGroupID) {
+//
+//    // Write LocationGroup (ie proc) information
+//    OTF2_StringRef locationGroupRef_Name;
+//    //if (locationGroupID == locationGroupID_Master) {
+//    if (locationGroupID == 0) {
+//        locationGroupRef_Name = globalDefWriter_WriteString_server("Master Process");
+//    } else {
+//        locationGroupRef_Name = globalDefWriter_WriteString_server("Slave Processes");
+//    }
+//
+//    OTF2_GlobalDefWriter_WriteLocationGroup( global_def_writer,
+//            locationGroupID /* OTF2_LocationGroupRef  */,
+//            locationGroupRef_Name /* name */,
+//            OTF2_LOCATION_GROUP_TYPE_PROCESS /* New LocationGroup for each process */, 
+//            0 /* system tree */,
+//            OTF2_UNDEFINED_LOCATION_GROUP /* creating process */ );
+//}
+
 //' Write a definition for the location to the global definition writer.
-//' @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
-void globalDefWriter_WriteLocation_server( int stringRef_name ) {
+void globalDefWriter_WriteLocations_server() {
     OTF2_StringRef stringRef_LocationName = globalDefWriter_WriteString_server("Main thread");
     
-    // Get location id
-    //OTF2_LocationRef locationRef;
-    //OTF2_GlobalDefWriter_GetLocationID(global_def_writer, &locationRef);
+    for (OTF2_LocationRef i=0; i<maxUsedLocationRef; ++i){
+        // Write a definition for the location to the global definition writer.
+        uint64_t num_events;
+        OTF2_EvtWriter_GetNumberOfEvents(evt_writers[i], &num_events);
+        //OTF2_EvtWriter_GetNumberOfEvents(evt_writer, &num_events);
 
-    // Write a definition for the location to the global definition writer.
-    Rcout << "globalDefWriter_WriteLocation - Num events: " << NUM_EVENTS << "\n";
-    OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
-            0 /* id */,
-            stringRef_LocationName /* stringRef_name */,
-            OTF2_LOCATION_TYPE_CPU_THREAD,
-            NUM_EVENTS /* #events */,
-            0 /* location group */ );
+        Rcout << "globalDefWriter_WriteLocation - LocationRef: " << i << ", Num events: " << num_events << "\n";
+        OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
+                i /* locationRef */,
+                stringRef_LocationName /* stringRef_name */,
+                OTF2_LOCATION_TYPE_CPU_THREAD,
+                num_events /* #events */,
+                i /* locationGroupRef */ );
+    }
 }
 
+////' Write a definition for the location to the global definition writer.
+////' @param locationID Identifier for location (eg PID)
+//void globalDefWriter_WriteLocation_server(OTF2_LocationRef locationID, OTF2_LocationGroupRef locationGroupID ) {
+    //OTF2_StringRef stringRef_LocationName = globalDefWriter_WriteString_server("Main thread");
+    
+    //// Write a definition for the location to the global definition writer.
+    //uint64_t num_events;
+    //OTF2_EvtWriter_GetNumberOfEvents(evt_writers[locationID], &num_events);
+    ////OTF2_EvtWriter_GetNumberOfEvents(evt_writer, &num_events);
 
-// @TODONE: zmq this
+    //Rcout << "globalDefWriter_WriteLocation - Num events: " << num_events << "\n";
+    //OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
+            //locationID /* id */,
+            //stringRef_LocationName /* stringRef_name */,
+            //OTF2_LOCATION_TYPE_CPU_THREAD,
+            //num_events /* #events */,
+            //locationGroupID /* location group */ );
+//}
+
+
 //' Write event to evt_writer
 //' @param regionRef Region id
 //' @param event_type True for enter, False for leave region
@@ -565,7 +701,7 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
     struct zmq_otf2_event buffer;
 
     // Pack info into struct
-    buffer.pid = 0;
+    buffer.pid = 0; // TODO - update pid 
     buffer.regionRef = regionRef;
     buffer.time = get_time();
     buffer.event_type = event_type;
@@ -587,9 +723,10 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 
 
 // TODO: multiproc this! evtWriter dependent on LocationGroup/PID
-void evtWriter_server(){
+// TODO: function for evtWriters err check
+void evtWriters_server(){
 
-    if (evt_writer == NULL) { logger_error("evtWriter_server", NULL); }
+    if (evt_writers == NULL) { logger_error("evtWriters_server evt_writers", NULL); }
 
     //  Socket to talk to clients
     void *puller = zmq_socket (context, ZMQ_PULL); // ZMQ_PULL
@@ -598,19 +735,19 @@ void evtWriter_server(){
     if (rc!=0){ logger_error("Binding puller", puller); }
 
     // DEBUGGING
-    //fprintf(fp, "(pid: %d) Listening for tracing events\n", getpid());
     char buffer[50];
-    snprintf(buffer, 50, "(pid: %d) Listening for evtWriter\n", getpid());
+    snprintf(buffer, 50, "(pid: %d) Listening for evtWriters\n", getpid());
     fupdate(fp, buffer);
 
     // Receive globalDef strings, and return with send regionRef
     while (1) {
+
+        // TODO void data type for different cases!
         struct zmq_otf2_event buffer;
         int zmq_ret;
 
         zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // zmq_otf2_event
 
-        // @TODO: evt_writer for each pid
         if (zmq_ret<0){
             report_and_exit("zmq_recv zmq_otf2_event"); 
         } else if (zmq_ret == 0) { // Signal to stop listening
@@ -625,46 +762,22 @@ void evtWriter_server(){
 
             // Check type of event for enter or leave
             if (buffer.event_type){
-                OTF2_EvtWriter_Enter( evt_writer, NULL /* attributeList */,
+                OTF2_EvtWriter_Enter( evt_writers[buffer.pid], NULL /* attributeList */,
                         buffer.time, buffer.regionRef /* region */ );
             }
             else {
-                OTF2_EvtWriter_Leave( evt_writer, NULL /* attributeList */,
+                OTF2_EvtWriter_Leave( evt_writers[buffer.pid], NULL /* attributeList */,
                         buffer.time, buffer.regionRef /* region */ );
             }
         }
     }
-    //fprintf(fp, "(pid: %d) Ending listening for tracing events\n", getpid());
-    snprintf(buffer, 50, "(pid: %d) Finished listening for evtWriter\n", getpid());
+    snprintf(buffer, 50, "(pid: %d) Finished listening for evtWriters\n", getpid());
     fupdate(fp, buffer);
 
     // Cleanup socket
     zmq_close(puller);
 }
 
-//' Write event to evt_writer
-//' @param regionRef Region id
-//' @param event_type True for enter, False for leave region
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP evtWriter_Write(int regionRef, bool event_type)
-{
-#ifdef DEBUG
-    Rcout << "region: " << regionRef << ", event_type: " << event_type << "\n";
-#endif /* ifdef DEBUG */
-
-
-    // Check type of event for enter or leave
-    if (event_type){
-        OTF2_EvtWriter_Enter( evt_writer, NULL /* attributeList */,
-                get_time(), regionRef /* region */ );
-    }
-    else {
-        OTF2_EvtWriter_Leave( evt_writer, NULL /* attributeList */,
-                get_time(), regionRef /* region */ );
-    }
-    return(R_NilValue);
-}
 
 ///////////////////////////////
 // Helper functions
@@ -695,7 +808,7 @@ void logger_error(const char* msg, void *socket){
     if (socket!=NULL){ zmq_close(socket); }
     if (context!=NULL){ zmq_ctx_destroy(context); }
 
-    pid_t ppid = getppid();
+    //pid_t ppid = getppid();
     kill(0, SIGTERM);
 }
 
@@ -707,16 +820,33 @@ void fupdate(FILE *fp, const char* msg){
     }
 }
 
+//' set_proc_id
+//' @param id ID value belonging to this R proc
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP set_locationRef(const int id) {
+    if (id < 0 ){ report_and_exit("Negative ID"); }
+    locationRef = id;    
+    return (R_NilValue);
+}
+
+//' get_id
+//' @return id int
+// [[Rcpp::export]]
+RcppExport int get_locationRef() {
+    return (locationRef);
+}
+
 ///////////////////////////////
 // Testing
 ///////////////////////////////
 
 //' set_id
-//' @param idnew new id
+//' @param newid new id
 //' @return R_NilValue
 // [[Rcpp::export]]
-RcppExport SEXP set_id(const int idnew) {
-    id = idnew;    
+RcppExport SEXP set_id(const int newid) {
+    id = newid;    
     return (R_NilValue);
 }
 
