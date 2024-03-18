@@ -14,6 +14,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// if (MPI)
+#include <mpi.h>
+
+
 //#define DEBUG /* Uncomment to enable verbose debug info */
 //#define DUMMY_TIMESTEPS /* Uncomment for 1s timestep for each subsequent event call */
 
@@ -382,3 +386,72 @@ RcppExport int get_tid() {
 RcppExport int get_ppid() {
     return((int)getppid());
 }
+
+//' mpi_init
+// [[Rcpp::export]]
+RcppExport int mpi_init() {
+    int flag;
+    int fake_argc = 0;
+    char **fake_argv = NULL;
+//char **fake_argv = malloc(1*sizeof(*fake_argv));
+    MPI_Init(&fake_argc, &fake_argv);
+    free(fake_argv);
+
+    MPI_Initialized(&flag);
+    if (flag) {
+        Rcout << "MPI is initialized.\n";
+        return(0);
+    }
+    Rcout << "MPI UNABLE to initialize.\n";
+    return (-1);
+}
+
+//' mpi_finalize
+// [[Rcpp::export]]
+RcppExport SEXP mpi_finalize() {
+    MPI_Finalize();
+    return(R_NilValue);
+}
+
+//' mpi_is_init
+// [[Rcpp::export]]
+RcppExport int mpi_is_init() {
+    int init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        return(0);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
+}
+
+//' get_mpi_rank
+// [[Rcpp::export]]
+RcppExport int get_mpi_rank() {
+    int rank, init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        return(rank);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
+}
+
+//' get_mpi_size
+// [[Rcpp::export]]
+RcppExport int get_mpi_size() {
+    int size, init_flag;
+    MPI_Initialized(&init_flag);
+    if (init_flag) {
+        Rcout << "MPI is initialized.\n";
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        return(size);
+    }
+    Rcout << "MPI is NOT initialized\n";
+    return (-1);
+}
+
+
