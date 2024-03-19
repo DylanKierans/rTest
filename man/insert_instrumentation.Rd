@@ -5,7 +5,7 @@
 \title{insert_instrumentation}
 \usage{
 insert_instrumentation(
-  func,
+  func_ptr,
   func_name,
   func_index,
   regionRef,
@@ -15,7 +15,7 @@ insert_instrumentation(
 )
 }
 \arguments{
-\item{func}{Object - Pointer to function closure to update}
+\item{func_ptr}{Object - Pointer to function closure to update}
 
 \item{func_name}{String - function name}
 

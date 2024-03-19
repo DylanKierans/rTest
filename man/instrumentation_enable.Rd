@@ -4,7 +4,10 @@
 \alias{instrumentation_enable}
 \title{instrumentation_enable}
 \usage{
-instrumentation_enable()
+instrumentation_enable(flag_ignore_depth = FALSE)
+}
+\arguments{
+\item{flag_ignore_depth}{Boolean - Intended for developers, suppress depth warning}
 }
 \description{
 Enable instrumentation and reset function depth

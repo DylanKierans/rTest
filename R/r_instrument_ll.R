@@ -1,10 +1,6 @@
 # @file r_instrument_ll.R
 # @todo - R error checking
-# @todo - C error checking
-# @todo - Make sure PROFILE_INSTRUMENTATION_DF exists
-# @todo - Isolate .wrapper_expression
-# @todo - ensure parent thread with isForkedChild()
-# @todo - reduce function exception list
+# @todo - Reduce function exception list
 # @todo - instrument_all_functions merge debug flags
 
 
@@ -22,12 +18,10 @@
 #    regionRef
 #}
 
-# @TODONE: zmq this
 #' get_wrapper_expression
 #' @description Returns wrapper expression
 get_wrapper_expression <- function() {
-    wrapper_expression <- expression(
-    { 
+    wrapper_expression <- expression( { 
 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             NULL
@@ -37,21 +31,146 @@ get_wrapper_expression <- function() {
 
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
             {
-#                ## OTF2 Event
-#                evtWriter_Write(X_regionRef_X,T)
-#                on.exit(evtWriter_Write(X_regionRef_X,F), add=TRUE)
+                ## zmq version - OTF2 Event
+                evtWriter_Write_client(X_regionRef_X,T)
+                on.exit(evtWriter_Write_client(X_regionRef_X,F), add=TRUE)
+            }
+        }
 
+    } )
+
+    wrapper_expression
+}
+
+#' get_fork_function_list
+#' @description Returns list of known functions which R uses to fork procs
+get_fork_function_list <- function() {
+    func_list <- c()
+    if (R.utils::isPackageLoaded("parallel")){
+        tmp_func_list <- c(parallel::makeForkCluster)
+        func_list <- append(func_list, tmp_func_list)
+    }
+    func_list
+}
+
+#' get_end_fork_function_list
+#' @description Returns list of known functions which R uses to fork procs
+get_end_fork_function_list <- function() {
+    func_list <- c()
+    if (R.utils::isPackageLoaded("parallel")){
+        tmp_func_list <- c(parallel::stopCluster)
+        func_list <- append(func_list, tmp_func_list)
+    }
+    func_list
+}
+
+
+#' get_fork_wrapper_expression
+#' @description Returns wrapper expression
+#'  Split between start and end because makeForkCluster contains line `on.exit(<cmd>)`, without 
+#'  arg `add=TRUE`. Overwrites my commands as a result. Also have to manually add final return line
+#'  but this could be generalized better by splitting original function body
+get_fork_wrapper_expression <- function() {
+    exit_exp <- expression( { 
+        on.exit({
+            ## DEBUGGING
+            print(paste0("makeForkCluster nnodes: ", nnodes))
+
+            # Set r proc IDs - note master=0
+            clusterApply(cl, 1:as.integer(nnodes), function(x){ set_locationRef(x); }) 
+
+            # Reopen sockets on all procs
+            open_EvtWriterSocket_client();
+            clusterEvalQ(cl, {open_EvtWriterSocket_client()});
+
+            # Renable instrumentation if necessary
+            if (INSTRUMENTATION_ENABLED_BEFORE){
+                instrumentation_enable(flag_ignore_depth=TRUE);
+                clusterEvalQ(cl, instrumentation_enable(flag_ignore_depth=TRUE));
+
+                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
+                if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
+                    evtWriter_Write_client(X_regionRef_X,F)
+                }
+            }
+
+            # Update max number of R procs if needed
+            set_maxUsedLocationRef_client(nnodes+1);
+        }, add=TRUE)
+    })
+
+    entry_exp <- expression( { 
+        # Save instrumentation state
+        INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
+
+        if (pkg.env$INSTRUMENTATION_ENABLED) {
+            NULL
+            ## Append to depth counter
+            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
+
+            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
+            {
+                ## zmq version - OTF2 Event
+                evtWriter_Write_client(X_regionRef_X,T)
+            }
+
+            instrumentation_disable(flag_ignore_depth=TRUE)
+        }
+
+        # Close socket on master before forking
+        close_EvtWriterSocket_client()
+
+    } )
+
+    fork_wrapper_expression <- list(entry = entry_exp, exit = exit_exp)
+    fork_wrapper_expression
+}
+
+#' get_end_fork_wrapper_expression
+#' @description Returns wrapper expression
+get_end_fork_wrapper_expression <- function() {
+    wrapper_expression <- expression( { 
+        
+        # Save instrumentation state
+        INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
+
+        on.exit( {
+            # Reopen sockets on Master clientside
+            open_EvtWriterSocket_client()
+
+            # Restore instrumentation state
+            if (INSTRUMENTATION_ENABLED_BEFORE){
+                instrumentation_enable(flag_ignore_depth=TRUE)
+            }
+        }, add=TRUE)
+
+        if (pkg.env$INSTRUMENTATION_ENABLED) {
+            NULL
+            ## Append to depth counter
+            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
+            on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
+
+            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
+            {
                 ## zmq version - OTF2 Event
                 evtWriter_Write_client(X_regionRef_X,T)
                 on.exit(evtWriter_Write_client(X_regionRef_X,F), add=TRUE)
             }
 
+            ## Disable instrumentation on all procs
+            clusterEvalQ(cl, { instrumentation_disable(flag_ignore_depth=TRUE) } )
+            instrumentation_disable(flag_ignore_depth=TRUE)
         }
-    }
-    )
+
+        # Close sockets on all procs clientside
+        close_EvtWriterSocket_client()
+        clusterEvalQ(cl, { close_EvtWriterSocket_client() })
+
+    } )
 
     wrapper_expression
 }
+
 
 
 ########################################################################
@@ -60,7 +179,7 @@ get_wrapper_expression <- function() {
 
 #' insert_instrumentation
 #' @description Insert instrumentation prefix for package_name:::func
-#' @param func Object - Pointer to function closure to update
+#' @param func_ptr Object - Pointer to function closure to update
 #' @param func_name String - function name
 #' @param func_index Integer - index of function in function_list in PROFILE_INSTRUMENTATION_DF
 #' @param regionRef Integer - OTF2 regionRef index
@@ -68,32 +187,88 @@ get_wrapper_expression <- function() {
 #' @param flag_user_function Boolean - TRUE if instrumenting user functoin
 #' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
 #' @export
-insert_instrumentation <- function(func, func_name, func_index, regionRef, package_name, flag_user_function=FALSE, env_is_locked=TRUE) {
+insert_instrumentation <- function(func_ptr, func_name, func_index, regionRef, package_name, 
+    flag_user_function=FALSE, env_is_locked=TRUE) {
     
     ## DEBUGGING
     #print(paste0("Client - func_name: ", func_name, ", regionRef: ", regionRef))
-    if (func_name=="test"){print(paste0("test_index: ", func_index, ", regionRef: ", regionRef));}
-    
 
-    # Taken from: https://stackoverflow.com/a/31374476
-    .wrapper_expression = do.call('substitute', list( 
-        get_wrapper_expression()[[1]],
-        list(X_regionRef_X=regionRef)
-    ))
+    ## Test if fork function, uses different wrapper
+    flag_fork_function <- FALSE
+    for (fork_func in get_fork_function_list()){
+        if (identical(fork_func, func_ptr)){
+            # DEBUGGING
+            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Fork function `", func_name, "`"))
+            flag_fork_function <- TRUE
+        }
+    }
+
+    ## Test if end fork function, uses different wrapper
+    flag_end_fork_function <- FALSE
+    for (end_fork_func in get_end_fork_function_list()){
+        if (identical(end_fork_func, func_ptr)){
+            # DEBUGGING
+            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: End fork function `", func_name, "`"))
+            flag_end_fork_function <- TRUE
+        }
+    }
+
+    # Expression and body usage taken from: https://stackoverflow.com/a/31374476
+    if (flag_fork_function){
+        fork_wrapper_expression = get_fork_wrapper_expression()
+        entry_exp = fork_wrapper_expression$entry;
+        entry_exp = do.call('substitute', list( 
+            entry_exp[[1]],
+            list(X_regionRef_X=regionRef)
+        ))
+        entry_exp = as.expression(entry_exp)
+
+        exit_exp = fork_wrapper_expression$exit;
+        exit_exp = do.call('substitute', list( 
+            exit_exp[[1]],
+            list(X_regionRef_X=regionRef)
+        ))
+        exit_exp = as.expression(exit_exp)
+
+        ## Copy and wrap function definition
+        orig_func_body <- body(func_ptr)[1:length(body(func_ptr))-1]
+        orig_func_ret <- body(func_ptr)[[length(body(func_ptr))]] # Isolate final line
+
+        body(func_ptr) <- as.call(c(as.name("{"), entry_exp, orig_func_body, exit_exp, orig_func_ret))
+
+        ## replace function in package and namespace
+        if (flag_user_function) {
+            replace_user_function(func_ptr, func_name, package_name)
+        } else {
+            replace_function(func_ptr, func_name, package_name, env_is_locked=env_is_locked)
+        }
+        return()
+
+    } else if (flag_end_fork_function){
+        .wrapper_expression = do.call('substitute', list( 
+            get_end_fork_wrapper_expression()[[1]],
+            list(X_regionRef_X=regionRef)
+        ))
+    } else { # Default wrapper
+        .wrapper_expression = do.call('substitute', list( 
+            get_wrapper_expression()[[1]],
+            list(X_regionRef_X=regionRef)
+        ))
+    }
     .wrapper_expression = as.expression(.wrapper_expression)
 
     ## Copy and wrap function definition
-    orig_func_body <- body(func)[1:length(body(func))]
-    body(func) <- as.call(c(as.name("{"), .wrapper_expression, orig_func_body))
+    orig_func_body <- body(func_ptr)[1:length(body(func_ptr))]
+    body(func_ptr) <- as.call(c(as.name("{"), .wrapper_expression, orig_func_body))
 
     ## DEBUGGING: Comment out to disable compiling for testing
-    #func <- compiler::cmpfun(func) 
+    #func_ptr <- compiler::cmpfun(func_ptr) 
 
     ## Replace function in package and namespace
     if (flag_user_function) {
-        replace_user_function(func, func_name, package_name)
+        replace_user_function(func_ptr, func_name, package_name)
     } else {
-        replace_function(func, func_name, package_name, env_is_locked=env_is_locked)
+        replace_function(func_ptr, func_name, package_name, env_is_locked=env_is_locked)
     }
 
 }
@@ -323,6 +498,8 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     if ( skip_function(func_ptr, func_name, env, function_exception_list, function_methods_exception_list)) {
         return(NULL) # break or return(NULL)
     }
+
+
 
 #    ## Create otf2 region and event descriptions
 #    regionRef <- create_otf2_event(func_name)

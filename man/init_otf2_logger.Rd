@@ -4,10 +4,14 @@
 \alias{init_otf2_logger}
 \title{Fork and initialize zeromq sockets for writing globalDef definitions}
 \usage{
-init_otf2_logger(max_nprocs)
+init_otf2_logger(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace")
 }
 \arguments{
 \item{max_nprocs}{Maximum number of R processes (ie evtWriters required)}
+
+\item{archivePath}{Path to otf2 archive}
+
+\item{archiveName}{Name of otf2 archive}
 }
 \value{
 R_NilValue

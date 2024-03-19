@@ -20,6 +20,11 @@ NULL
 #' Close static otf2 {evt_writers} objs
 NULL
 
+#' Enable or disable event measurement
+#' @param measurementMode True to enable, else disable
+#' @return R_NilValue
+NULL
+
 #' Init static otf2 {globaldefwriter} obj
 NULL
 
@@ -44,14 +49,15 @@ NULL
 NULL
 
 #' Write a definition for the location to the global definition writer.
-#' @param locationID Identifier for location (eg PID)
 NULL
 
 #' Fork and initialize zeromq sockets for writing globalDef definitions
 #' @param max_nprocs Maximum number of R processes (ie evtWriters required)
+#' @param archivePath Path to otf2 archive
+#' @param archiveName Name of otf2 archive
 #' @return R_NilValue
-init_otf2_logger <- function(max_nprocs) {
-    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs)
+init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace") {
+    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName)
 }
 
 #' finalize_GlobalDefWriter_client
@@ -79,6 +85,25 @@ finalize_otf2_client <- function() {
     .Call('_rTrace_finalize_otf2_client', PACKAGE = 'rTrace')
 }
 
+#' Enable or disable event measurement
+#' @param measurementMode True to enable, else disable
+#' @return R_NilValue
+evtWriter_MeasurementOnOff_client <- function(measurementMode) {
+    .Call('_rTrace_evtWriter_MeasurementOnOff_client', PACKAGE = 'rTrace', measurementMode)
+}
+
+#' close_EvtWriterSocket_client
+#' @return R_NilValue
+close_EvtWriterSocket_client <- function() {
+    .Call('_rTrace_close_EvtWriterSocket_client', PACKAGE = 'rTrace')
+}
+
+#' open_EvtWriterSocket_client
+#' @return R_NilValue
+open_EvtWriterSocket_client <- function() {
+    .Call('_rTrace_open_EvtWriterSocket_client', PACKAGE = 'rTrace')
+}
+
 #' Write event to evt_writer
 #' @param regionRef Region id
 #' @param event_type True for enter, False for leave region
@@ -87,17 +112,30 @@ evtWriter_Write_client <- function(regionRef, event_type) {
     .Call('_rTrace_evtWriter_Write_client', PACKAGE = 'rTrace', regionRef, event_type)
 }
 
-#' set_proc_id
+#' set_locationRef
 #' @param id ID value belonging to this R proc
 #' @return R_NilValue
-set_proc_id <- function(id) {
-    .Call('_rTrace_set_proc_id', PACKAGE = 'rTrace', id)
+set_locationRef <- function(id) {
+    .Call('_rTrace_set_locationRef', PACKAGE = 'rTrace', id)
 }
 
-#' get_id
-#' @return id int
-get_proc_id <- function() {
-    .Call('_rTrace_get_proc_id', PACKAGE = 'rTrace')
+#' get_locationRef
+#' @return locationRef Proc number between 0,nprocs-1
+get_locationRef <- function() {
+    .Call('_rTrace_get_locationRef', PACKAGE = 'rTrace')
+}
+
+#' set_maxUsedLocationRef_client
+#' @param nprocs Current number of active evtWriters/procs
+#' @return maxUsedLocationRef Current maximum evtWriters which were active so far
+set_maxUsedLocationRef_client <- function(nprocs) {
+    .Call('_rTrace_set_maxUsedLocationRef_client', PACKAGE = 'rTrace', nprocs)
+}
+
+#' print_errnos
+#' @return R_NilValue
+print_errnos <- function() {
+    .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
 }
 
 #' set_id

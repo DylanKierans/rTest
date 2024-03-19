@@ -4,12 +4,15 @@
 // @version 0.02
 // @author D.Kierans (dylanki@kth.se)
 // @note Location ~= thread, LocationGroup ~= Process, SystemTree ~= Node
+// @note errno 98 indicates socket alreayd in use 
+// @note errno 88 indicates not socket (ENOTSOCK)
+// @note errno 4 (EINTR) Interrupted system call
+// @todo Check documentation
 // @todo Look at timing offsets per proc
 // @todo Error checking (otf2 objects existence, sockets, send/recv messages)
-// @todo Signal handling
+// @todo Signal handling for both procs
 // @todo get epochs from Master proc
 // @todo Impliment _enable and _disable correctly
-// @todo Update buffer.pid
 
 #include "Rcpp.h"
 #include <otf2/otf2.h>
@@ -30,6 +33,23 @@
 
 using namespace Rcpp;
 
+// TODO - Send maxUsedLocationRef to server
+// TODO - impliment this enum-ing!
+typedef enum {
+    ZMQ_OTF2_EVENT_ENTER, 
+    ZMQ_OTF2_EVENT_LEAVE, 
+    ZMQ_OTF2_MEASUREMENT_ON, 
+    ZMQ_OTF2_MEASUREMENT_OFF, 
+    ZMQ_OTF2_USED_LOCATIONREFS, 
+} zmq_otf2_datatypes;
+
+typedef struct Zmq_otf2_data {
+    OTF2_TimeStamp time;
+    OTF2_RegionRef regionRef; ///< Could probably generalize this datatype better, see set_maxUsedLocationRef()
+    pid_t pid;
+    zmq_otf2_datatypes datatype;
+} Zmq_otf2_data;
+
 static OTF2_Archive* archive;
 static OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
@@ -41,30 +61,18 @@ static void *context;      // zmq context
 static void *requester;    // zmq socket
 static void *pusher;    // zmq socket
 
-struct zmq_otf2_event {
-    OTF2_TimeStamp time;
-    OTF2_RegionRef regionRef;
-    pid_t pid;
-    bool event_type;
-} zmq_otf2_event;
 
-struct zmq_otf2_measurement {
-    OTF2_TimeStamp time;
-    pid_t pid;
-    bool measurement_type;
-} zmq_otf2_measurement;
-
+// Largest required buffer size of zmq_otf2 events/measurements
+const size_t ZMQ_OTF2_BUFFERSIZE = sizeof(Zmq_otf2_data);
 
 // Counters
 static OTF2_StringRef NUM_STRINGREF=0; ///* Number of events recorded with WriteString
 static OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
 
 // IDs
-static OTF2_LocationRef maxLocationRef=0; ///< Cap per max number of R procs
-// TODO: Update maxUsedLocationRef if forking R procs 
-// if (nprocs>maxUsedLocationRef){ maxUsedLocationRef = nprocs; }
+static OTF2_LocationRef maxLocationRef=0; ///< Cap for max number of R procs
 static OTF2_LocationRef maxUsedLocationRef=1; ///< Maximum number of used R procs <maxLocationRef
-static int locationRef;
+static int locationRef=0;
 
 
 // DEBUGGING
@@ -96,6 +104,7 @@ void globalDefWriter_WriteSystemTreeNode_server(OTF2_StringRef, OTF2_StringRef);
 //void globalDefWriter_WriteLocationGroup_server(OTF2_LocationGroupRef);
 void globalDefWriter_WriteLocations_server();
 void globalDefWriter_WriteLocationGroups_server();
+void evtWriter_MeasurementOnOff_server(OTF2_EvtWriter*, OTF2_TimeStamp, bool);
 
 
 
@@ -103,6 +112,7 @@ void globalDefWriter_WriteLocationGroups_server();
 void report_and_exit(const char* msg);
 void logger_error(const char*, void*);
 void fupdate(FILE*, const char*);
+RcppExport SEXP print_errnos();
 
 
 ///////////////////////////////
@@ -159,17 +169,44 @@ static OTF2_FlushCallbacks flush_callbacks =
 //  Awaits messages from main process at suitable steps
 //////////////////////////////////////
 
+void signal_hup_handler(int signal) {
+    // Make sure only catching intended signal, else rethrow
+    if (signal == SIGHUP) { /*ignore*/; }
+    else { raise(signal); }
+}
+
 //' Fork and initialize zeromq sockets for writing globalDef definitions
 //' @param max_nprocs Maximum number of R processes (ie evtWriters required)
+//' @param archivePath Path to otf2 archive
+//' @param archiveName Name of otf2 archive
 //' @return R_NilValue
 // [[Rcpp::export]]
-RcppExport SEXP init_otf2_logger(int max_nprocs)
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rTrace", 
+        Rcpp::String archiveName = "rTrace" )
 {
+    // TODO: Verify this acts as intended to save child proc
+    signal(SIGHUP, signal_hup_handler);
+
     pid_t child_pid = fork();
-    if (child_pid != 0){ // DEBUGGING
-        Rcout << "Parent - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
+    if (child_pid == (pid_t) -1 ){ // ERROR
+        report_and_exit("Forking logger process");
+        return(1);
     }
-    if (child_pid == 0){
+
+    if (child_pid == 0) { // Child process
+
+        // DEBUGGING
+        Rcout << "Child - pid: " << getpid() << ", ppid: " << getppid() << "\n";
+
+        // Create daemonized process using double fork
+        //  Avoids duplication when R forks 
+        if (fork() != 0){
+            sleep(1);
+            return(1);
+        } 
+        setsid(); // Else create own server id ...
+    /*
+    */
         IS_LOGGER = true;
         maxLocationRef = max_nprocs;
 
@@ -179,8 +216,8 @@ RcppExport SEXP init_otf2_logger(int max_nprocs)
         fupdate(fp, "File opened\n");
 
         // OTF2 Objs
-        Rcpp::String archivePath = "./rTrace";
-        Rcpp::String archiveName = "rTrace";
+        //Rcpp::String archivePath = "./rTrace";
+        //Rcpp::String archiveName = "rTrace";
         init_Archive_server(archivePath, archiveName);
         fupdate(fp, "Init archive complete\n");
         init_EvtWriters_server( );
@@ -197,31 +234,36 @@ RcppExport SEXP init_otf2_logger(int max_nprocs)
         evtWriters_server();
         fupdate(fp, "evtWriter complete\n");
 
+        // Write definitions for proc structures
+        globalDefWriter_WriteSystemTreeNode_server(0,0); // 1 system tree node
+        globalDefWriter_WriteLocationGroups_server(); // n location groups (n procs)
+        globalDefWriter_WriteLocations_server(); // n locations (1 per proc)
+
         // Finalization
-        globalDefWriter_WriteSystemTreeNode_server(0,0);
-        globalDefWriter_WriteLocationGroups_server();
-        globalDefWriter_WriteLocations_server(); ///< Note: WriteLocation must be called at end of program due to NUM_EVENTS
-        //OTF2_LocationGroupRef locationGroupRef = 0;
-        //OTF2_LocationRef locationRef = 0;
-        //globalDefWriter_WriteLocationGroup_server(locationGroupRef);
-        //globalDefWriter_WriteLocation_server(locationGroupRef, locationRef); ///< Note: WriteLocation must be called at end of program due to NUM_EVENTS
         finalize_EvtWriters_server(); // Moving this after globalDef because num_events used in WriteLocation_server
         finalize_GlobalDefWriter_server(); // @TODO: Rename to globalDefWriter_Clock
         finalize_Archive_server();
         finalize_otf2_server();
         fupdate(fp, "COMPLETE!\n");
         if (fp!=NULL){fclose(fp);}
+
+        return(1);
+        // exit(0); 
     } else {
+
+        // DEBUGGING
+        Rcout << "Parent - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
+
         IS_LOGGER = false;
         context = zmq_ctx_new ();
         requester = zmq_socket (context, ZMQ_REQ); // ZMQ_PUSH
         pusher = zmq_socket (context, ZMQ_PUSH);
 
         // @TODO Error check connect
-        zmq_connect (requester, "tcp://localhost:5555");
-        zmq_connect (pusher, "tcp://localhost:5556");
+        zmq_connect(requester, "tcp://localhost:5555");
+        zmq_connect(pusher, "tcp://localhost:5556");
     }
-    return(R_NilValue);
+    return(0);
 }
 
 
@@ -245,9 +287,7 @@ void globalDefWriter_server() { // Server
     // Receive globalDef strings, and return with send regionRef
     while (1) {
 		char buffer[LEN];
-        //fupdate(fp, "globalDefWriter_server start of zmq_recv"); // DEBUGGING
         int zmq_ret = zmq_recv(responder, buffer, LEN*sizeof(*buffer), 0);
-        //fupdate(fp, "globalDefWriter_server end of zmq_recv"); // DEBUGGING
         if ( zmq_ret < 0 ) { 
             logger_error("zmq_recv", responder); 
         } else if (zmq_ret == 0) {
@@ -298,12 +338,10 @@ RcppExport SEXP finalize_GlobalDefWriter_client() { // client
 // [[Rcpp::export]]
 RcppExport int define_otf2_event_client(Rcpp::String func_name) {
     OTF2_RegionRef regionRef;
-    //char buffer[LEN];
-    //buffer = func_name.get_cstring();
     int send_ret = zmq_send(requester, func_name.get_cstring(), LEN*sizeof(char), 0);
-    if (send_ret < 0 ) { report_and_exit("client zmq_send"); }
+    if (send_ret < 0 ) { report_and_exit("define_otf2_event_client zmq_send"); }
     int recv_ret = zmq_recv(requester, &regionRef, sizeof(regionRef), 0);
-    if (recv_ret < 0 ) { report_and_exit("client zmq_recv"); }
+    if (recv_ret < 0 ) { report_and_exit("define_otf2_event_client zmq_recv"); }
 
     // DEBUGGING
     #ifdef DEBUG
@@ -334,11 +372,30 @@ RcppExport SEXP finalize_EvtWriter_client() {
 // [[Rcpp::export]]
 RcppExport SEXP finalize_otf2_client() {
     void *syncer_client = zmq_socket(context, ZMQ_PULL); 
+    if (syncer_client == NULL){ report_and_exit("finalize_otf2_client syncer_client"); }
     int rc = zmq_bind (syncer_client, "tcp://*:5557");
-    assert (rc == 0); // errno 98 indicates socket alreayd in use
+    assert (rc == 0); 
 
-    int zmq_ret = zmq_recv(syncer_client, NULL, 0, 0); // sent from logger/server at end of events
-    if (zmq_ret < 0 ) { report_and_exit("finalize_otf2_client"); }
+    // DEBUGGING - Add delay to see if server registers events from other procs
+    sleep(5);
+
+    char buffer;
+    int zmq_ret = zmq_recv(syncer_client, &buffer, sizeof(buffer), 0); // sent from logger/server at end of events
+    if (zmq_ret < 0 ) { 
+
+        if (errno==4){
+            int zmq_ret = zmq_recv(syncer_client, &buffer, sizeof(buffer), 0); // sent from logger/server at end of events
+            if (zmq_ret < 0 ) { 
+                report_and_exit("finalize_otf2_client zmq_ret retry"); 
+            }
+        }
+        else {
+            report_and_exit("finalize_otf2_client zmq_ret"); 
+        }
+
+        //report_and_exit("finalize_otf2_client zmq_ret"); 
+
+    }
 
     // Clean up zmq socket and context
     zmq_close(syncer_client);
@@ -443,7 +500,7 @@ void finalize_EvtWriters_server() {
     if (archive == NULL) { logger_error("finalize_EvtWriters_server archive", NULL); }
 
     // Now close the event writer, before closing the event files collectively.
-    for (OTF2_LocationRef i=0; i<maxLocationIDs; ++i){
+    for (OTF2_LocationRef i=0; i<maxLocationRef; ++i){
         if (evt_writers[i] == NULL) { logger_error("finalize_EvtWriters_server evt_writers[i]", NULL); }
         OTF2_Archive_CloseEvtWriter( archive, evt_writers[i]);
     }
@@ -458,20 +515,21 @@ void finalize_EvtWriters_server() {
 //' Enable or disable event measurement
 //' @param measurementMode True to enable, else disable
 //' @return R_NilValue
-void evtWriter_MeasurementOnOff_server(pid_t pid, OTF2_TimeStamp time, bool measurementMode) {
+void evtWriter_MeasurementOnOff_server(OTF2_EvtWriter *evt_writer, OTF2_TimeStamp time, bool measurementMode) {
     // Enable/disable measurement
     if (measurementMode){
-        OTF2_EvtWriter_MeasurementOnOff(evt_writers[pid], 
+        OTF2_EvtWriter_MeasurementOnOff(evt_writer,
                 NULL /* attributeList */, 
                 time, 
                 OTF2_MEASUREMENT_ON);
     } else {
-        OTF2_EvtWriter_MeasurementOnOff(evt_writers[pid],
+        OTF2_EvtWriter_MeasurementOnOff(evt_writer,
                 NULL /* attributeList */, 
                 time, 
                 OTF2_MEASUREMENT_OFF);
     }
 }
+
 
 // @TODO: zmq this
 //' Enable or disable event measurement
@@ -479,37 +537,16 @@ void evtWriter_MeasurementOnOff_server(pid_t pid, OTF2_TimeStamp time, bool meas
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP evtWriter_MeasurementOnOff_client(bool measurementMode) {
-    struct zmq_otf2_measurement buffer;
-    buffer.pid = 0; 
+    Zmq_otf2_data buffer;
+    buffer.pid = locationRef; 
     buffer.time = get_time();
-    buffer.measurementMode = measurementMode;
+    if (measurementMode){ buffer.datatype = ZMQ_OTF2_MEASUREMENT_ON; }
+    else { buffer.datatype = ZMQ_OTF2_MEASUREMENT_OFF; }
 
-    zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // zmq_otf2_measurement
-    if (zmq_ret<0){ report_and_exit("zmq_send zmq_otf2_measurement"); }
+    int zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // Zmq_otf2_data
+    if (zmq_ret<0){ report_and_exit("zmq_send Zmq_otf2_data measurement"); }
     return(R_NilValue);
 }
-
-
-//// @TODO: zmq this
-////' Enable or disable event measurement
-////' @param measurementMode True to enable, else disable
-////' @return R_NilValue
-//// [[Rcpp::export]]
-//RcppExport SEXP evtWriter_MeasurementOnOff(bool measurementMode) {
-//    // Enable/disable measurement
-//    if (measurementMode){
-//        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
-//                NULL /* attributeList */, 
-//                get_time(), 
-//                OTF2_MEASUREMENT_ON);
-//    } else {
-//        OTF2_EvtWriter_MeasurementOnOff(evt_writer, 
-//                NULL /* attributeList */, 
-//                get_time(), 
-//                OTF2_MEASUREMENT_OFF);
-//    }
-//    return(R_NilValue);
-//}
 
 
 //' Init static otf2 {globaldefwriter} obj
@@ -650,13 +687,22 @@ void globalDefWriter_WriteLocationGroups_server() {
 void globalDefWriter_WriteLocations_server() {
     OTF2_StringRef stringRef_LocationName = globalDefWriter_WriteString_server("Main thread");
     
+    char fp_buffer[100];
+    snprintf(fp_buffer, 100, "maxUsedLocationRef: %lu\n", maxUsedLocationRef);
+    fupdate(fp, fp_buffer);
+
     for (OTF2_LocationRef i=0; i<maxUsedLocationRef; ++i){
         // Write a definition for the location to the global definition writer.
         uint64_t num_events;
         OTF2_EvtWriter_GetNumberOfEvents(evt_writers[i], &num_events);
         //OTF2_EvtWriter_GetNumberOfEvents(evt_writer, &num_events);
 
-        Rcout << "globalDefWriter_WriteLocation - LocationRef: " << i << ", Num events: " << num_events << "\n";
+        // DEBUGGING
+        char fp_buffer[100];
+        snprintf(fp_buffer, 100, "globalDefWriter_WriteLocation - LocationRef: %lu, Num events: %ld\n",
+            i, num_events);
+        fupdate(fp, fp_buffer);
+
         OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
                 i /* locationRef */,
                 stringRef_LocationName /* stringRef_name */,
@@ -686,6 +732,35 @@ void globalDefWriter_WriteLocations_server() {
 //}
 
 
+//' close_EvtWriterSocket_client
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP close_EvtWriterSocket_client(){
+    // Closer pusher to avoid sharing socket
+    if (pusher==NULL){ report_and_exit("close_EvtWriterSocket_client() pusher"); }
+    if ( zmq_close(pusher) < 0 ){ report_and_exit("close_EvtWriterSocket_client socket"); }
+
+    // Also close context! Will respawn after fork
+    if ( zmq_ctx_destroy(context) < 0 ){ report_and_exit("close_EvtWriterSocket_client context"); }
+    
+    return(R_NilValue);
+}
+
+
+//' open_EvtWriterSocket_client
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP open_EvtWriterSocket_client(){
+    // Reopen context
+    context = zmq_ctx_new ();
+    if ( context == NULL ){ report_and_exit("open_EvtWriterSocket_client context"); }
+
+    pusher = zmq_socket (context, ZMQ_PUSH);
+    if ( pusher == NULL ){ report_and_exit("open_EvtWriterSocket_client pusher"); }
+    if ( zmq_connect(pusher, "tcp://localhost:5556") != 0 ){ report_and_exit("open_EvtWriterSocket_client"); }
+    return(R_NilValue);
+}
+
 //' Write event to evt_writer
 //' @param regionRef Region id
 //' @param event_type True for enter, False for leave region
@@ -698,25 +773,49 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 #endif /* ifdef DEBUG */
 
     int zmq_ret;
-    struct zmq_otf2_event buffer;
+    Zmq_otf2_data buffer;
 
     // Pack info into struct
-    buffer.pid = 0; // TODO - update pid 
+    buffer.pid = locationRef; // TODO - update pid 
     buffer.regionRef = regionRef;
     buffer.time = get_time();
-    buffer.event_type = event_type;
+    if (event_type) { buffer.datatype = ZMQ_OTF2_EVENT_ENTER; }
+    else { buffer.datatype = ZMQ_OTF2_EVENT_LEAVE; }
 
     // DEBUGGING 
-    #ifdef DEBUG
+    if (buffer.pid == 0){
+        FILE *fp = fopen("write_client_0.log", "a");
+        fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
+        fclose(fp);
+    }
+    if (buffer.pid == 1){
+        FILE *fp = fopen("write_client_1.log", "a");
+        fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
+        fclose(fp);
+    }
+        /*
+    if (buffer.pid != 0){
     Rcout << "evtWriter_Write_client start of zmq_send";
+    Rcout << ", pid: " << buffer.pid;
     Rcout << ", regionRef: " << buffer.regionRef;
     Rcout << ", time: " << buffer.time;
-    Rcout << ", event_type: " << buffer.event_type;
+    Rcout << ", datatype: " << buffer.datatype;
     Rcout << "\n";
+    }
+        */
+    #ifdef DEBUG
     #endif
 
-    zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // zmq_otf2_event
-    if (zmq_ret<0){ report_and_exit("zmq_send zmq_otf2_event"); }
+    if (pusher==NULL){ report_and_exit("evtWriter_Write_client pusher"); }
+    zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // Zmq_otf2_data
+    if (zmq_ret<0){ 
+        Rcout << "ENOTSOCK: " << ENOTSOCK << "\n";
+        Rcout << "EINTR: " << EINTR << "\n";
+        Rcout << "ERROR DETAILS - regionRef: " << regionRef << "\n";
+        Rcout << "ERROR DETAILS - zmq_ret: " << zmq_ret << "\n";
+        Rcout << "ERROR DETAILS - errno: " << errno << "\n";
+        report_and_exit("evtWriter_Write_client event"); 
+    }
 
     return(R_NilValue);
 }
@@ -742,33 +841,41 @@ void evtWriters_server(){
     // Receive globalDef strings, and return with send regionRef
     while (1) {
 
-        // TODO void data type for different cases!
-        struct zmq_otf2_event buffer;
+        Zmq_otf2_data buffer;
         int zmq_ret;
 
-        zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // zmq_otf2_event
+        zmq_ret = zmq_recv(puller, &buffer, ZMQ_OTF2_BUFFERSIZE, 0); // Zmq_otf2_data
 
         if (zmq_ret<0){
-            report_and_exit("zmq_recv zmq_otf2_event"); 
+            report_and_exit("zmq_recv Zmq_otf2_data"); 
         } else if (zmq_ret == 0) { // Signal to stop listening
             break;
-        } else {
+        } else if (zmq_ret == sizeof(Zmq_otf2_data)) { 
 
             // DEBUGGING
             char evt_buffer[100];
-            snprintf(evt_buffer, 100, "Server recv event: %d, pid: %d, time: %lu\n", 
-                buffer.regionRef, buffer.pid, buffer.time);
+            snprintf(evt_buffer, 100, "Server recv datatype: %d, pid: %d, time: %lu, regionRef(if applicable): %u\n", 
+                buffer.datatype, buffer.pid, buffer.time, buffer.regionRef);
             fupdate(fp, evt_buffer);
 
-            // Check type of event for enter or leave
-            if (buffer.event_type){
+            if (buffer.datatype == ZMQ_OTF2_MEASUREMENT_ON ){
+                evtWriter_MeasurementOnOff_server(evt_writers[buffer.pid], buffer.time, true);
+            } else if (buffer.datatype == ZMQ_OTF2_MEASUREMENT_OFF ){
+                evtWriter_MeasurementOnOff_server(evt_writers[buffer.pid], buffer.time, false);
+            } else if (buffer.datatype == ZMQ_OTF2_EVENT_ENTER ){
                 OTF2_EvtWriter_Enter( evt_writers[buffer.pid], NULL /* attributeList */,
                         buffer.time, buffer.regionRef /* region */ );
-            }
-            else {
+            } else if (buffer.datatype == ZMQ_OTF2_EVENT_LEAVE ){
                 OTF2_EvtWriter_Leave( evt_writers[buffer.pid], NULL /* attributeList */,
                         buffer.time, buffer.regionRef /* region */ );
+            } else if (buffer.datatype == ZMQ_OTF2_USED_LOCATIONREFS ){
+                //if (buffer.regionRef > maxUsedLocationRef){ maxUsedLocationRef = buffer.regionRef; }
+                maxUsedLocationRef = buffer.regionRef;
+            } else { // Unknown datatype
+                report_and_exit("evtWriters_server unknown_datatype"); 
             }
+        } else { // Unknown datasize
+            report_and_exit("evtWriters_server unknown_data_size"); 
         }
     }
     snprintf(buffer, 50, "(pid: %d) Finished listening for evtWriters\n", getpid());
@@ -785,7 +892,10 @@ void evtWriters_server(){
 
 // @TODO: Replace usage of this with more R-friendly version
 void report_and_exit(const char* msg){
-    //perror(msg);
+    Rcout << "[R proc id: " << locationRef << "] CLIENT ERROR: " << msg << "\n";
+    Rcout << "ERROR INFO - pid:" << getpid() << ", ppid: " << getppid() << ",sid: " << getsid(getpid()) << "\n";
+    Rcout << "ERROR INFO - Errno:" << errno << "\n"; 
+    if (locationRef==0){ kill(0, SIGTERM); }
     //exit(-1);
     ;
 }
@@ -820,7 +930,7 @@ void fupdate(FILE *fp, const char* msg){
     }
 }
 
-//' set_proc_id
+//' set_locationRef
 //' @param id ID value belonging to this R proc
 //' @return R_NilValue
 // [[Rcpp::export]]
@@ -830,12 +940,52 @@ RcppExport SEXP set_locationRef(const int id) {
     return (R_NilValue);
 }
 
-//' get_id
-//' @return id int
+//' get_locationRef
+//' @return locationRef Proc number between 0,nprocs-1
 // [[Rcpp::export]]
 RcppExport int get_locationRef() {
     return (locationRef);
 }
+
+//' set_maxUsedLocationRef_client
+//' @param nprocs Current number of active evtWriters/procs
+//' @return maxUsedLocationRef Current maximum evtWriters which were active so far
+// [[Rcpp::export]]
+RcppExport int set_maxUsedLocationRef_client(int nprocs) {
+
+    OTF2_LocationRef tmp = nprocs;
+    if (tmp > maxUsedLocationRef){
+        maxUsedLocationRef = tmp;
+
+        // Send to logger
+        Zmq_otf2_data buffer;
+        buffer.datatype = ZMQ_OTF2_USED_LOCATIONREFS;
+        buffer.regionRef = tmp; 
+
+        if (pusher==NULL) { report_and_exit("set_maxUsedLocationRef_client pusher"); }
+        int zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0);
+        if (zmq_ret<0) { report_and_exit("set_maxUsedLocationRef_client zmq_send"); }
+    }
+    return (maxUsedLocationRef);
+}
+
+//' print_errnos
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP print_errnos() {
+    Rcout<< "ZMQ_SEND ERRNOS: \n";
+    Rcout<< "EAGAIN: " << EAGAIN << "\n";
+    Rcout<< "ENOTSTUP: " << ENOTSUP << "\n";
+    Rcout<< "EINVAL: " << EINVAL << "\n";
+    Rcout<< "EFSM: " << EFSM << "\n";
+    Rcout<< "ETERM: " << ETERM << "\n";
+    Rcout<< "ENOTSOCK: " << ENOTSOCK << "\n";
+    Rcout<< "EINTR: " << EINTR << "\n";
+    Rcout<< "EHOSTUNREACH: " << EHOSTUNREACH << "\n";
+    Rcout<< "#######################\n";
+    return (R_NilValue);
+}
+
 
 ///////////////////////////////
 // Testing

@@ -6,18 +6,14 @@
 
 # @TODO: zmq this
 #' instrumentation_enable
+#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
 #' @description Enable instrumentation and reset function depth
 #' @export
-instrumentation_enable <- function(){
+instrumentation_enable <- function(flag_ignore_depth=FALSE){
     if (is_instrumentation_enabled()){
         message("Instrumentation already enabled!")
-    }
-    else if (!pkg.env$EVTWRITER_INIT) {
-        pkg.env$FUNCTION_DEPTH <- 0
-        #init_EvtWriter()
-        pkg.env$EVTWRITER_INIT <- TRUE
     } else {
-        pkg.env$FUNCTION_DEPTH <- 0
+        if (!flag_ignore_depth){ pkg.env$FUNCTION_DEPTH <- 0 }
         evtWriter_MeasurementOnOff_client(TRUE)
     }
     pkg.env$INSTRUMENTATION_ENABLED <- TRUE
@@ -26,32 +22,23 @@ instrumentation_enable <- function(){
 
 # @TODO: zmq this
 #' instrumentation_disable
+#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
 #' @description Disable instrumentation
 #' @export
-instrumentation_disable <- function(){
+instrumentation_disable <- function(flag_ignore_depth=FALSE){
     if (!is_instrumentation_enabled()){
-        print("Warning: Instrumentation already disabled!")
+        warning("Warning: Instrumentation already disabled!")
     }
     else {
-        if (pkg.env$FUNCTION_DEPTH != 0){ 
-            print(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
+        if ( (pkg.env$FUNCTION_DEPTH != 0 ) && !flag_ignore_depth ){ 
+            warning(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
         }
         pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-        #finalize_EvtWriter()
-        evtWriter_MeasurementOnOff(FALSE)
+        evtWriter_MeasurementOnOff_client(FALSE)
     }
     invisible(NULL)
 }
 
-
-# @TODO: Implement this properly
-#' instrumentation_disable
-#' @description Disable instrumentation
-#' @export
-instrumentation_disable <- function(){
-    pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-    invisible(NULL)
-}
 
 #' is_instrumentation_enabled
 #' @description Return current instrumentation status
@@ -62,7 +49,6 @@ is_instrumentation_enabled <- function() {
 }
 
 
-
 # @TODONE: zmq this
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
@@ -71,60 +57,19 @@ is_instrumentation_enabled <- function() {
 #' @export
 instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 {
-    # @name PROFILE_INSTRUMENTATION_DF
-    # @description Contains function name, package, and instrumentation flag
+    ## Update package vars
+    pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
+    pkg.env$PRINT_SKIPS <- verbose_wrapping
+    pkg.env$INSTRUMENTATION_INIT <- TRUE
     pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
 
-    # @name INSTRUMENTATION_INIT
-    # @description Checked when instrumenting functions to ensure init() has been called
-    pkg.env$INSTRUMENTATION_INIT <- TRUE
-
-    # @name EVTWRITER_INIT
-    # @description Checked when init_EvtWriter called for first time
-    pkg.env$EVTWRITER_INIT <- FALSE
-
-    ### SECTION - Instrument Flags ###
-    # @name MAX_FUNCTION_DEPTH
-    # @description Max depth of functions to creat instrumententation events for
-    pkg.env$MAX_FUNCTION_DEPTH <- 10 
-
-    # @name UNLOCK_ENVS
-    # @description Keep package envs unlocked when instrumenting functions
-    pkg.env$UNLOCK_ENVS <- TRUE # Not sure if this is safe to set TRUE, but should be quicker!
-
-    ### SECTION - Output Flags ###
-    # @name PRINT_SKIPS
-    # @description Print which functions are being skipped due to exception
-    pkg.env$PRINT_SKIPS <- verbose_wrapping
-
-    # @name PRINT_INSTURMENTS
-    # @description Print which functions are being instrumented
-    pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
-
-    # @name PRINT_FUNC_INDEXES
-    # @description Print function indexes when called (only intended for verbose debugging)
-    pkg.env$PRINT_FUNC_INDEXES <- FALSE
-
-    ### SECTION - Init section for instrumentation ###
-    # @name INSTRUMENTATION_ENABLED
-    # @description Current status of instrumentation
-    pkg.env$INSTRUMENTATION_ENABLED=FALSE
-
-    # @name FUNCTION_DEPTH
-    # @description Current instrumentation depth
-    pkg.env$FUNCTION_DEPTH <- 0
-
-#    ## Initiate OTF2 Archive
-#    init_Archive()
-#
-#    ## Initiate OTF2 GlobalDefWriter
-#    init_GlobalDefWriter()
-#
-#    ## Initiate OTF2 EvtWriter
-#    init_EvtWriter()
-
-    ## Initiate new proc
-    init_otf2_logger(parallelly::availableCores())
+    ## Initiate new proc - close R if not Master
+    ## DEBUGGING
+    #print(paste0("instrumnetation_init before - pid: ", get_pid(), ", ppid:", get_ppid() ))
+    ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0
+    #print(paste0("instrumnetation_init after - pid: ", get_pid(), ", ppid:", get_ppid(), ", ret: ", ret ))
+    if (ret != 0){ quit(save="no"); } 
+    #print(paste0("instrumnetation_init after quit - pid: ", get_pid(), ", ppid:", get_ppid() ))
 
     return(invisible(NULL))
 }

@@ -4,10 +4,11 @@
 \alias{instrumentation_disable}
 \title{instrumentation_disable}
 \usage{
-instrumentation_disable()
+instrumentation_disable(flag_ignore_depth = FALSE)
+}
+\arguments{
+\item{flag_ignore_depth}{Boolean - Intended for developers, suppress depth warning}
 }
 \description{
-Disable instrumentation
-
 Disable instrumentation
 }

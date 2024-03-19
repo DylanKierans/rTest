@@ -12,13 +12,8 @@ library("methods")
 get_function_exception_list <- function() {
     # Anything in wrapper to avoid recursion when calling instrumented function
     function_exception_list <- c( eval, 
-            print, search, paste0, sys.call, sys.nframe, Sys.time, 
-            body, as.name, search, 
-            options, traceback, sys.frame, load, quit,
-            get('-.POSIXt'), get('.POSIXct'), as.POSIXct,               # POSIX time/date
-            diff.POSIXt, difftime, format.POSIXct, as.POSIXlt,
-            get('[[.data.frame'), get('[[<-.data.frame'),               # Dataframe
-            get('%o%'), get('%in%'),
+            print, search, paste0, sys.call,
+            body, as.name, search, load, 
             as.name, as.list, as.function, as.matrix, as.pairlist,      # as.(type)
             as.vector, pairlist,
             asS4, 
@@ -31,15 +26,11 @@ get_function_exception_list <- function() {
             asNamespace, getNamespace, isNamespace, isNamespaceLoaded,  # Namespace
             environment, environmentIsLocked, new.env, lockEnvironment, # Environment
             gettext, get0, getHook, detach, isTRUE,                     # Misc
-            Filter, grep, mode, storage.mode, 
             NextMethod, 
-            gettext, #lapply, # Want this one!
             substitute, parent.frame, is.list, is.pairlist,       # Not sure about these
             baseenv,
-            warning, message, which, NROW, match, table, # Try avoid recursion when instrumentation enabled
-            get('[.POSIXct'), get('[.POSIXlt'), get('+.POSIXt'), 
-            sys.function, sys.parent, Ops.difftime, parent.env,
-            duplicated, vapply, anyDuplicated, xpdrows.data.frame,
+            warning, message, which, NROW, match, # Try avoid recursion when instrumentation enabled
+            duplicated, vapply, anyDuplicated,
             get('body<-'),
             tryCatch, # Clobbering trace results
             append) 
@@ -48,7 +39,8 @@ get_function_exception_list <- function() {
         function_exception_list <- append(function_exception_list, package_function_exception_list)
     }
     if (R.utils::isPackageLoaded("compiler")){
-        package_function_exception_list <- c(compiler::cmpfun)
+        #package_function_exception_list <- c(compiler::cmpfun)
+        package_function_exception_list <- c()
         function_exception_list <- append(function_exception_list, package_function_exception_list)
     }
 
@@ -58,7 +50,8 @@ get_function_exception_list <- function() {
     }
 
     if (R.utils::isPackageLoaded("utils")){
-        package_function_exception_list <- c(utils::dump.frames, utils::getAnywhere)
+        #package_function_exception_list <- c(utils::dump.frames, utils::getAnywhere)
+        package_function_exception_list <- c()
         function_exception_list <- append(function_exception_list, package_function_exception_list)
     }
 
