@@ -22,8 +22,8 @@ instrumentation_enable <- function(flag_ignore_depth=FALSE){
 
 # @TODO: zmq this
 #' instrumentation_disable
-#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
 #' @description Disable instrumentation
+#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
 #' @export
 instrumentation_disable <- function(flag_ignore_depth=FALSE){
     if (!is_instrumentation_enabled()){
@@ -61,14 +61,19 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
     pkg.env$PRINT_SKIPS <- verbose_wrapping
     pkg.env$INSTRUMENTATION_INIT <- TRUE
+
+    ## TODO: Remove this after debugging stages
     pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
 
     ## Initiate new proc - close R if not Master
-    ## DEBUGGING
-    #print(paste0("instrumnetation_init before - pid: ", get_pid(), ", ppid:", get_ppid() ))
     ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0
-    #print(paste0("instrumnetation_init after - pid: ", get_pid(), ", ppid:", get_ppid(), ", ret: ", ret ))
-    if (ret != 0){ quit(save="no"); } 
+    if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
+
+    ## Assign array on logger proc for regionRef of each func
+    total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
+    assign_regionRef_array_master(total_num_funcs)
+
+    ## DEBUGGING - Make sure no extra R proc exists
     #print(paste0("instrumnetation_init after quit - pid: ", get_pid(), ", ppid:", get_ppid() ))
 
     return(invisible(NULL))
@@ -133,13 +138,3 @@ instrumentation_debug <- function(print_func_indexes = pkg.env$PRINT_FUNC_INDEXE
     pkg.env$UNLOCK_ENVS <- unlock_env
     invisible()
 }
-
-#' makeCluster_test
-#' @description Testing makeCluster() 
-#' @param x input
-#' @export
-makeCluster_test <- function(x){
-    set_id(x)
-    print("x=: ", get_id())
-}
-

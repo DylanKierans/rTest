@@ -4,12 +4,19 @@
 \alias{get_function_list}
 \title{get_function_list}
 \usage{
-get_function_list(packages = NULL, flag_full_name = FALSE, flag_debug = FALSE)
+get_function_list(
+  packages = NULL,
+  flag_full_name = FALSE,
+  flag_user_functions = FALSE,
+  flag_debug = FALSE
+)
 }
 \arguments{
 \item{packages}{String[] - Full name of package if specific package, else all available packages}
 
 \item{flag_full_name}{Boolean - TRUE if full name of package passed using input packages (eg "package:stats")}
+
+\item{flag_user_functions}{Boolean - Enable to include user functions. Default FALSE for backwards compatability}
 
 \item{flag_debug}{Boolean - Enable debugging statements}
 }

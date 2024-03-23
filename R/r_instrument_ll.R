@@ -2,21 +2,17 @@
 # @todo - R error checking
 # @todo - Reduce function exception list
 # @todo - instrument_all_functions merge debug flags
+# @todo - Resolve multiple args of which packages to instrument, user functions, etc
 
 
 #######################################################################
 # section - Update for ZMQ
 #######################################################################
-## @TODO : zmq this
-## create_otf2_event
-## @description Creates stringRef and regionRef for func_name
-## @param func_name String - Name of function
-## @return regionRef Int - Index of stringRef for function
-#create_otf2_event <- function(func_name) {
-#    stringRef <- globalDefWriter_WriteString(func_name)
-#    regionRef <- globalDefWriter_WriteRegion(stringRef)
-#    regionRef
-#}
+
+
+#######################################################################
+# section - function wrappers
+#######################################################################
 
 #' get_wrapper_expression
 #' @description Returns wrapper expression
@@ -42,236 +38,11 @@ get_wrapper_expression <- function() {
     wrapper_expression
 }
 
-#' get_fork_function_list
-#' @description Returns list of known functions which R uses to fork procs
-get_fork_function_list <- function() {
-    func_list <- c()
-    if (R.utils::isPackageLoaded("parallel")){
-        tmp_func_list <- c(parallel::makeForkCluster)
-        func_list <- append(func_list, tmp_func_list)
-    }
-    func_list
-}
-
-#' get_end_fork_function_list
-#' @description Returns list of known functions which R uses to fork procs
-get_end_fork_function_list <- function() {
-    func_list <- c()
-    if (R.utils::isPackageLoaded("parallel")){
-        tmp_func_list <- c(parallel::stopCluster)
-        func_list <- append(func_list, tmp_func_list)
-    }
-    func_list
-}
-
-
-#' get_fork_wrapper_expression
-#' @description Returns wrapper expression
-#'  Split between start and end because makeForkCluster contains line `on.exit(<cmd>)`, without 
-#'  arg `add=TRUE`. Overwrites my commands as a result. Also have to manually add final return line
-#'  but this could be generalized better by splitting original function body
-get_fork_wrapper_expression <- function() {
-    exit_exp <- expression( { 
-        on.exit({
-            ## DEBUGGING
-            print(paste0("makeForkCluster nnodes: ", nnodes))
-
-            # Set r proc IDs - note master=0
-            clusterApply(cl, 1:as.integer(nnodes), function(x){ set_locationRef(x); }) 
-
-            # Reopen sockets on all procs
-            open_EvtWriterSocket_client();
-            clusterEvalQ(cl, {open_EvtWriterSocket_client()});
-
-            # Renable instrumentation if necessary
-            if (INSTRUMENTATION_ENABLED_BEFORE){
-                instrumentation_enable(flag_ignore_depth=TRUE);
-                clusterEvalQ(cl, instrumentation_enable(flag_ignore_depth=TRUE));
-
-                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
-                if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
-                    evtWriter_Write_client(X_regionRef_X,F)
-                }
-            }
-
-            # Update max number of R procs if needed
-            set_maxUsedLocationRef_client(nnodes+1);
-        }, add=TRUE)
-    })
-
-    entry_exp <- expression( { 
-        # Save instrumentation state
-        INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
-
-        if (pkg.env$INSTRUMENTATION_ENABLED) {
-            NULL
-            ## Append to depth counter
-            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-
-            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
-            {
-                ## zmq version - OTF2 Event
-                evtWriter_Write_client(X_regionRef_X,T)
-            }
-
-            instrumentation_disable(flag_ignore_depth=TRUE)
-        }
-
-        # Close socket on master before forking
-        close_EvtWriterSocket_client()
-
-    } )
-
-    fork_wrapper_expression <- list(entry = entry_exp, exit = exit_exp)
-    fork_wrapper_expression
-}
-
-#' get_end_fork_wrapper_expression
-#' @description Returns wrapper expression
-get_end_fork_wrapper_expression <- function() {
-    wrapper_expression <- expression( { 
-        
-        # Save instrumentation state
-        INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
-
-        on.exit( {
-            # Reopen sockets on Master clientside
-            open_EvtWriterSocket_client()
-
-            # Restore instrumentation state
-            if (INSTRUMENTATION_ENABLED_BEFORE){
-                instrumentation_enable(flag_ignore_depth=TRUE)
-            }
-        }, add=TRUE)
-
-        if (pkg.env$INSTRUMENTATION_ENABLED) {
-            NULL
-            ## Append to depth counter
-            pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-            on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
-
-            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
-            {
-                ## zmq version - OTF2 Event
-                evtWriter_Write_client(X_regionRef_X,T)
-                on.exit(evtWriter_Write_client(X_regionRef_X,F), add=TRUE)
-            }
-
-            ## Disable instrumentation on all procs
-            clusterEvalQ(cl, { instrumentation_disable(flag_ignore_depth=TRUE) } )
-            instrumentation_disable(flag_ignore_depth=TRUE)
-        }
-
-        # Close sockets on all procs clientside
-        close_EvtWriterSocket_client()
-        clusterEvalQ(cl, { close_EvtWriterSocket_client() })
-
-    } )
-
-    wrapper_expression
-}
-
-
-
 ########################################################################
 # SECTION - LOW LEVEL INSTRUMENTATION
 ########################################################################
 
-#' insert_instrumentation
-#' @description Insert instrumentation prefix for package_name:::func
-#' @param func_ptr Object - Pointer to function closure to update
-#' @param func_name String - function name
-#' @param func_index Integer - index of function in function_list in PROFILE_INSTRUMENTATION_DF
-#' @param regionRef Integer - OTF2 regionRef index
-#' @param package_name String - package name
-#' @param flag_user_function Boolean - TRUE if instrumenting user functoin
-#' @param env_is_locked Boolean - TRUE if function name-/package- space is locked
-#' @export
-insert_instrumentation <- function(func_ptr, func_name, func_index, regionRef, package_name, 
-    flag_user_function=FALSE, env_is_locked=TRUE) {
-    
-    ## DEBUGGING
-    #print(paste0("Client - func_name: ", func_name, ", regionRef: ", regionRef))
 
-    ## Test if fork function, uses different wrapper
-    flag_fork_function <- FALSE
-    for (fork_func in get_fork_function_list()){
-        if (identical(fork_func, func_ptr)){
-            # DEBUGGING
-            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Fork function `", func_name, "`"))
-            flag_fork_function <- TRUE
-        }
-    }
-
-    ## Test if end fork function, uses different wrapper
-    flag_end_fork_function <- FALSE
-    for (end_fork_func in get_end_fork_function_list()){
-        if (identical(end_fork_func, func_ptr)){
-            # DEBUGGING
-            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: End fork function `", func_name, "`"))
-            flag_end_fork_function <- TRUE
-        }
-    }
-
-    # Expression and body usage taken from: https://stackoverflow.com/a/31374476
-    if (flag_fork_function){
-        fork_wrapper_expression = get_fork_wrapper_expression()
-        entry_exp = fork_wrapper_expression$entry;
-        entry_exp = do.call('substitute', list( 
-            entry_exp[[1]],
-            list(X_regionRef_X=regionRef)
-        ))
-        entry_exp = as.expression(entry_exp)
-
-        exit_exp = fork_wrapper_expression$exit;
-        exit_exp = do.call('substitute', list( 
-            exit_exp[[1]],
-            list(X_regionRef_X=regionRef)
-        ))
-        exit_exp = as.expression(exit_exp)
-
-        ## Copy and wrap function definition
-        orig_func_body <- body(func_ptr)[1:length(body(func_ptr))-1]
-        orig_func_ret <- body(func_ptr)[[length(body(func_ptr))]] # Isolate final line
-
-        body(func_ptr) <- as.call(c(as.name("{"), entry_exp, orig_func_body, exit_exp, orig_func_ret))
-
-        ## replace function in package and namespace
-        if (flag_user_function) {
-            replace_user_function(func_ptr, func_name, package_name)
-        } else {
-            replace_function(func_ptr, func_name, package_name, env_is_locked=env_is_locked)
-        }
-        return()
-
-    } else if (flag_end_fork_function){
-        .wrapper_expression = do.call('substitute', list( 
-            get_end_fork_wrapper_expression()[[1]],
-            list(X_regionRef_X=regionRef)
-        ))
-    } else { # Default wrapper
-        .wrapper_expression = do.call('substitute', list( 
-            get_wrapper_expression()[[1]],
-            list(X_regionRef_X=regionRef)
-        ))
-    }
-    .wrapper_expression = as.expression(.wrapper_expression)
-
-    ## Copy and wrap function definition
-    orig_func_body <- body(func_ptr)[1:length(body(func_ptr))]
-    body(func_ptr) <- as.call(c(as.name("{"), .wrapper_expression, orig_func_body))
-
-    ## DEBUGGING: Comment out to disable compiling for testing
-    #func_ptr <- compiler::cmpfun(func_ptr) 
-
-    ## Replace function in package and namespace
-    if (flag_user_function) {
-        replace_user_function(func_ptr, func_name, package_name)
-    } else {
-        replace_function(func_ptr, func_name, package_name, env_is_locked=env_is_locked)
-    }
-
-}
 
 #' replace_user_function
 #' @description Replace user function definition
@@ -330,9 +101,10 @@ replace_function <- function(new_func, func_name, package_name, env_is_locked=TR
 #' @param packages String[] - Full name of package if specific package, else all available packages
 #' @param flag_full_name Boolean - TRUE if full name of package passed using input packages (eg "package:stats")
 #' @param flag_debug Boolean - Enable debugging statements
+#' @param flag_user_functions Boolean - Enable to include user functions. Default FALSE for backwards compatability
 #' @return func_list Function[] - List of function ptrs
 #' @export
-get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_debug=FALSE) {
+get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_user_functions=FALSE, flag_debug=FALSE) {
     func_list <- list()     # list of function pointers
 
     if (is.null(packages)){ packages <- .packages() }
@@ -352,6 +124,13 @@ get_function_list <- function(packages=NULL, flag_full_name=FALSE, flag_debug=FA
             print(names(funcs))
         }
     }
+
+    ## Append user functions if enabled
+    if (flag_user_functions){
+        function_ptrs <- get_user_function_list()
+        func_list <- append(func_list, function_ptrs)
+    }
+
     func_list 
 }
 
@@ -381,7 +160,6 @@ get_user_function_list <- function(flag_debug=FALSE) {
 get_num_functions <- function(flag_user_functions=FALSE, debug_flag=FALSE) {
 
     packages <- .packages()
-    full_packages <- paste0("package:",packages)
     num_packages <- length(packages)
     num_functions <- vector(,num_packages) # Empty list of length (num_packages)
 
@@ -460,10 +238,11 @@ print_function_from_index <- function(func_indexes) {
 #' @param function_methods_exception_list Object[] - List of function method exceptions to skip
 #' @param flag_user_function Boolean - Enable if user defined function (in .GlobalEnv)
 #' @param flag_debug Boolean - Enable debug output
+#' @param flag_slave_proc Boolean - Enable if running on slave proc
 #' @export 
 try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked, 
     function_exception_list, function_methods_exception_list, 
-    flag_user_function=F, flag_debug=F)
+    flag_user_function=F, flag_debug=F, flag_slave_proc=F)
 {
     func_global_index <- func_info$func_global_index
     func_local_index <- func_info$func_local_index
@@ -499,14 +278,18 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
         return(NULL) # break or return(NULL)
     }
 
+    ## Create otf2 region and event descriptions
+    if (flag_slave_proc){
+        regionRef <- get_regionRef_from_array_slave(func_global_index) 
+    } else {
+        regionRef <- define_otf2_regionRef_client(func_name, func_global_index)
+    }
 
+    ## DEBUGGING - print func index and regionRef for all on master AND slave
+    ## TODO - fix issue with last entry in regionRef on slave
+    print(paste0("[",func_global_index, "] func_name: ", func_name, ", regionRef: ", regionRef))
 
-#    ## Create otf2 region and event descriptions
-#    regionRef <- create_otf2_event(func_name)
-
-    # ZMQ version
-    regionRef <- define_otf2_event_client(func_name)
-
+    # TODO: check references to this dataframe
     ## Label as instrumented in instrumentation dataframe
     pkg.env$PROFILE_INSTRUMENTATION_DF[["function_instrumented"]][func_global_index] <-  TRUE
 
@@ -515,11 +298,20 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
                     ", regionRef: ", regionRef))
     }
 
-    ## Wrap function with debug info
-    insert_instrumentation(func_ptr, func_name, func_global_index, 
-                           regionRef, package_name, 
-                           env_is_locked=!pkg.env$UNLOCK_ENVS, 
-                           flag_user_function=flag_user_function)
+    # Get new body for funcs of type: {fork_function, end_fork_function, default}
+    body(func_ptr) <- get_new_function_body(func_ptr, func_name, regionRef)
+
+    ## DEBUGGING: Comment out to disable compiling for testing
+    ## TODO: Add check for if compiled before, recompile
+    #func_ptr <- compiler::cmpfun(func_ptr) 
+
+    ## Replace function in package and namespace
+    if (flag_user_function) {
+        replace_user_function(func_ptr, func_name, package_name)
+    } else {
+        replace_function(func_ptr, func_name, package_name, env_is_locked=!pkg.env$UNLOCK_ENVS)
+    }
+
 }
 
 
@@ -530,8 +322,10 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
 #' @param flag_user_functions Boolean - TRUE if also flagging user functions
 #' @param flag_print_progress Boolean - Enable for package by package progress statements
 #' @param flag_debug Boolean - Enable debug statements
+#' @param flag_slave_proc Boolean - Enable if running on slave proc
 #' @export
-instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, flag_print_progress=TRUE, flag_debug=FALSE) 
+instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, 
+    flag_print_progress=TRUE, flag_debug=FALSE, flag_slave_proc=FALSE) 
 {
     ## Make sure instrumentation_init() has been called
     if (!is_instrumentation_init()){
@@ -550,8 +344,14 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
 
     ## Needed for finding index offset
     num_func_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
+    total_num_funcs <- sum(num_func_per_package)
 
-    ## Cycle through every package
+    if (flag_slave_proc){
+        ## Make sure to free at end of function!
+        assign_regionRef_array_slave(total_num_funcs)
+        get_regionRef_array_slave(total_num_funcs)
+    }
+
     for (package_name in package_list) {
 
         ## Get function pointers and names
@@ -560,17 +360,16 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         func_num <- length(func_ptrs)
 
         ## Get environment object for package 
-        env = as.environment(paste0("package:",package_name))
+        env <- as.environment(paste0("package:",package_name))
 
-        ## Function index offset
+        ## Function index offset - works if not all packages are being instrumented!
         package_offset <- match(package_name, .packages())
         func_global_index <- sum(num_func_per_package[1:package_offset-1])
 
         ## DEBUGGING
         if (flag_debug){
-            print(paste0("################ PACKAGE: ", package_name, "###############"))
-            print(func_num)
-            print(func_names)
+            print(paste0("################ PACKAGE: ", package_name, 
+                    ", NUM_FUNCS: ", func_num, " #############"))
         }
 
         ## Skip package if no functions, or exception
@@ -583,30 +382,45 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
 
 
         ## Loop through every function in package
-        for (func_local_index in 1:func_num) #for (i in 1:3)  ## Useful for debugging
+        for (func_local_index in 1:func_num) 
         {
-            func_global_index <- func_global_index + 1
-            func_name <- func_names[func_local_index]
+            # Append first, fix for indexing from 1
+            func_global_index <- func_global_index + 1 
+            func_name <- func_names[[func_local_index]]
+            func_name <- func_names[[func_local_index]]
 
             ## Dataframe for holding relevent info
             func_info <- data.frame(func_global_index, func_local_index, func_name, package_name)
 
             ## Instrumentation writes entry and leave events in wrapper
-            try_insert_instrumentation(func_info, func_ptrs, !pkg.env$UNLOCK_ENVS, function_exception_list, function_methods_exception_list, flag_debug)
+            try_insert_instrumentation(func_info, func_ptrs, 
+                    !pkg.env$UNLOCK_ENVS, function_exception_list, 
+                    function_methods_exception_list, flag_debug=flag_debug, 
+                    flag_slave_proc=flag_slave_proc)
+
         }
 
         if (pkg.env$UNLOCK_ENVS) { lock_envs(package_name) }
         if (flag_print_progress) { print(paste0("Instrumented package: ", package_name)) }
+        func_global_index <- func_global_index + 1
     }
 
     if (flag_user_functions) {
-        instrument_user_functions(flag_debug=flag_debug) 
+        instrument_user_functions(flag_debug=flag_debug, flag_slave_proc=flag_slave_proc) 
         if (flag_print_progress) { print("Instrumented user functions") }
     }
     if (flag_print_progress) { print("COMPLETED INSTRUMENTATION") }
 
-    # Flag end with zmq
-    finalize_GlobalDefWriter_client()
+    # End definition of GlobalDef and regionRef array
+    if (!flag_slave_proc){ 
+        finalize_GlobalDefWriter_client() 
+    }
+    else {
+        # Free tmp regionRef array needed for slave procs
+        free_regionRef_array_slave() 
+    }
+
+
 
 }
 
@@ -626,8 +440,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
 #' @param function_methods_exception_list Object[] - List of function methods to skip, generated by get_function_methods(function_exception_list)
 #' @return Boolean - TRUE if skip, else FALSE
 #' @export
-skip_function <- function(func_ptr, func_name, env, 
-                                  function_exception_list, 
+skip_function <- function(func_ptr, func_name, env, function_exception_list, 
                                   function_methods_exception_list)
 {
     ## Make sure is a function
@@ -668,15 +481,19 @@ skip_function <- function(func_ptr, func_name, env,
         return(TRUE)
     }
 
-    ## 5 - Standard generic function
-    if ( utils::isS3stdGeneric(func_ptr) ) {
-        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type S3 Standard Generic" ))
-        return(TRUE)
-    }
-    if ( methods::isGeneric(func_name) ) {
-        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type Generic Function" ))
-        return(TRUE)
-    }
+    ## 5 - Standard generic function, tryCatch for user functions
+    tryCatch( {
+            if ( utils::isS3stdGeneric(func_ptr) ) {
+                if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type S3 Standard Generic" ))
+                return(TRUE)
+            }
+            if ( methods::isGeneric(func_name) ) {
+                if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is of type Generic Function" ))
+                return(TRUE)
+            }
+        }, 
+        error = function(e){ ; }
+    )
 
     ## Else passed all tests
     return(FALSE)
@@ -686,8 +503,9 @@ skip_function <- function(func_ptr, func_name, env,
 #' instrument_user_functions
 #' @description Instrument user functions
 #' @param flag_debug Boolean - Enable debug statements
+#' @param flag_slave_proc Boolean - Enable if running on slave proc
 #' @export
-instrument_user_functions <- function(flag_debug=FALSE) 
+instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE) 
 {
     INHERITS <- TRUE
     package_name <- "user_functions" # Placeholder for consistency
@@ -732,7 +550,8 @@ instrument_user_functions <- function(flag_debug=FALSE)
         try_insert_instrumentation(func_info, func_ptrs, FALSE, 
                                    function_exception_list, 
                                    function_methods_exception_list,
-                                   flag_user_function=T, flag_debug)
+                                   flag_user_function=T, flag_debug,
+                                   flag_slave_proc=flag_slave_proc)
     }
 
 }
@@ -764,6 +583,16 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     #total_time <- numeric(num_functions_total)
     instrumented <- logical(num_functions_total)
 
+    # package each entry in function_names belongs to
+    index <- 1
+    for (i_package in 1:length(packages)) {
+        tmp <- num_functions_per_package[i_package]
+        if (tmp>0){
+            package_list[index:(index-1+tmp)] <- packages[i_package]
+            index <- index+tmp
+        }
+    }
+
     ## DEBUGGING:
     if (flag_debug) {
         print("################ DATAFRAME #################")
@@ -771,14 +600,9 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
         print(num_functions_total)
         print(num_functions_per_package)
         print(package_list)
-    }
-
-    # package each entry in function_names belongs to
-    index <- 1
-    for (i_package in 1:length(packages)) {
-        tmp <- num_functions_per_package[i_package]
-        package_list[index:(index-1+tmp)] <- packages[i_package]
-        index <- index+tmp
+        print(length(package_list))
+        print(length(function_names))
+        print(length(instrumented))
     }
 
     # Init count and time arrays

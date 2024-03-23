@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{evtWriter_MeasurementOnOff_client}
 \alias{evtWriter_MeasurementOnOff_client}
-\title{Enable or disable event measurement}
+\title{Send message to enable or disable event measurement from client side}
 \usage{
 evtWriter_MeasurementOnOff_client(measurementMode)
 }
@@ -13,5 +13,5 @@ evtWriter_MeasurementOnOff_client(measurementMode)
 R_NilValue
 }
 \description{
-Enable or disable event measurement
+Send message to enable or disable event measurement from client side
 }

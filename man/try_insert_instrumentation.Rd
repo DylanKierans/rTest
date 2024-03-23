@@ -11,7 +11,8 @@ try_insert_instrumentation(
   function_exception_list,
   function_methods_exception_list,
   flag_user_function = F,
-  flag_debug = F
+  flag_debug = F,
+  flag_slave_proc = F
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ try_insert_instrumentation(
 \item{flag_user_function}{Boolean - Enable if user defined function (in .GlobalEnv)}
 
 \item{flag_debug}{Boolean - Enable debug output}
+
+\item{flag_slave_proc}{Boolean - Enable if running on slave proc}
 }
 \description{
 Checks function exceptions and calls insert_instrumentation() if success

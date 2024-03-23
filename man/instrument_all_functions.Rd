@@ -8,7 +8,8 @@ instrument_all_functions(
   package_list = NULL,
   flag_user_functions = TRUE,
   flag_print_progress = TRUE,
-  flag_debug = FALSE
+  flag_debug = FALSE,
+  flag_slave_proc = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ instrument_all_functions(
 \item{flag_print_progress}{Boolean - Enable for package by package progress statements}
 
 \item{flag_debug}{Boolean - Enable debug statements}
+
+\item{flag_slave_proc}{Boolean - Enable if running on slave proc}
 }
 \description{
 Instrument all functions

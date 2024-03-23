@@ -21,8 +21,9 @@ NULL
 NULL
 
 #' Enable or disable event measurement
+#' @param evt_writer Event writer linked to proc
+#' @param time Timestamp
 #' @param measurementMode True to enable, else disable
-#' @return R_NilValue
 NULL
 
 #' Init static otf2 {globaldefwriter} obj
@@ -60,17 +61,47 @@ init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName =
     .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName)
 }
 
+#' assign_regionRef_array_master
+#' @description Array is not assigned on master, 
+#'     rather is signalled to assign on server
+#' @param num_funcs Required length of array to store regionRef for each func
+#' @return R_NilValue
+assign_regionRef_array_master <- function(num_funcs) {
+    .Call('_rTrace_assign_regionRef_array_master', PACKAGE = 'rTrace', num_funcs)
+}
+
+#' assign_regionRef_array_slave
+#' @param num_funcs Required length of array to store regionRef for each func
+#' @return R_NilValue
+assign_regionRef_array_slave <- function(num_funcs) {
+    .Call('_rTrace_assign_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
+}
+
+#' get_regionRef_from_array_slave
+#' @param func_index Index of function to fet regionRef for
+#' @return regionRef
+get_regionRef_from_array_slave <- function(func_index) {
+    .Call('_rTrace_get_regionRef_from_array_slave', PACKAGE = 'rTrace', func_index)
+}
+
+#' free_regionRef_array_slave
+#' @return R_NilValue
+free_regionRef_array_slave <- function() {
+    .Call('_rTrace_free_regionRef_array_slave', PACKAGE = 'rTrace')
+}
+
 #' finalize_GlobalDefWriter_client
 #' @return RNilValue
 finalize_GlobalDefWriter_client <- function() {
     .Call('_rTrace_finalize_GlobalDefWriter_client', PACKAGE = 'rTrace')
 }
 
-#' define_otf2_event_client
+#' define_otf2_regionRef_client
 #' @param func_name Name of function to create event for
+#' @param func_index Global index of function in R namespace
 #' @return regionRef regionRef for use when logging events
-define_otf2_event_client <- function(func_name) {
-    .Call('_rTrace_define_otf2_event_client', PACKAGE = 'rTrace', func_name)
+define_otf2_regionRef_client <- function(func_name, func_index) {
+    .Call('_rTrace_define_otf2_regionRef_client', PACKAGE = 'rTrace', func_name, func_index)
 }
 
 #' finalize_EvtWriter_client
@@ -85,7 +116,7 @@ finalize_otf2_client <- function() {
     .Call('_rTrace_finalize_otf2_client', PACKAGE = 'rTrace')
 }
 
-#' Enable or disable event measurement
+#' Send message to enable or disable event measurement from client side
 #' @param measurementMode True to enable, else disable
 #' @return R_NilValue
 evtWriter_MeasurementOnOff_client <- function(measurementMode) {
@@ -138,19 +169,6 @@ print_errnos <- function() {
     .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
 }
 
-#' set_id
-#' @param newid new id
-#' @return R_NilValue
-set_id <- function(newid) {
-    .Call('_rTrace_set_id', PACKAGE = 'rTrace', newid)
-}
-
-#' get_id
-#' @return id int
-get_id <- function() {
-    .Call('_rTrace_get_id', PACKAGE = 'rTrace')
-}
-
 #' get_pid
 get_pid <- function() {
     .Call('_rTrace_get_pid', PACKAGE = 'rTrace')
@@ -164,5 +182,20 @@ get_tid <- function() {
 #' get_ppid
 get_ppid <- function() {
     .Call('_rTrace_get_ppid', PACKAGE = 'rTrace')
+}
+
+#' get_regionRef_array_master
+#' @description Signal to server to send regionRef array to new procs
+#' @param nprocs Number of new procs to update
+#' @return R_NilValue
+get_regionRef_array_master <- function(nprocs) {
+    .Call('_rTrace_get_regionRef_array_master', PACKAGE = 'rTrace', nprocs)
+}
+
+#' get_regionRef_array_slave
+#' @param num_funcs Total number of functions in R namespace
+#' @return R_NilValue
+get_regionRef_array_slave <- function(num_funcs) {
+    .Call('_rTrace_get_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
 }
 

@@ -55,7 +55,11 @@ get_function_exception_list <- function() {
         function_exception_list <- append(function_exception_list, package_function_exception_list)
     }
 
-    #print(FUNCTION_EXCEPTION_LIST)
+    if (R.utils::isPackageLoaded("parallel")){
+        package_function_exception_list <- c(parallel::clusterApply, parallel::clusterEvalQ)
+        function_exception_list <- append(function_exception_list, package_function_exception_list)
+    }
+
     function_exception_list
 }
 
