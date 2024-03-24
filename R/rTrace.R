@@ -42,7 +42,6 @@ library("Rcpp")
 #'  \item{MAX_FUNCTION_DEPTH}{}
 #'  \item{FUNCTION_DEPTH}{}
 #'  \item{UNLOCK_ENVS}{}
-#'  \item{PROFILE_INSTRUMENTATION_DF}{}
 #'  \item{PRINT_INSTRUMENTS}{}
 #'  \item{PRINT_SKIPS}{}
 #'  \item{PRINT_FUNC_INDEXES}{}
@@ -75,10 +74,6 @@ pkg.env$FUNCTION_DEPTH <- 0
 # @name UNLOCK_ENVS
 # @description Keep package envs unlocked when instrumenting functions
 pkg.env$UNLOCK_ENVS <- TRUE # Not sure if this is safe to set TRUE, but should be quicker!
-
-# @name PROFILE_INSTRUMENTATION_DF
-# @description Contains function name, package, and instrumentation flag
-pkg.env$PROFILE_INSTRUMENTATION_DF <- NULL
 
 ### SECTION - Output Flags ###
 # @name PRINT_INSTRUMENTS

@@ -280,10 +280,6 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
         print(paste0("[",func_global_index, "] package: ", package_name, "func_name: ", func_name, ", regionRef: ", regionRef))
     }
 
-    # TODO: check references to this dataframe
-    ## Label as instrumented in instrumentation dataframe
-    pkg.env$PROFILE_INSTRUMENTATION_DF[["function_instrumented"]][func_global_index] <-  TRUE
-
     if (pkg.env$PRINT_INSTRUMENTS) {
         print(paste0("INSTRUMENTING: function `", func_name,"`",
                     ", regionRef: ", regionRef))
@@ -547,85 +543,7 @@ instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE)
 
 
 #######################################################################
-# section - dataframe
-#######################################################################
-
-#' create_dataframe
-#' @description See return
-#' @param flag_debug Boolean - Enabled debug state,emts
-#' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
-#' @return Dataframe containing each function with information on function name,
-#'      package, count of function calls, total time spent in function
-create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
-    packages <- .packages()
-    num_functions_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
-    num_functions_total <- sum(num_functions_per_package)
-
-    if (flag_user_functions) { packages <- append(packages, "user_functions") }
-
-    ## Sections in dataframe
-    function_names <- names(get_function_list())
-    if (flag_user_functions) { function_names <- append(function_names, names(get_user_function_list())) }
-    package_list <- array(,num_functions_total) 
-    instrumented <- logical(num_functions_total)
-
-    # package each entry in function_names belongs to
-    index <- 1
-    for (i_package in 1:length(packages)) {
-        tmp <- num_functions_per_package[i_package]
-        if (tmp>0){
-            package_list[index:(index-1+tmp)] <- packages[i_package]
-            index <- index+tmp
-        }
-    }
-
-    ## DEBUGGING:
-    if (flag_debug) {
-        print("################ DATAFRAME #################")
-        print(paste0("Packages: ", package_list))
-        print(paste0("Num functions per package: ", num_functions_per_package))
-    }
-
-    # Init count and time arrays
-    instrumented[1:num_functions_total] <- FALSE
-
-    data.frame(packages=package_list, functions=function_names, function_instrumented=instrumented)
-}
-
-
-
-#######################################################################
 # section - helper functions
 #######################################################################
 
-#' test_instrumentation
-#' @description Utility function - Call function with expr and output dataframe changes if enabled
-#' @param func_ptr Object - function to test
-#' @param func_name String - name of function
-#' @param expr Expression - R expression to call to test func
-#' @param flag_debug Boolean - Enable debug statements
-#' @export
-test_instrumentation <- function(func_ptr, func_name, expr, flag_debug=F) {
-    func_ptrs <- get_function_list()
-    index_func <- get_function_index(func_ptrs, func_ptr, func_name)
-
-    if (flag_debug){
-        print(paste0("Num functions:",length(func_ptrs),", index of function:",index_func))
-
-        print("''''''''''''''' DATAFRAME '''''''''''''''")
-        print("########### BEFORE ############")
-        print(paste0("function_count: ", pkg.env$PROFILE_INSTRUMENTATION_DF[["function_count"]][index_func]))
-        print(paste0("function_time: ", pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][index_func]))
-    }
-
-    ## Call function and print output
-    print(eval(expr)) # Should add +1 to count and accum on time
-
-    if (flag_debug){
-        print("########### AFTER ############")
-        print(paste0("function_count: ", pkg.env$PROFILE_INSTRUMENTATION_DF[["function_count"]][index_func]))
-        print(paste0("function_time: ", pkg.env$PROFILE_INSTRUMENTATION_DF[["function_time"]][index_func]))
-        print(func_ptr)
-    }
-}
-
+# N/A

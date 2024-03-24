@@ -62,9 +62,6 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     pkg.env$PRINT_SKIPS <- verbose_wrapping
     pkg.env$INSTRUMENTATION_INIT <- TRUE
 
-    ## TODO: Remove this after debugging stages
-    pkg.env$PROFILE_INSTRUMENTATION_DF <- create_dataframe(flag_user_functions=flag_user_functions)
-
     ## Initiate new proc - close R if not Master
     ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger

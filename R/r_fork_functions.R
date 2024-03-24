@@ -404,8 +404,7 @@ master_init_slave <- function(cl) {
     # Export rTrace variables 
     vars <- c( "INSTRUMENTATION_INIT", "INSTRUMENTATION_ENABLED",
         "INSTRUMENTATION_STATUS_SAVED", "MAX_FUNCTION_DEPTH",
-        "FUNCTION_DEPTH", "UNLOCK_ENVS",
-        "PROFILE_INSTRUMENTATION_DF", "PRINT_INSTRUMENTS",
+        "FUNCTION_DEPTH", "UNLOCK_ENVS", "PRINT_INSTRUMENTS",
         "PRINT_SKIPS", "PRINT_FUNC_INDEXES"
     )
     parallel::clusterExport(cl, c("vars"), envir=environment())
