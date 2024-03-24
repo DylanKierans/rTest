@@ -258,16 +258,6 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
         stop()
     }
 
-    ## DEBUGGING - Display current function (before checks)
-    if (flag_debug) {
-        print("#######################################")
-        print(paste0("package: ", package_name, ", function: ", func_name))
-        print(paste0("func_global_index: ", func_global_index))
-        print(paste0("func_local_index: ", func_local_index))
-        print(utils::str(body(func_ptr))) 
-        print(utils::head(func_ptr))
-    }
-
     ## Test if function should be skipped
     if (flag_user_function) {
         env <- .GlobalEnv
@@ -286,8 +276,9 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     }
 
     ## DEBUGGING - print func index and regionRef for all on master AND slave
-    ## TODO - fix issue with last entry in regionRef on slave
-    print(paste0("[",func_global_index, "] func_name: ", func_name, ", regionRef: ", regionRef))
+    if (flag_debug){
+        print(paste0("[",func_global_index, "] package: ", package_name, "func_name: ", func_name, ", regionRef: ", regionRef))
+    }
 
     # TODO: check references to this dataframe
     ## Label as instrumented in instrumentation dataframe
@@ -405,6 +396,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
         func_global_index <- func_global_index + 1
     }
 
+    ## Instrument user functions
     if (flag_user_functions) {
         instrument_user_functions(flag_debug=flag_debug, flag_slave_proc=flag_slave_proc) 
         if (flag_print_progress) { print("Instrumented user functions") }
@@ -414,13 +406,9 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     # End definition of GlobalDef and regionRef array
     if (!flag_slave_proc){ 
         finalize_GlobalDefWriter_client() 
-    }
-    else {
-        # Free tmp regionRef array needed for slave procs
+    } else {
         free_regionRef_array_slave() 
     }
-
-
 
 }
 
@@ -579,8 +567,6 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     function_names <- names(get_function_list())
     if (flag_user_functions) { function_names <- append(function_names, names(get_user_function_list())) }
     package_list <- array(,num_functions_total) 
-    #count <- integer(num_functions_total)
-    #total_time <- numeric(num_functions_total)
     instrumented <- logical(num_functions_total)
 
     # package each entry in function_names belongs to
@@ -596,21 +582,13 @@ create_dataframe <- function(flag_user_functions=FALSE, flag_debug=FALSE) {
     ## DEBUGGING:
     if (flag_debug) {
         print("################ DATAFRAME #################")
-        print(length(function_names))
-        print(num_functions_total)
-        print(num_functions_per_package)
-        print(package_list)
-        print(length(package_list))
-        print(length(function_names))
-        print(length(instrumented))
+        print(paste0("Packages: ", package_list))
+        print(paste0("Num functions per package: ", num_functions_per_package))
     }
 
     # Init count and time arrays
-    #count[1:num_functions_total] <- 0L
-    #total_time[1:num_functions_total] <- 0.0
     instrumented[1:num_functions_total] <- FALSE
 
-    #data.frame(packages=package_list, functions=function_names, function_instrumented=instrumented, function_count=count, function_time=total_time)
     data.frame(packages=package_list, functions=function_names, function_instrumented=instrumented)
 }
 

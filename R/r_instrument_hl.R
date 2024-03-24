@@ -73,9 +73,6 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
     assign_regionRef_array_master(total_num_funcs)
 
-    ## DEBUGGING - Make sure no extra R proc exists
-    #print(paste0("instrumnetation_init after quit - pid: ", get_pid(), ", ppid:", get_ppid() ))
-
     return(invisible(NULL))
 }
 
@@ -109,15 +106,8 @@ instrumentation_finalize <- function()
         instrumentation_disable()
     }
 
-    # DEBUGGING
-    print("Instrumentation_disabled")
-
-    print("finalize_EvtWriter_client")
     finalize_EvtWriter_client()
-    print("End of finalize_EvtWriter_client")
-    print("finalize_otf2_client")
     finalize_otf2_client()
-    print("End of finalize_otf2_client")
     return(invisible(NULL))
 }
 

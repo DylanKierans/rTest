@@ -66,7 +66,7 @@ OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProper
 static OTF2_EvtWriter** evt_writers;
 
 // ZeroMQ sockets
-static bool IS_LOGGER=false; ///* LEGACY - True on server side, else false
+static bool IS_LOGGER=false; ///* Used by report_and_exit() to abtain exit behaviour
 static void *context;      ///* zmq context - clients and server
 static void *requester;    ///* zmq socket - master(5555) and slaves(5559) (comm with responder for globalDefWriter)
 static void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
@@ -221,17 +221,8 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
     if (child_pid == 0) { // Child process
 
         // DEBUGGING
-        Rcout << "Child - pid: " << getpid() << ", ppid: " << getppid() << "\n";
+        Rcout << "LOGGER PROC - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
 
-        /*
-        // Create daemonized process using double fork
-        if (fork() != 0){
-            sleep(1);
-            return(1);
-        } 
-        setsid(); // Else create own server id ...
-        */
-    
         IS_LOGGER = true;
         maxLocationRef = max_nprocs;
 
@@ -282,7 +273,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
     } else {
 
         // DEBUGGING
-        Rcout << "Parent - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
+        Rcout << "MASTER PROC - pid: " << getpid() << ", child_pid:" << child_pid << "\n";
 
         IS_LOGGER = false;
         context = zmq_ctx_new();
@@ -352,15 +343,9 @@ void assign_regionRef_array_server(){
     rc = zmq_bind(regionRef_socket_server, "tcp://*:5554");
     if (rc!=0){ report_and_exit("globalDefWriter_server regionRef_socket_server", regionRef_socket_server); }
 
-    // DEBUGGING
-    fupdate(fp, "assign_regionRef_array_server starting recv");
-
     // Assign regionRef array of length num_funcs
     zmq_ret = zmq_recv(regionRef_socket_server, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ ID: 0
     if ( zmq_ret <= 0 ) { report_and_exit("globalDefWriter_server pull recv", regionRef_socket_server); }
-
-    // DEBUGGING
-    fupdate(fp, "assign_regionRef_array_server ending recv");
 
     // Assign and reset all values to -1 for debugging
     regionRef_array = (OTF2_RegionRef*) malloc(NUM_FUNCS*sizeof(*regionRef_array));
@@ -368,6 +353,10 @@ void assign_regionRef_array_server(){
     for (int i=0; i<NUM_FUNCS; ++i){ regionRef_array[i] = -1; }
 
     zmq_close(regionRef_socket_server); // Close socket immediately (reopened later for events)
+
+    // DEBUGGING
+    fupdate(fp, "Finished assign_regionRef_array_server");
+
 }
 
 void free_regionRef_array_server(){
@@ -409,9 +398,6 @@ void globalDefWriter_server() { // Server
         } else if (zmq_ret == 0) { // ZMQ ID: 4
             break; // Signal end of globalDef from client
         } else {
-            //// TODO: Error check removal of this!
-            //buffer [zmq_ret] = '\0'; // Make sure string null terminated
-
             // Define as stringRef, regionRef
             OTF2_StringRef stringRef = globalDefWriter_WriteString_server(buffer.func_name);
             OTF2_RegionRef regionRef = globalDefWriter_WriteRegion_server(stringRef);
@@ -882,35 +868,22 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
     else { buffer.datatype = ZMQ_OTF2_EVENT_LEAVE; }
 
     // DEBUGGING - Write event info to unique file
-    if (buffer.pid == 0){
+    if (buffer.pid == 0){ // Master
         FILE *fp = fopen("write_client_0.log", "a");
         fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
         fclose(fp);
     }
-    if (buffer.pid == 1){
+    if (buffer.pid == 1){ // Slave #1
         FILE *fp = fopen("write_client_1.log", "a");
         fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
         fclose(fp);
     }
-        /*
-    if (buffer.pid != 0){
-    Rcout << "evtWriter_Write_client start of zmq_send";
-    Rcout << ", pid: " << buffer.pid;
-    Rcout << ", regionRef: " << buffer.regionRef;
-    Rcout << ", time: " << buffer.time;
-    Rcout << ", datatype: " << buffer.datatype;
-    Rcout << "\n";
-    }
-        */
-    #ifdef DEBUG
-    #endif
 
     if (pusher==NULL){ report_and_exit("evtWriter_Write_client pusher"); }
     zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // ZMQ ID: 5c // ZMQ ID: 5d
     if (zmq_ret<0){ 
         // DEBUGGING - Common error after opening and closing socket, 
-        //  print static errno values to help debug
-        print_errnos(); 
+        print_errnos(); //  print static errno values to help debug
         report_and_exit("evtWriter_Write_client event"); 
     }
 
@@ -952,8 +925,6 @@ void run_evtWriters_server(){
         zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // ZMQ ID: 5
 
         if (zmq_ret < 0){
-            zmq_close(new_proc_rep);
-            zmq_close(puller);
             report_and_exit("run_evtWriters_server puller zmq_recv", NULL); 
         } else if (zmq_ret == 0) { // Signal to stop listening
             break; // ZMQ ID: 5x
