@@ -13,5 +13,5 @@ get_regionRef_array_slave(num_funcs)
 R_NilValue
 }
 \description{
-get_regionRef_array_slave
+Requests regionRef array from logger proc
 }

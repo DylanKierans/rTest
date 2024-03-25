@@ -10,5 +10,5 @@ print_errnos()
 R_NilValue
 }
 \description{
-print_errnos
+Print error numbers relating to zmq sockets
 }

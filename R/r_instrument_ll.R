@@ -288,7 +288,6 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     # Get new body for funcs of type: {fork_function, end_fork_function, default}
     body(func_ptr) <- get_new_function_body(func_ptr, func_name, regionRef)
 
-    ## DEBUGGING: Comment out to disable compiling for testing
     ## TODO: Add check for if compiled before, recompile
     #func_ptr <- compiler::cmpfun(func_ptr) 
 

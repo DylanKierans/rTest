@@ -10,5 +10,5 @@ finalize_otf2_client()
 R_NilValue
 }
 \description{
-finalize_otf2_client
+Send signal to server to stop collecting event information
 }

@@ -7,7 +7,7 @@
 get_regionRef_from_array_slave(func_index)
 }
 \arguments{
-\item{func_index}{Index of function to fet regionRef for}
+\item{func_index}{Index of function to get regionRef for}
 }
 \value{
 regionRef

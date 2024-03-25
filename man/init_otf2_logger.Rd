@@ -4,7 +4,12 @@
 \alias{init_otf2_logger}
 \title{Fork and initialize zeromq sockets for writing globalDef definitions}
 \usage{
-init_otf2_logger(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace")
+init_otf2_logger(
+  max_nprocs,
+  archivePath = "./rTrace",
+  archiveName = "rTrace",
+  flag_print_pids = FALSE
+)
 }
 \arguments{
 \item{max_nprocs}{Maximum number of R processes (ie evtWriters required)}
@@ -12,9 +17,11 @@ init_otf2_logger(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace")
 \item{archivePath}{Path to otf2 archive}
 
 \item{archiveName}{Name of otf2 archive}
+
+\item{flag_print_pids}{True to print pids of parent and child procs}
 }
 \value{
-R_NilValue
+<0 if error, 0 if R master, else >0 if child
 }
 \description{
 Fork and initialize zeromq sockets for writing globalDef definitions

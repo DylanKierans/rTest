@@ -196,7 +196,7 @@ get_fork_wrapper_expression <- function() {
     exit_exp <- expression( { 
         on.exit({
             ## DEBUGGING
-            print(paste0("makeForkCluster nnodes: ", nnodes))
+            #print(paste0("makeForkCluster nnodes: ", nnodes))
 
             # Set r proc IDs - note master=0
             clusterApply(cl, 1:as.integer(nnodes), function(x){ set_locationRef(x); }) 
@@ -307,7 +307,6 @@ get_psock_wrapper_expression <- function() {
         # Save instrumentation state
         INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
 
-        ## DEBUGGING
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             ## Append to depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
@@ -335,13 +334,6 @@ get_psock_wrapper_expression <- function() {
             # Set r proc IDs - note master=0 
             # WARNING: muster go after master_init_slave(), after importing function
             clusterApply(cl, 1:nnodes, function(x){ set_locationRef(x); }) 
-
-            ## DEBUGGING
-            clusterEvalQ(cl, print(.packages()))
-            print(.packages())
-
-            # YOU ARE HERE #1
-            ## DEBUGGING - Check if func_list are equal or nej
 
             # Reopen sockets on all procs
             clusterEvalQ(cl, {open_EvtWriterSocket_client()});
@@ -393,10 +385,6 @@ master_init_slave <- function(cl) {
         pkg_cmd <- paste0(tmp, pkg_cmd)
     }
 
-    ## DEBUGGING
-    print("package_list: ")
-    print(pkg_cmd)
-
     # Exports libraries
     parallel::clusterExport(cl, c("pkg_cmd"), envir=environment())
     parallel::clusterEvalQ(cl, eval(parse(text = pkg_cmd)))
@@ -419,13 +407,5 @@ master_init_slave <- function(cl) {
     user_func_list <- get_user_function_list()
     parallel::clusterExport(cl, names(user_func_list), envir=.GlobalEnv)
     
-    ## DEBUGGING
-    #print(names(user_func_list))
-
-    ## Assign regionRef_array on slave
-    #parallel::clusterEvalQ(cl, assign_regionRef_array_slave(
-    #        sum(get_num_functions(flag_user_functions = T))
-    #))
-
 }
 
