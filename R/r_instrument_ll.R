@@ -432,6 +432,12 @@ skip_function <- function(func_ptr, func_name, env, function_exception_list,
         return(TRUE)
     }
 
+    ## 3 - Skip if primitive function - DEBUGGING (some are problematic)
+    if ( is.primitive(func_ptr) ) {
+        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is PRIMITVE function"))
+        return(TRUE)
+    }
+
     ## Skip if function not defined in current package
     if ( !exists(func_name, envir = env, inherits=T)) {
         if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` DOES NOT exist in package env: ", env))
@@ -449,12 +455,6 @@ skip_function <- function(func_ptr, func_name, env, function_exception_list,
     ## 2 - Skip method if from FUNCTION_METHODS_EXCEPTION_LIST
     if ( is.element(func_name, function_methods_exception_list) ){
         if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is in method exception list"))
-        return(TRUE)
-    }
-
-    ## 3 - Skip if primitive function - DEBUGGING (some are problematic)
-    if ( is.primitive(func_ptr) ) {
-        if (pkg.env$PRINT_SKIPS) print(paste0("SKIPPING: function `", func_name, "` is PRIMITVE function"))
         return(TRUE)
     }
 

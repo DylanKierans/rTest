@@ -1157,9 +1157,6 @@ RcppExport int get_ppid() {
     return((int)getppid());
 }
 
-//////////////////
-// SECTION - TODO: UPDATE THESE FUNCTIONS
-//////////////////
 
 //' get_regionRef_array_master
 //' @description Signal to server to send regionRef array to new procs
