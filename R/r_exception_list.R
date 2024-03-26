@@ -34,6 +34,11 @@ get_function_exception_list <- function() {
             get('body<-'),
             tryCatch, # Clobbering trace results
             append) 
+
+    # These functions contain on.exit() and blocks instrumentation insert
+    on.exit_functions <- c(R.utils::read.table)
+    function_exception_list <- append(function_exception_list, on.exit_functions)
+
     if (R.utils::isPackageLoaded("R.utils")){
         package_function_exception_list <- c(R.utils::isPackageLoaded)
         function_exception_list <- append(function_exception_list, package_function_exception_list)

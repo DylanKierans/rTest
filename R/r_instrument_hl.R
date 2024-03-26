@@ -4,37 +4,42 @@
 # SECTION - HIGH LEVEL, ENABLE/DISABLE INSTRUMENTATION
 #######################################################################
 
-# @TODO: zmq this
 #' instrumentation_enable
-#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
+#' @param flag_reset_depth Boolean - Intended for developers, suppress depth warning
 #' @description Enable instrumentation and reset function depth
 #' @export
-instrumentation_enable <- function(flag_ignore_depth=FALSE){
+instrumentation_enable <- function(flag_reset_depth=FALSE){
     if (is_instrumentation_enabled()){
-        message("Instrumentation already enabled!")
+        warning("Warning: Instrumentation already enabled!")
     } else {
-        if (!flag_ignore_depth){ pkg.env$FUNCTION_DEPTH <- 0 }
         evtWriter_MeasurementOnOff_client(TRUE)
     }
+
+    # Reset depth counter if specified
+    if (flag_reset_depth){ pkg.env$FUNCTION_DEPTH <- 0 } 
+
     pkg.env$INSTRUMENTATION_ENABLED <- TRUE
     invisible(NULL)
 }
 
-# @TODO: zmq this
+
 #' instrumentation_disable
 #' @description Disable instrumentation
-#' @param flag_ignore_depth Boolean - Intended for developers, suppress depth warning
+#' @param flag_update_measurement Boolean - Intended for developers, update measurement mode
+#' @param flag_check_depth Boolean - Intended for developers, suppress depth warning if false
 #' @export
-instrumentation_disable <- function(flag_ignore_depth=FALSE){
+instrumentation_disable <- function(flag_check_depth=T, flag_update_measurement=TRUE){
     if (!is_instrumentation_enabled()){
         warning("Warning: Instrumentation already disabled!")
     }
     else {
-        if ( (pkg.env$FUNCTION_DEPTH != 0 ) && !flag_ignore_depth ){ 
+        if ( (pkg.env$FUNCTION_DEPTH != 0) && flag_check_depth) {
             warning(paste0("Warning: Function depth non-zero relative to start region. Depth: ", pkg.env$FUNCTION_DEPTH) )
         }
         pkg.env$INSTRUMENTATION_ENABLED <- FALSE
-        evtWriter_MeasurementOnOff_client(FALSE)
+        if (flag_update_measurement){
+            evtWriter_MeasurementOnOff_client(FALSE)
+        }
     }
     invisible(NULL)
 }
@@ -49,7 +54,6 @@ is_instrumentation_enabled <- function() {
 }
 
 
-# @TODONE: zmq this
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
@@ -124,4 +128,23 @@ instrumentation_debug <- function(print_func_indexes = pkg.env$PRINT_FUNC_INDEXE
     pkg.env$MAX_FUNCTION_DEPTH <- max_function_depth 
     pkg.env$UNLOCK_ENVS <- unlock_env
     invisible()
+}
+
+#' instrumentation_wrapper
+#' @description Simple function to provider wrapper for instrumenting a single function call.
+#'  Ideal use if program contained in main(). Not intended to be used multiple times in one script
+#' @param func Object - Function to call
+#' @param ... Args - Function args
+#' @export
+instrumentation_wrapper <- function(func, ...)
+{
+    instrumentation_init()
+    instrument_all_functions()
+
+    instrumentation_enable()
+    ret <- func(...) # Call actual function
+    instrumentation_disable()
+
+    instrumentation_finalize()
+    ret
 }

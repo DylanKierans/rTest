@@ -2,6 +2,7 @@
 # description: Unique functions wrappers for functions such as makeForkCluster which
 #   spawn new forked R procs. Extra work required to duplicate zeromq objects safely 
 #   across multiple proces.
+# TODO: massively clean up functions and naming convention
 
 
 #' get_fork_function_list
@@ -207,8 +208,8 @@ get_fork_wrapper_expression <- function() {
 
             # Renable instrumentation if necessary
             if (INSTRUMENTATION_ENABLED_BEFORE){
-                instrumentation_enable(flag_ignore_depth=TRUE);
-                clusterEvalQ(cl, instrumentation_enable(flag_ignore_depth=TRUE));
+                instrumentation_enable();
+                clusterEvalQ(cl, instrumentation_enable(flag_reset_depth=TRUE));
 
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
                 if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
@@ -227,7 +228,7 @@ get_fork_wrapper_expression <- function() {
 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             NULL
-            ## Append to depth counter
+            ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
 
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
@@ -236,7 +237,7 @@ get_fork_wrapper_expression <- function() {
                 evtWriter_Write_client(X_regionRef_X,T)
             }
 
-            instrumentation_disable(flag_ignore_depth=TRUE)
+            instrumentation_disable(flag_check_depth=F)
         }
 
         # Close socket on master before forking
@@ -250,12 +251,12 @@ get_fork_wrapper_expression <- function() {
 #' get_end_fork_wrapper_expression
 #' @description Returns wrapper expression
 get_end_fork_wrapper_expression <- function() {
-    entry_exp <- expression( {  ; # Sneaky ; here for debugging
+    entry_exp <- expression( {
         # Save instrumentation state
         INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
-            # Append to depth counter
+            # Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
 
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
@@ -263,8 +264,8 @@ get_end_fork_wrapper_expression <- function() {
             }
 
             ## Disable instrumentation on all procs
-            clusterEvalQ(cl, { instrumentation_disable(flag_ignore_depth=TRUE) } )
-            instrumentation_disable(flag_ignore_depth=TRUE)
+            clusterEvalQ(cl, { instrumentation_disable(flag_update_measurement=F) } )
+            instrumentation_disable(flag_check_depth=F)
 
         }
 
@@ -274,15 +275,18 @@ get_end_fork_wrapper_expression <- function() {
     } )
 
     exit_exp <- expression( {
-        on.exit( { ; # Sneaky ; here for debugging
+        on.exit( {
             # Reopen sockets on Master clientside
             open_EvtWriterSocket_client()
 
+            # End slave placeholder event
+            stopCluster_master()
+
             # Restore instrumentation state
             if (INSTRUMENTATION_ENABLED_BEFORE){
-                instrumentation_enable(flag_ignore_depth=TRUE)
+                instrumentation_enable()
 
-                # Deduct from depth counter
+                # Decrement depth counter
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
 
                 if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
@@ -308,24 +312,25 @@ get_psock_wrapper_expression <- function() {
         INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
-            ## Append to depth counter
+            ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
 
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
                 evtWriter_Write_client(X_regionRef_X,T)
             }
 
-            instrumentation_disable(flag_ignore_depth=TRUE)
+            instrumentation_disable(flag_check_depth=F)
         }
     } )
 
     exit_exp <- expression( { 
         on.exit({
+            # NOTE: Keep this in exit expression
             nnodes <- length(names)
 
             ## DEBUGGING
+            print(paste0("makePSOCKcluster nnodes: ", nnodes))
             #print(paste0("makePSOCKcluster names: ", names))
-            #print(paste0("makePSOCKcluster nnodes: ", nnodes))
             #clusterEvalQ(cl, { print(paste0("FORK makeCluster - pid: ", get_pid(), ", tid: ", get_tid(), ", locationRef id: ", get_locationRef())) })
 
             # Import required packages on slave
@@ -348,11 +353,13 @@ get_psock_wrapper_expression <- function() {
 
             # Renable instrumentation if necessary
             if (INSTRUMENTATION_ENABLED_BEFORE){
-                instrumentation_enable(flag_ignore_depth=TRUE);
-                clusterEvalQ(cl, instrumentation_enable(flag_ignore_depth=TRUE));
+                #instrumentation_enable(flag_reset_depth=TRUE);
+                instrumentation_enable();
+                clusterEvalQ(cl, instrumentation_enable(flag_reset_depth=TRUE));
 
+                # Decrement depth
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
-                clusterEvalQ(cl, pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH-1);
+                #clusterEvalQ(cl, pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH-1);
 
                 if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
                     evtWriter_Write_client(X_regionRef_X,F)
@@ -398,6 +405,7 @@ master_init_slave <- function(cl) {
     parallel::clusterExport(cl, c("vars"), envir=environment())
     parallel::clusterExport(cl, vars, envir=pkg.env)
     parallel::clusterEvalQ(cl, {
+        FUNCTION_DEPTH <- 0 # Reset function depth
         unlock_envs("rTrace")
         for(n in vars) { assign(n, get(n, .GlobalEnv), pkg.env) }
         lock_envs("rTrace")

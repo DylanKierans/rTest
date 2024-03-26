@@ -194,6 +194,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// get_regionRef_array_master
+RcppExport SEXP get_regionRef_array_master(const int nprocs);
+RcppExport SEXP _rTrace_get_regionRef_array_master(SEXP nprocsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const int >::type nprocs(nprocsSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_regionRef_array_master(nprocs));
+    return rcpp_result_gen;
+END_RCPP
+}
+// stopCluster_master
+RcppExport SEXP stopCluster_master();
+RcppExport SEXP _rTrace_stopCluster_master() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(stopCluster_master());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_regionRef_array_slave
+RcppExport SEXP get_regionRef_array_slave(const int num_funcs);
+RcppExport SEXP _rTrace_get_regionRef_array_slave(SEXP num_funcsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const int >::type num_funcs(num_funcsSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_regionRef_array_slave(num_funcs));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_pid
 RcppExport int get_pid();
 RcppExport SEXP _rTrace_get_pid() {
@@ -224,28 +256,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// get_regionRef_array_master
-RcppExport SEXP get_regionRef_array_master(const int nprocs);
-RcppExport SEXP _rTrace_get_regionRef_array_master(SEXP nprocsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const int >::type nprocs(nprocsSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_regionRef_array_master(nprocs));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_regionRef_array_slave
-RcppExport SEXP get_regionRef_array_slave(const int num_funcs);
-RcppExport SEXP _rTrace_get_regionRef_array_slave(SEXP num_funcsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const int >::type num_funcs(num_funcsSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_regionRef_array_slave(num_funcs));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 4},
@@ -265,11 +275,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_get_locationRef", (DL_FUNC) &_rTrace_get_locationRef, 0},
     {"_rTrace_set_maxUsedLocationRef_client", (DL_FUNC) &_rTrace_set_maxUsedLocationRef_client, 1},
     {"_rTrace_print_errnos", (DL_FUNC) &_rTrace_print_errnos, 0},
+    {"_rTrace_get_regionRef_array_master", (DL_FUNC) &_rTrace_get_regionRef_array_master, 1},
+    {"_rTrace_stopCluster_master", (DL_FUNC) &_rTrace_stopCluster_master, 0},
+    {"_rTrace_get_regionRef_array_slave", (DL_FUNC) &_rTrace_get_regionRef_array_slave, 1},
     {"_rTrace_get_pid", (DL_FUNC) &_rTrace_get_pid, 0},
     {"_rTrace_get_tid", (DL_FUNC) &_rTrace_get_tid, 0},
     {"_rTrace_get_ppid", (DL_FUNC) &_rTrace_get_ppid, 0},
-    {"_rTrace_get_regionRef_array_master", (DL_FUNC) &_rTrace_get_regionRef_array_master, 1},
-    {"_rTrace_get_regionRef_array_slave", (DL_FUNC) &_rTrace_get_regionRef_array_slave, 1},
     {NULL, NULL, 0}
 };
 

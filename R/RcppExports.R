@@ -121,6 +121,29 @@ print_errnos <- function() {
     .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
 }
 
+#' get_regionRef_array_master
+#' @description Signal to server to send regionRef array to new procs
+#' @param nprocs Number of new procs to update
+#' @return R_NilValue
+get_regionRef_array_master <- function(nprocs) {
+    .Call('_rTrace_get_regionRef_array_master', PACKAGE = 'rTrace', nprocs)
+}
+
+#' stopCluster_master
+#' @description Signal to end cluster
+#' @return R_NilValue
+stopCluster_master <- function() {
+    .Call('_rTrace_stopCluster_master', PACKAGE = 'rTrace')
+}
+
+#' get_regionRef_array_slave
+#' @description Requests regionRef array from logger proc
+#' @param num_funcs Total number of functions in R namespace
+#' @return R_NilValue
+get_regionRef_array_slave <- function(num_funcs) {
+    .Call('_rTrace_get_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
+}
+
 #' get_pid
 get_pid <- function() {
     .Call('_rTrace_get_pid', PACKAGE = 'rTrace')
@@ -134,21 +157,5 @@ get_tid <- function() {
 #' get_ppid
 get_ppid <- function() {
     .Call('_rTrace_get_ppid', PACKAGE = 'rTrace')
-}
-
-#' get_regionRef_array_master
-#' @description Signal to server to send regionRef array to new procs
-#' @param nprocs Number of new procs to update
-#' @return R_NilValue
-get_regionRef_array_master <- function(nprocs) {
-    .Call('_rTrace_get_regionRef_array_master', PACKAGE = 'rTrace', nprocs)
-}
-
-#' get_regionRef_array_slave
-#' @description Requests regionRef array from logger proc
-#' @param num_funcs Total number of functions in R namespace
-#' @return R_NilValue
-get_regionRef_array_slave <- function(num_funcs) {
-    .Call('_rTrace_get_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
 }
 

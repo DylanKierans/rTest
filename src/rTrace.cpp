@@ -45,7 +45,8 @@ typedef enum {
     ZMQ_OTF2_MEASUREMENT_ON, 
     ZMQ_OTF2_MEASUREMENT_OFF, 
     ZMQ_OTF2_USED_LOCATIONREFS, 
-    ZMQ_OTF2_SOCK_CLUSTER
+    ZMQ_OTF2_SOCK_CLUSTER_ON,
+    ZMQ_OTF2_SOCK_CLUSTER_OFF
 } zmq_otf2_datatypes;
 
 // Struct used for majority of data transfer during event collection phase
@@ -107,7 +108,7 @@ void init_EvtWriters_server();
 void finalize_EvtWriters_server();
 void init_GlobalDefWriter_server();
 void finalize_GlobalDefWriter_server();
-void run_evtWriters_server();
+void run_evtWriters_server(bool);
 void globalDefWriter_server();
 void finalize_otf2_server();
 OTF2_StringRef globalDefWriter_WriteString_server(Rcpp::String stringRefValue);
@@ -250,7 +251,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
 
         // Server listens for events
         fupdate_server(fp, "evtWriter\n");
-        run_evtWriters_server();
+        run_evtWriters_server(false);
         fupdate_server(fp, "evtWriter complete\n");
 
         // Write definitions for proc structures
@@ -902,12 +903,20 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 // TODO: function for evtWriters err check
 // @name run_evtWriters_server
 // @description Main function during which all otf2 event information is processed
+// @param flag_lgo Log all events in log file
 //  and logged
-void run_evtWriters_server(){
+void run_evtWriters_server(bool flag_log){
     void *puller;               ///< Recv otf2 eventlog
     void *new_proc_rep;
     int zmq_ret, rc; // Debugging recv/sends and socket
     Zmq_otf2_data buffer;
+    int nprocs=1;
+    OTF2_StringRef slaveActive_stringRef;
+    OTF2_RegionRef slaveActive_regionRef;
+
+    // Placeholder for region of ZMQ_OTF2_SOCK_CLUSTER
+    slaveActive_stringRef = globalDefWriter_WriteString_server("SLAVE_ACTIVE");
+    slaveActive_regionRef = globalDefWriter_WriteRegion_server(slaveActive_stringRef);
 
     // Ensure evt_writers defined
     if (evt_writers == NULL) { report_and_exit("run_evtWriters_server evt_writers", NULL); }
@@ -928,8 +937,10 @@ void run_evtWriters_server(){
 
     // DEBUGGING
     char fp_buffer[50];
-    snprintf(fp_buffer, 50, "(pid: %d) Listening for evtWriters\n", getpid());
-    fupdate_server(fp, fp_buffer);
+    if (flag_log){
+        snprintf(fp_buffer, 50, "(pid: %d) Listening for evtWriters\n", getpid());
+        fupdate_server(fp, fp_buffer);
+    }
 
     // Receive globalDef strings, and return with send regionRef
     while (1) {
@@ -959,13 +970,23 @@ void run_evtWriters_server(){
                         buffer.time, buffer.regionRef /* region */ );
             } else if (buffer.datatype == ZMQ_OTF2_USED_LOCATIONREFS ){ // ZMQ ID: 5e
                 if (buffer.regionRef > maxUsedLocationRef){ maxUsedLocationRef = buffer.regionRef; }
-            } else if (buffer.datatype == ZMQ_OTF2_SOCK_CLUSTER){ // ZMQ ID: 5f
-                OTF2_RegionRef num_new_procs = buffer.regionRef;
-                if (get_regionRef_array_server(num_new_procs, new_proc_rep) != 0){
+            } else if (buffer.datatype == ZMQ_OTF2_SOCK_CLUSTER_ON){ // ZMQ ID: 5f
+                nprocs = buffer.regionRef;
+                if (get_regionRef_array_server(nprocs, new_proc_rep) != 0){
                     zmq_close(new_proc_rep);
                     zmq_close(puller);
                     report_and_exit("get_regionRef_array_server");
                 }
+                for (int i=1; i<=nprocs; ++i){
+                    OTF2_EvtWriter_Enter( evt_writers[i], NULL /* attributeList */,
+                            buffer.time, slaveActive_regionRef /* region */ );
+                }
+            } else if (buffer.datatype == ZMQ_OTF2_SOCK_CLUSTER_OFF){ // ZMQ ID: 5g
+                for (int i=1; i<=nprocs; ++i){
+                    OTF2_EvtWriter_Leave( evt_writers[i], NULL /* attributeList */,
+                            buffer.time, slaveActive_regionRef /* region */ );
+                }
+                nprocs=1;
             }
         } else if (zmq_ret > 0) { // Unknown datatype
             zmq_close(new_proc_rep);
@@ -983,7 +1004,7 @@ void run_evtWriters_server(){
 }
 
 // @name get_regionRef_array_server
-// @description Triggered by receiving ZMQ_OTF2_SOCK_CLUSTER
+// @description Triggered by receiving ZMQ_OTF2_SOCK_CLUSTER_ON
 // @param num_new_procs Number of new procs spawned
 // @param responder ZMQ_REP socket recv proc_id, send regionRef_array
 // @return non-zero if error
@@ -1135,29 +1156,6 @@ RcppExport SEXP print_errnos() {
 }
 
 
-///////////////////////////////
-// Testing
-///////////////////////////////
-
-//' get_pid
-// [[Rcpp::export]]
-RcppExport int get_pid() {
-    return((int)getpid());
-}
-
-//' get_tid
-// [[Rcpp::export]]
-RcppExport int get_tid() {
-    return((int)gettid());
-}
-
-//' get_ppid
-// [[Rcpp::export]]
-RcppExport int get_ppid() {
-    return((int)getppid());
-}
-
-
 //' get_regionRef_array_master
 //' @description Signal to server to send regionRef array to new procs
 //' @param nprocs Number of new procs to update
@@ -1171,10 +1169,29 @@ RcppExport SEXP get_regionRef_array_master(const int nprocs){
     buffer.regionRef = nprocs;
     buffer.pid = locationRef;
     buffer.time = get_time();
-    buffer.datatype = ZMQ_OTF2_SOCK_CLUSTER;
+    buffer.datatype = ZMQ_OTF2_SOCK_CLUSTER_ON;
 
     zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // ZMQ ID: 5f
     if (zmq_ret < 0 ) { report_and_exit("get_regionRef_array_master pusher zmq_send"); }
+    return(R_NilValue);
+}
+
+//' stopCluster_master
+//' @description Signal to end cluster
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP stopCluster_master(){
+    int zmq_ret;
+    Zmq_otf2_data buffer;
+
+    // Pack buffer
+    buffer.regionRef = 0;
+    buffer.pid = locationRef;
+    buffer.time = get_time();
+    buffer.datatype = ZMQ_OTF2_SOCK_CLUSTER_OFF;
+
+    zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // ZMQ ID: 5g
+    if (zmq_ret < 0 ) { report_and_exit("stopCluster_master pusher zmq_send"); }
     return(R_NilValue);
 }
 
@@ -1211,3 +1228,27 @@ RcppExport SEXP get_regionRef_array_slave(const int num_funcs){
 
     return(R_NilValue);
 }
+
+
+///////////////////////////////
+// Testing
+///////////////////////////////
+
+//' get_pid
+// [[Rcpp::export]]
+RcppExport int get_pid() {
+    return((int)getpid());
+}
+
+//' get_tid
+// [[Rcpp::export]]
+RcppExport int get_tid() {
+    return((int)gettid());
+}
+
+//' get_ppid
+// [[Rcpp::export]]
+RcppExport int get_ppid() {
+    return((int)getppid());
+}
+

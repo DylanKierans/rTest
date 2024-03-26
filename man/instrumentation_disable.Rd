@@ -4,10 +4,12 @@
 \alias{instrumentation_disable}
 \title{instrumentation_disable}
 \usage{
-instrumentation_disable(flag_ignore_depth = FALSE)
+instrumentation_disable(flag_check_depth = T, flag_update_measurement = TRUE)
 }
 \arguments{
-\item{flag_ignore_depth}{Boolean - Intended for developers, suppress depth warning}
+\item{flag_check_depth}{Boolean - Intended for developers, suppress depth warning if false}
+
+\item{flag_update_measurement}{Boolean - Intended for developers, update measurement mode}
 }
 \description{
 Disable instrumentation
