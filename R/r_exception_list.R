@@ -35,10 +35,6 @@ get_function_exception_list <- function() {
             tryCatch, # Clobbering trace results
             append) 
 
-    # These functions contain on.exit() and blocks instrumentation insert
-    on.exit_functions <- c(R.utils::read.table)
-    function_exception_list <- append(function_exception_list, on.exit_functions)
-
     if (R.utils::isPackageLoaded("R.utils")){
         package_function_exception_list <- c(R.utils::isPackageLoaded)
         function_exception_list <- append(function_exception_list, package_function_exception_list)
@@ -64,6 +60,12 @@ get_function_exception_list <- function() {
         package_function_exception_list <- c(parallel::clusterApply, parallel::clusterEvalQ)
         function_exception_list <- append(function_exception_list, package_function_exception_list)
     }
+
+    # These functions contain on.exit() and blocks instrumentation insert
+    on.exit_functions <- c()
+    if (R.utils::isPackageLoaded("R.utils")){ on.exit_functions <- append(on.exit_functions, c(R.utils::read.table)) }
+
+    function_exception_list <- append(function_exception_list, on.exit_functions)
 
     function_exception_list
 }
