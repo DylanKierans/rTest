@@ -9,7 +9,8 @@ instrument_all_functions(
   flag_user_functions = TRUE,
   flag_print_progress = TRUE,
   flag_debug = FALSE,
-  flag_slave_proc = FALSE
+  flag_slave_proc = FALSE,
+  flag_compile_function = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ instrument_all_functions(
 \item{flag_debug}{Boolean - Enable debug statements}
 
 \item{flag_slave_proc}{Boolean - Enable if running on slave proc}
+
+\item{flag_compile_function}{Boolean - Enable to compile function using compiler::cmpfun()}
 }
 \description{
 Instrument all functions

@@ -4,10 +4,10 @@
 \alias{evtWriter_Write_client}
 \title{Write event to evt_writer}
 \usage{
-evtWriter_Write_client(regionRef, event_type)
+evtWriter_Write_client(func_index, event_type)
 }
 \arguments{
-\item{regionRef}{Region id}
+\item{func_index}{Function index in global list}
 
 \item{event_type}{True for enter, False for leave region}
 }

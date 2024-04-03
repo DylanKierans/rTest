@@ -2,79 +2,6 @@
 # description: Unique functions wrappers for functions such as makeForkCluster which
 #   spawn new forked R procs. Extra work required to duplicate zeromq objects safely 
 #   across multiple proces.
-# TODO: massively clean up functions and naming convention
-
-
-#' get_fork_function_list
-#' @description Returns list of known functions which R uses to fork procs
-get_fork_function_list <- function() {
-    func_list <- c()
-    if (R.utils::isPackageLoaded("parallel")){
-        tmp_func_list <- c(parallel::makeForkCluster)
-        func_list <- append(func_list, tmp_func_list)
-    }
-    func_list
-}
-
-#' get_psock_function_list
-#' @description Returns list of known functions which R uses to fork procs
-get_psock_function_list <- function() {
-    func_list <- c()
-    if (R.utils::isPackageLoaded("parallel")){
-        tmp_func_list <- c(parallel::makePSOCKcluster)
-        func_list <- append(func_list, tmp_func_list)
-    }
-    func_list
-}
-
-#' get_end_fork_function_list
-#' @description Returns list of known functions which R uses to fork procs
-get_end_fork_function_list <- function() {
-    func_list <- c()
-    if (R.utils::isPackageLoaded("parallel")){
-        tmp_func_list <- c(parallel::stopCluster)
-        func_list <- append(func_list, tmp_func_list)
-    }
-    func_list
-}
-
-#' is_cluster_function
-#' @description Returns bool for if function listed as for type of {fork, psock} function
-#' @param func_ptr Function to check
-#' @param fork_cluster True if checking for fork function, else check for psock
-#' @return Boolean - true if fork/psock function, else false
-is_cluster_function <- function(func_ptr, fork_cluster=F) {
-    if (fork_cluster){
-        cluster_func_list <- get_fork_function_list()
-    } else {
-        cluster_func_list <- get_psock_function_list()
-    }
-
-    ## Test if cluster function, uses different wrapper
-    res <- FALSE
-    for (cluster_func in cluster_func_list){
-        if (identical(cluster_func, func_ptr)){
-            res <- TRUE
-        }
-    }
-
-    res
-}
-
-#' is_end_fork_function
-#' @description Returns bool for if function listed as for type of end fork function
-#' @param func_ptr Function to check
-#' @return Boolean - true if end fork function, else false
-is_end_fork_function <- function(func_ptr) {
-    flag_end_fork_function <- FALSE
-    for (end_fork_func in get_end_fork_function_list()){
-        if (identical(end_fork_func, func_ptr)){
-            flag_end_fork_function <- TRUE
-        }
-    }
-    flag_end_fork_function
-}
-
 
 #' body_default_function
 #' @description Returns instrumented body for default functions
@@ -132,14 +59,14 @@ body_cluster_function <- function(func_ptr, regionRef, fork_cluster=F)
 }
 
 
-#' body_end_fork_function
+#' body_end_cluster_function
 #' @description Returns instrumented body for functions of type end fork
 #' @param func_ptr Pointer to function
 #' @param regionRef OTF2 regionRef for function
 #' @return type(as.call) Updated function body
-body_end_fork_function <- function(func_ptr, regionRef){
+body_end_cluster_function <- function(func_ptr, regionRef){
 
-    wrapper_expression <- get_end_fork_wrapper_expression()
+    wrapper_expression <- get_end_cluster_wrapper_expression()
     entry_exp = wrapper_expression$entry;
     entry_exp = do.call('substitute', list( 
         entry_exp[[1]],
@@ -170,22 +97,49 @@ body_end_fork_function <- function(func_ptr, regionRef){
 get_new_function_body <- function(func_ptr, func_name, regionRef)
 {
     # Expression and body usage taken from: https://stackoverflow.com/a/31374476
-    if (is_cluster_function(func_ptr, fork_cluster=F)){
-        if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: PSOCK function `", func_name, "`"))
-        new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=F)
-    } else if (is_cluster_function(func_ptr, fork_cluster=T)){
-        if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Fork function `", func_name, "`"))
-        new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=T)
-    } else if (is_end_fork_function(func_ptr)) {
-        if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: End fork function `", func_name, "`"))
-        new_body <- body_end_fork_function(func_ptr, regionRef)
-    } else { # Default wrapper
-        if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Default function `", func_name, "`"))
-        new_body <- body_default_function(func_ptr, regionRef)
-    }
-    new_body
-}
 
+    # Create lists for non-standard parallel functions, with specialized wrappers
+    end_cluster_function_list <- c()
+    fork_cluster_function_list <- c()
+    psock_cluster_function_list <- c()
+    if (R.utils::isPackageLoaded("parallel")){
+        end_cluster_function_list <- append(end_cluster_function_list, c(parallel::stopCluster))
+        fork_cluster_function_list <- append(fork_cluster_function_list, c(parallel::makeForkCluster))
+        psock_cluster_function_list <- append(psock_cluster_function_list, c(parallel::makePSOCKcluster))
+    }
+
+    # If get_end_fork_function
+    for (end_cluster_function in end_cluster_function_list){
+        if (identical(end_cluster_function, func_ptr)){
+            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: End fork function `", func_name, "`"))
+            new_body <- body_end_cluster_function(func_ptr, regionRef)
+            return(new_body)
+        }
+    }
+
+    ## If creates forked cluster
+    for (fork_cluster_function in fork_cluster_function_list){
+        if (identical(fork_cluster_function, func_ptr)){
+            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Fork function `", func_name, "`"))
+            new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=T)
+            return(new_body)
+        }
+    }
+
+    ## If creates psock cluster
+    for (psock_cluster_function in psock_cluster_function_list){
+        if (identical(psock_cluster_function, func_ptr)){
+            if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: PSOCK function `", func_name, "`"))
+            new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=F)
+            return(new_body)
+        }
+    }
+
+    ## Else default function
+    if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Default function `", func_name, "`"))
+    new_body <- body_default_function(func_ptr, regionRef)
+    return(new_body)
+}
 
 
 #' get_fork_wrapper_expression
@@ -248,9 +202,9 @@ get_fork_wrapper_expression <- function() {
     list(entry = entry_exp, exit = exit_exp)
 }
 
-#' get_end_fork_wrapper_expression
+#' get_end_cluster_wrapper_expression
 #' @description Returns wrapper expression
-get_end_fork_wrapper_expression <- function() {
+get_end_cluster_wrapper_expression <- function() {
     entry_exp <- expression( {
         # Save instrumentation state
         INSTRUMENTATION_ENABLED_BEFORE <- is_instrumentation_enabled()
@@ -270,17 +224,21 @@ get_end_fork_wrapper_expression <- function() {
         }
 
         # Close sockets on all procs clientside
-        close_EvtWriterSocket_client()
-        clusterEvalQ(cl, { close_EvtWriterSocket_client() })
+        if (pkg.env$INSTRUMENTATION_INIT){
+            close_EvtWriterSocket_client()
+            clusterEvalQ(cl, { close_EvtWriterSocket_client() })
+        }
     } )
 
     exit_exp <- expression( {
         on.exit( {
-            # Reopen sockets on Master clientside
-            open_EvtWriterSocket_client()
+            if (pkg.env$INSTRUMENTATION_INIT){
+                # Reopen sockets on Master clientside
+                open_EvtWriterSocket_client()
 
-            # End slave placeholder event
-            stopCluster_master()
+                # End slave placeholder event
+                stopCluster_master()
+            }
 
             # Restore instrumentation state
             if (INSTRUMENTATION_ENABLED_BEFORE){
@@ -336,20 +294,23 @@ get_psock_wrapper_expression <- function() {
             # Import required packages on slave
             master_init_slave(cl)
 
-            # Set r proc IDs - note master=0 
-            # WARNING: muster go after master_init_slave(), after importing function
-            clusterApply(cl, 1:nnodes, function(x){ set_locationRef(x); }) 
-
-            # Reopen sockets on all procs
-            clusterEvalQ(cl, {open_EvtWriterSocket_client()});
-
             # Instrument all functions on slave
             #print("Starting signal new procs to server")
-            get_regionRef_array_master(nnodes)
-            #print("Ending signal new procs to server")
-            #print("Starting insert_instrumentation on slaves")
-            clusterEvalQ(cl, { instrument_all_functions(flag_slave_proc=T); })
-            #print("Ending insert_instrumentation")
+            if ( pkg.env$INSTRUMENTATION_INIT ) {
+                # Set r proc IDs - note master=0 
+                # WARNING: muster go after master_init_slave(), after importing function
+                clusterApply(cl, 1:nnodes, function(x){ set_locationRef(x); }) 
+
+                # Reopen sockets on all procs
+                clusterEvalQ(cl, {open_EvtWriterSocket_client()});
+
+                # Assign regionRef_array on all slaves
+                get_regionRef_array_master(nnodes) # start workflow to send regionRefs to each slave
+                clusterEvalQ(cl, { instrument_all_functions(flag_slave_proc=T); })
+
+                # Update max number of R procs if needed
+                set_maxUsedLocationRef_client(nnodes+1);
+            }
 
             # Renable instrumentation if necessary
             if (INSTRUMENTATION_ENABLED_BEFORE){
@@ -365,9 +326,6 @@ get_psock_wrapper_expression <- function() {
                     evtWriter_Write_client(X_regionRef_X,F)
                 }
             }
-
-            # Update max number of R procs if needed
-            set_maxUsedLocationRef_client(nnodes+1);
         }, add=TRUE)
     })
 
@@ -381,7 +339,7 @@ get_psock_wrapper_expression <- function() {
 #' master_init_slave
 #' @param cl Cluster object
 master_init_slave <- function(cl) {
-    # Creates import command, awkward but works
+    # Creates library export command, awkward but works
     package_list <- .packages()
     pkg_cmd <- ""
     for (pak in package_list) {

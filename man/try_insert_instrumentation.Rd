@@ -12,7 +12,8 @@ try_insert_instrumentation(
   function_methods_exception_list,
   flag_user_function = F,
   flag_debug = F,
-  flag_slave_proc = F
+  flag_slave_proc = F,
+  flag_compile_function = F
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ try_insert_instrumentation(
 \item{flag_debug}{Boolean - Enable debug output}
 
 \item{flag_slave_proc}{Boolean - Enable if running on slave proc}
+
+\item{flag_compile_function}{Boolean - Enable to compile function using compiler::cmpfun()}
 }
 \description{
 Checks function exceptions and calls insert_instrumentation() if success

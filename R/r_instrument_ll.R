@@ -21,17 +21,22 @@ get_wrapper_expression <- function() {
 
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             NULL
-            ## Append to depth counter
+            ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-            on.exit( pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1, add=TRUE )
-
-            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
-            {
-                ## zmq version - OTF2 Event
+            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
                 evtWriter_Write_client(X_regionRef_X,T)
-                on.exit(evtWriter_Write_client(X_regionRef_X,F), add=TRUE)
             }
         }
+
+        on.exit( { 
+            if (pkg.env$INSTRUMENTATION_ENABLED) {
+                if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
+                    evtWriter_Write_client(X_regionRef_X,F)
+                }
+                ## Decrement depth counter
+                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
+            }
+        }, add=TRUE )
 
     } )
 
@@ -239,10 +244,12 @@ print_function_from_index <- function(func_indexes) {
 #' @param flag_user_function Boolean - Enable if user defined function (in .GlobalEnv)
 #' @param flag_debug Boolean - Enable debug output
 #' @param flag_slave_proc Boolean - Enable if running on slave proc
+#' @param flag_compile_function Boolean - Enable to compile function using compiler::cmpfun()
 #' @export 
 try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked, 
     function_exception_list, function_methods_exception_list, 
-    flag_user_function=F, flag_debug=F, flag_slave_proc=F)
+    flag_user_function=F, flag_debug=F, flag_slave_proc=F,
+    flag_compile_function=F)
 {
     func_global_index <- func_info$func_global_index
     func_local_index <- func_info$func_local_index
@@ -285,11 +292,15 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
                     ", regionRef: ", regionRef))
     }
 
+    ## @TODO: Use func index here instead
     # Get new body for funcs of type: {fork_function, end_fork_function, default}
-    body(func_ptr) <- get_new_function_body(func_ptr, func_name, regionRef)
+    body(func_ptr) <- get_new_function_body(func_ptr, func_name, func_global_index)
+    #body(func_ptr) <- get_new_function_body(func_ptr, func_name, regionRef)
 
     ## TODO: Add check for if compiled before, recompile
-    #func_ptr <- compiler::cmpfun(func_ptr) 
+    if (flag_compile_function){
+        func_ptr <- compiler::cmpfun(func_ptr) 
+    }
 
     ## Replace function in package and namespace
     if (flag_user_function) {
@@ -309,9 +320,10 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
 #' @param flag_print_progress Boolean - Enable for package by package progress statements
 #' @param flag_debug Boolean - Enable debug statements
 #' @param flag_slave_proc Boolean - Enable if running on slave proc
+#' @param flag_compile_function Boolean - Enable to compile function using compiler::cmpfun()
 #' @export
 instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE, 
-    flag_print_progress=TRUE, flag_debug=FALSE, flag_slave_proc=FALSE) 
+    flag_print_progress=TRUE, flag_debug=FALSE, flag_slave_proc=FALSE, flag_compile_function=FALSE) 
 {
     ## Make sure instrumentation_init() has been called
     if (!is_instrumentation_init()){
@@ -382,7 +394,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
             try_insert_instrumentation(func_info, func_ptrs, 
                     !pkg.env$UNLOCK_ENVS, function_exception_list, 
                     function_methods_exception_list, flag_debug=flag_debug, 
-                    flag_slave_proc=flag_slave_proc)
+                    flag_slave_proc=flag_slave_proc, flag_compile_function=flag_compile_function)
 
         }
 
@@ -393,7 +405,8 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
 
     ## Instrument user functions
     if (flag_user_functions) {
-        instrument_user_functions(flag_debug=flag_debug, flag_slave_proc=flag_slave_proc) 
+        instrument_user_functions(flag_debug=flag_debug, flag_slave_proc=flag_slave_proc, 
+                flag_compile_function=flag_compile_function) 
         if (flag_print_progress) { print("Instrumented user functions") }
     }
     if (flag_print_progress) { print("COMPLETED INSTRUMENTATION") }
@@ -487,8 +500,10 @@ skip_function <- function(func_ptr, func_name, env, function_exception_list,
 #' @description Instrument user functions
 #' @param flag_debug Boolean - Enable debug statements
 #' @param flag_slave_proc Boolean - Enable if running on slave proc
+#' @param flag_compile_function Boolean - Enable to compile function using compiler::cmpfun()
 #' @export
-instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE) 
+instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE,
+        flag_compile_function=FALSE) 
 {
     INHERITS <- TRUE
     package_name <- "user_functions" # Placeholder for consistency
@@ -511,7 +526,7 @@ instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE)
     ## DEBUGGING
     if (flag_debug){
         print(paste0("################ PACKAGE: User Functions ###############"))
-        print(func_num)
+        print(paste0("func_num: ", func_name, "func_names: "))
         print(func_names)
     }
 
@@ -534,7 +549,8 @@ instrument_user_functions <- function(flag_debug=FALSE, flag_slave_proc=FALSE)
                                    function_exception_list, 
                                    function_methods_exception_list,
                                    flag_user_function=T, flag_debug,
-                                   flag_slave_proc=flag_slave_proc)
+                                   flag_slave_proc=flag_slave_proc,
+                                   flag_compile_function=flag_compile_function)
     }
 
 }

@@ -74,6 +74,11 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
     total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
     assign_regionRef_array_master(total_num_funcs)
 
+    ## TODO: Run this instead as a test during pkg install
+    if(test__struct_size() != 0){
+        stop("ERROR: Invalid internal struct size")
+    }
+
     return(invisible(NULL))
 }
 
@@ -108,7 +113,7 @@ instrumentation_finalize <- function()
     }
 
     finalize_EvtWriter_client()
-    finalize_otf2_client()
+    finalize_sync_client()
     return(invisible(NULL))
 }
 
