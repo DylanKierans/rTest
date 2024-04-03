@@ -212,7 +212,6 @@ get_end_cluster_wrapper_expression <- function() {
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             # Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
                 evtWriter_Write_client(X_regionRef_X,T) # OTF2 Enter event
             }
@@ -220,7 +219,6 @@ get_end_cluster_wrapper_expression <- function() {
             ## Disable instrumentation on all procs
             clusterEvalQ(cl, { instrumentation_disable(flag_update_measurement=F) } )
             instrumentation_disable(flag_check_depth=F)
-
         }
 
         # Close sockets on all procs clientside
@@ -243,14 +241,11 @@ get_end_cluster_wrapper_expression <- function() {
             # Restore instrumentation state
             if (INSTRUMENTATION_ENABLED_BEFORE){
                 instrumentation_enable()
-
-                # Decrement depth counter
-                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
-
                 if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
                     evtWriter_Write_client(X_regionRef_X,F) # OTF2 Leave event
                 }
-
+                # Decrement depth counter
+                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
             }
         }, add=TRUE)
     } )
@@ -272,40 +267,41 @@ get_psock_wrapper_expression <- function() {
         if (pkg.env$INSTRUMENTATION_ENABLED) {
             ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
-
-            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
+            if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH) {
                 evtWriter_Write_client(X_regionRef_X,T)
             }
-
             instrumentation_disable(flag_check_depth=F)
         }
     } )
 
     exit_exp <- expression( { 
         on.exit({
-            # NOTE: Keep this in exit expression
             nnodes <- length(names)
 
             ## DEBUGGING
             print(paste0("makePSOCKcluster nnodes: ", nnodes))
-            #print(paste0("makePSOCKcluster names: ", names))
             #clusterEvalQ(cl, { print(paste0("FORK makeCluster - pid: ", get_pid(), ", tid: ", get_tid(), ", locationRef id: ", get_locationRef())) })
 
             # Import required packages on slave
             master_init_slave(cl)
 
-            # Instrument all functions on slave
-            #print("Starting signal new procs to server")
-            if ( pkg.env$INSTRUMENTATION_INIT ) {
-                # Set r proc IDs - note master=0 
-                # WARNING: muster go after master_init_slave(), after importing function
-                clusterApply(cl, 1:nnodes, function(x){ set_locationRef(x); }) 
+            # Set r proc IDs - note master=0 
+            # WARNING: must go after master_init_slave(), after importing function
+            clusterApply(cl, 1:nnodes, function(x){ set_locationRef(x); }) 
 
+            # Instrument all functions on slave
+            if ( pkg.env$INSTRUMENTATION_INIT ) {
                 # Reopen sockets on all procs
                 clusterEvalQ(cl, {open_EvtWriterSocket_client()});
 
+                ## TODO: TESTING
+                #future::plan(cluster, workers = cl)
+                #for (i in 1:nodes){
+                #    f <- future(instrument_all_functions(flag_slave_proc=T));
+                #}
+
                 # Assign regionRef_array on all slaves
-                get_regionRef_array_master(nnodes) # start workflow to send regionRefs to each slave
+                #get_regionRef_array_master(nnodes) # start workflow to send regionRefs to each slave
                 clusterEvalQ(cl, { instrument_all_functions(flag_slave_proc=T); })
 
                 # Update max number of R procs if needed
@@ -314,17 +310,15 @@ get_psock_wrapper_expression <- function() {
 
             # Renable instrumentation if necessary
             if (INSTRUMENTATION_ENABLED_BEFORE){
-                #instrumentation_enable(flag_reset_depth=TRUE);
                 instrumentation_enable();
                 clusterEvalQ(cl, instrumentation_enable(flag_reset_depth=TRUE));
 
-                # Decrement depth
-                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
-                #clusterEvalQ(cl, pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH-1);
-
-                if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
+                if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH){
                     evtWriter_Write_client(X_regionRef_X,F)
                 }
+                # Decrement depth
+                pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
+
             }
         }, add=TRUE)
     })

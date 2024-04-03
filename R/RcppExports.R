@@ -41,12 +41,6 @@ get_regionRef_from_array_slave <- function(func_index) {
     .Call('_rTrace_get_regionRef_from_array_slave', PACKAGE = 'rTrace', func_index)
 }
 
-#' free_regionRef_array_slave
-#' @return R_NilValue
-free_regionRef_array_slave <- function() {
-    .Call('_rTrace_free_regionRef_array_slave', PACKAGE = 'rTrace')
-}
-
 #' finalize_GlobalDefWriter_client
 #' @return RNilValue
 finalize_GlobalDefWriter_client <- function() {
@@ -126,14 +120,6 @@ set_maxUsedLocationRef_client <- function(nprocs) {
 #' @return R_NilValue
 print_errnos <- function() {
     .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
-}
-
-#' get_regionRef_array_master
-#' @description Signal to server to send regionRef array to new procs
-#' @param nprocs Number of new procs to update
-#' @return R_NilValue
-get_regionRef_array_master <- function(nprocs) {
-    .Call('_rTrace_get_regionRef_array_master', PACKAGE = 'rTrace', nprocs)
 }
 
 #' stopCluster_master

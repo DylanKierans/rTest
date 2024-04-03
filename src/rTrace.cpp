@@ -123,7 +123,7 @@ RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport SEXP assign_regionRef_array_slave(int);
 RcppExport int get_regionRef_from_array_slave(int);
-RcppExport SEXP free_regionRef_array_slave();
+//RcppExport SEXP free_regionRef_array_slave();
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
 RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
@@ -232,22 +232,22 @@ void sighup_handler(int signal) {
 
 // @name signal_term_handler
 // @description TODO
-void sigterm_handler(int signal) {
-    // Make sure only catching intended signal, else rethrow
-    if (signal == SIGTERM) { 
-        if (current_stage==STAGE_EVTWRITER) {
-            ERR_MSG err;
-            err.value = true; // Not used currently
-            if ( zmq_send(pusher, &err, sizeof(err), 0) < 0 ) {
-                report_and_exit("ERROR: SIGTERM - unable to send err_msg to server");
-            }
-            report_and_exit("ERROR: SIGTERM");
-        } else { // Unknown stage
-            raise(signal); 
-        }
-    }
-    else { raise(signal); }
-}
+//void sigterm_handler(int signal) {
+//    // Make sure only catching intended signal, else rethrow
+//    if (signal == SIGTERM) { 
+//        if (current_stage==STAGE_EVTWRITER) {
+//            ERR_MSG err;
+//            err.value = true; // Not used currently
+//            if ( zmq_send(pusher, &err, sizeof(err), 0) < 0 ) {
+//                report_and_exit("ERROR: SIGTERM - unable to send err_msg to server");
+//            }
+//            report_and_exit("ERROR: SIGTERM");
+//        } else { // Unknown stage
+//            raise(signal); 
+//        }
+//    }
+//    else { raise(signal); }
+//}
 
 //' Verify structs have unique sizes in order to distinguish between events or errors.
 //'     Intended for developers
@@ -362,7 +362,8 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         // exit(0); 
     } else {
         int zmq_ret;
-        signal(SIGTERM, sigterm_handler);
+        // TODO: impliment this!
+        // signal(SIGTERM, sigterm_handler);
 
         // DEBUGGING
         if (flag_print_pids){
@@ -472,13 +473,14 @@ void free_regionRef_array_server(){
     free(regionRef_array);
 }
 
-//' free_regionRef_array_slave
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP free_regionRef_array_slave(){
-    free(regionRef_array);
-    return(R_NilValue);
-}
+// @TODO: Remove this
+////' free_regionRef_array_slave
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP free_regionRef_array_slave(){
+//    free(regionRef_array);
+//    return(R_NilValue);
+//}
 
 // TODO: Use puller socket here 
 // @name globalDefWriter_server
@@ -1300,7 +1302,7 @@ RcppExport SEXP print_errnos() {
     return (R_NilValue);
 }
 
-
+/*
 //' get_regionRef_array_master
 //' @description Signal to server to send regionRef array to new procs
 //' @param nprocs Number of new procs to update
@@ -1321,6 +1323,7 @@ RcppExport SEXP get_regionRef_array_master(const int nprocs){
     if (zmq_ret < 0 ) { report_and_exit("get_regionRef_array_master pusher zmq_send"); }
     return(R_NilValue);
 }
+*/
 
 //' stopCluster_master
 //' @description Signal to end cluster

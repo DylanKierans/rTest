@@ -233,7 +233,6 @@ print_function_from_index <- function(func_indexes) {
 # section - Check valid function for instrumentation
 #######################################################################
 
-# @DONE: zmq this
 #' try_insert_instrumentation
 #' @description Checks function exceptions and calls insert_instrumentation() if success
 #' @param func_info Dataframe (struct) containing func_index info, func_name and packagE_name
@@ -276,20 +275,17 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     }
 
     ## Create otf2 region and event descriptions
-    if (flag_slave_proc){
-        regionRef <- get_regionRef_from_array_slave(func_global_index) 
-    } else {
-        regionRef <- define_otf2_regionRef_client(func_name, func_global_index)
-    }
-
-    ## DEBUGGING - print func index and regionRef for all on master AND slave
-    if (flag_debug){
-        print(paste0("[",func_global_index, "] package: ", package_name, "func_name: ", func_name, ", regionRef: ", regionRef))
-    }
+   # if (flag_slave_proc){
+   #     regionRef <- get_regionRef_from_array_slave(func_global_index) 
+   # } else {
+   #     regionRef <- define_otf2_regionRef_client(func_name, func_global_index)
+   # }
 
     if (pkg.env$PRINT_INSTRUMENTS) {
+        #print(paste0("INSTRUMENTING: function `", func_name,"`",
+        #            ", regionRef: ", regionRef))
         print(paste0("INSTRUMENTING: function `", func_name,"`",
-                    ", regionRef: ", regionRef))
+                    ", func_index: ", func_global_index))
     }
 
     ## @TODO: Use func index here instead
@@ -344,11 +340,11 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     num_func_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
     total_num_funcs <- sum(num_func_per_package)
 
-    if (flag_slave_proc){
-        ## Make sure to free at end of function!
-        assign_regionRef_array_slave(total_num_funcs)
-        get_regionRef_array_slave(total_num_funcs)
-    }
+    #if (flag_slave_proc){
+    #    ## Make sure to free at end of function!
+    #    assign_regionRef_array_slave(total_num_funcs)
+    #    get_regionRef_array_slave(total_num_funcs)
+    #}
 
     for (package_name in package_list) {
 
@@ -414,8 +410,8 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     # End definition of GlobalDef and regionRef array
     if (!flag_slave_proc){ 
         finalize_GlobalDefWriter_client() 
-    } else {
-        free_regionRef_array_slave() 
+    } else { ;
+        #free_regionRef_array_slave() # @TODO: Remove this!
     }
 
 }
