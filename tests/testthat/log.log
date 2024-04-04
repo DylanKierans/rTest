@@ -1,0 +1,10 @@
+File opened
+
+Init archive complete
+
+Init evt_writers complete
+
+Init of otf2 objs complete
+
+[errno: 88] ERROR: run_evtWriters_server zmq_bind puller
+File closing

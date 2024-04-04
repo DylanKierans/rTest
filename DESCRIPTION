@@ -14,3 +14,6 @@ RoxygenNote: 7.2.3
 URL: https://github.com/DylanKierans/rTrace
 BugReports: https://github.com/DylanKierans/rTrace/issues
 SystemRequirements: otf-trace, libotf-trace-dev, zeromq
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
