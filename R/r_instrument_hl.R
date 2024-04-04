@@ -61,6 +61,10 @@ is_instrumentation_enabled <- function() {
 #' @export
 instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 {
+    if (is_instrumentation_init()){
+        print("ERROR: `instrumentation_init` has already been called")
+        stop()
+    }
     ## Update package vars
     pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
     pkg.env$PRINT_SKIPS <- verbose_wrapping
@@ -114,6 +118,7 @@ instrumentation_finalize <- function()
 
     finalize_EvtWriter_client()
     finalize_sync_client()
+    finalize_zmq_client()
     return(invisible(NULL))
 }
 

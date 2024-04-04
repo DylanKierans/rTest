@@ -157,8 +157,10 @@ get_fork_wrapper_expression <- function() {
             clusterApply(cl, 1:as.integer(nnodes), function(x){ set_locationRef(x); }) 
 
             # Reopen sockets on all procs
-            open_EvtWriterSocket_client();
-            clusterEvalQ(cl, {open_EvtWriterSocket_client()});
+            init_zmq_client();
+            clusterEvalQ(cl, {init_zmq_client()});
+            #open_EvtWriterSocket_client();
+            #clusterEvalQ(cl, {open_EvtWriterSocket_client()});
 
             # Renable instrumentation if necessary
             if (INSTRUMENTATION_ENABLED_BEFORE){
@@ -195,7 +197,8 @@ get_fork_wrapper_expression <- function() {
         }
 
         # Close socket on master before forking
-        close_EvtWriterSocket_client()
+        #close_EvtWriterSocket_client()
+        finalize_zmq_client()
 
     } )
 
@@ -223,8 +226,10 @@ get_end_cluster_wrapper_expression <- function() {
 
         # Close sockets on all procs clientside
         if (pkg.env$INSTRUMENTATION_INIT){
-            close_EvtWriterSocket_client()
-            clusterEvalQ(cl, { close_EvtWriterSocket_client() })
+            finalize_zmq_client()
+            clusterEvalQ(cl, { finalize_zmq_client() })
+            #close_EvtWriterSocket_client()
+            #clusterEvalQ(cl, { close_EvtWriterSocket_client() })
         }
     } )
 
@@ -232,7 +237,8 @@ get_end_cluster_wrapper_expression <- function() {
         on.exit( {
             if (pkg.env$INSTRUMENTATION_INIT){
                 # Reopen sockets on Master clientside
-                open_EvtWriterSocket_client()
+                #open_EvtWriterSocket_client()
+                init_zmq_client()
 
                 # End slave placeholder event
                 stopCluster_master()
@@ -292,7 +298,8 @@ get_psock_wrapper_expression <- function() {
             # Instrument all functions on slave
             if ( pkg.env$INSTRUMENTATION_INIT ) {
                 # Reopen sockets on all procs
-                clusterEvalQ(cl, {open_EvtWriterSocket_client()});
+                #clusterEvalQ(cl, {open_EvtWriterSocket_client()});
+                clusterEvalQ(cl, {init_zmq_client()});
 
                 ## TODO: TESTING
                 #future::plan(cluster, workers = cl)

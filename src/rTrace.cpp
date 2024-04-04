@@ -20,6 +20,9 @@
 //      evtWrite time on server due to random memory access
 // @todo Reduce function complexity - maybe adapt C++ style 
 
+// Testing
+#define EXIT exit
+
 #include "Rcpp.h"
 #include <otf2/otf2.h>
 #include <sys/time.h>
@@ -93,10 +96,12 @@ static OTF2_EvtWriter** evt_writers;
 // ZeroMQ sockets
 static bool IS_LOGGER=false; ///* Used by report_and_exit() to abtain exit behaviour
 static void *context;      ///* zmq context - clients and server
-static void *requester;    ///* zmq socket - master(5555) and slaves(5559) (comm with responder for globalDefWriter)
-static void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
 static void *syncer;    ///* zmq socket - clients and server synchronization
+static void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
 static void *puller;           ///* zmq socket - server recv otf2 eventlog
+//static void *requester;    ///* zmq socket - slaves(5559) (comm with responder for globalDefWriter)
+//static void *responder; ///* zmq socket - publish func list to new R procs
+static pid_t child_pid;           ///* child_pid for server (used by master)
 
 // Counters
 static const OTF2_StringRef OFFSET_NUM_STRINGREF=10; ///* Offset for NUM_STRINGREF to avoid overwriting
@@ -119,16 +124,18 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 ///////////////////////////////
 // Function declarations
 ///////////////////////////////
+RcppExport SEXP init_zmq_client();
+RcppExport SEXP finalize_zmq_client();
 RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
 RcppExport SEXP assign_regionRef_array_master(int);
-RcppExport SEXP assign_regionRef_array_slave(int);
+//RcppExport SEXP assign_regionRef_array_slave(int);
 RcppExport int get_regionRef_from_array_slave(int);
-//RcppExport SEXP free_regionRef_array_slave();
+//RcppExport SEXP get_regionRef_array_slave(const int);
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
 RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
-RcppExport SEXP close_EvtWriterSocket_client();
-RcppExport SEXP open_EvtWriterSocket_client();
+//RcppExport SEXP close_EvtWriterSocket_client();
+//RcppExport SEXP open_EvtWriterSocket_client();
 RcppExport SEXP evtWriter_Write_client(int, bool);
 RcppExport SEXP set_locationRef(const int);
 RcppExport int get_locationRef();
@@ -138,6 +145,8 @@ RcppExport SEXP stopCluster_master();
 RcppExport SEXP finalize_sync_client();
 
 // OTF2 Server/logger functions
+void init_zmq_server();
+void finalize_zmq_server();
 void init_Archive_server(Rcpp::String, Rcpp::String);
 void init_EvtWriters_server();
 void init_GlobalDefWriter_server();
@@ -152,7 +161,7 @@ void globalDefWriter_WriteLocations_server();
 void globalDefWriter_WriteLocationGroups_server();
 void evtWriter_MeasurementOnOff_server(OTF2_EvtWriter*, OTF2_TimeStamp, bool);
 void assign_regionRef_array_server();
-int get_regionRef_array_server(OTF2_RegionRef, void*);
+//int get_regionRef_array_server(OTF2_RegionRef, void*);
 void free_regionRef_array_server();
 
 // Helper functions for debugging
@@ -162,6 +171,7 @@ RcppExport SEXP print_errnos();
 
 // Testing
 RcppExport int test__struct_size();
+RcppExport int test__sockets();
 
 // Temporary debugging
 RcppExport int get_pid();
@@ -249,18 +259,6 @@ void sighup_handler(int signal) {
 //    else { raise(signal); }
 //}
 
-//' Verify structs have unique sizes in order to distinguish between events or errors.
-//'     Intended for developers
-//' @return 0 if success, else non-zero
-// [[Rcpp::export]]
-RcppExport int test__struct_size(){
-    if (sizeof(Zmq_otf2_data)==sizeof(ERR_MSG)){
-        return -1;
-    }
-    return 0;
-}
-
-
 //////////////////////////////////////
 // Spawn otf2 process, and give task list
 //  Awaits messages from main process at suitable steps
@@ -282,14 +280,13 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
     // Progress tracker
     current_stage = STAGE_PRE_INIT;
 
-    pid_t child_pid = fork();
+    child_pid = fork();
     if (child_pid == (pid_t) -1 ){ // ERROR
         report_and_exit("Forking logger process", NULL);
-        return(1);
+        return(-1);
     }
 
     if (child_pid == 0) { // Child process
-        int zmq_ret;
 
         // Set logger variables
         IS_LOGGER = true;
@@ -309,15 +306,8 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         init_GlobalDefWriter_server();
         fupdate_server(fp, "Init of otf2 objs complete\n");
 
-        // Init zmq context
-        context = zmq_ctx_new();
-        if (context==NULL){ report_and_exit("init_otf2_logger server context"); }
-        puller = zmq_socket(context, ZMQ_PULL);
-        if (puller==NULL){ report_and_exit("init_otf2_logger server puller"); }
-        zmq_ret = zmq_bind(puller, "tcp://*:5556");
-        if (zmq_ret!=0){ report_and_exit("run_evtWriters_server zmq_bind puller", puller); }
-
-
+        // Generate context, and sockets
+        init_zmq_server();
 
         // Assign array for regionRefs of each func
         current_stage = STAGE_ASSIGN_REGIONREF_ARRAY;
@@ -359,10 +349,12 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         if (fp!=NULL){fclose(fp);}
 
         return(1);
+        // Must be called by master at some later point
+        //kill_child_after_sync(context, child_pid); 
+
         // exit(0); 
     } else {
-        int zmq_ret;
-        // TODO: impliment this!
+        // TODO: impliment this signal handler!
         // signal(SIGTERM, sigterm_handler);
 
         // DEBUGGING
@@ -373,26 +365,13 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         current_stage = STAGE_INIT; // Update stage
         IS_LOGGER = false;
 
-        // Init otf2 objs
-        context = zmq_ctx_new();
-        if (context==NULL){report_and_exit("init_otf2_logger client context");}
-
-        // @TODO: Not used during globalDef writer if using func_indexes
-        //requester = zmq_socket(context, ZMQ_REQ);
-        //if (requester==NULL){report_and_exit("init_otf2_logger client requester");}
-        //zmq_ret = zmq_connect(requester, "tcp://localhost:5555");
-        //if (zmq_ret<0){report_and_exit("init_otf2_logger client connect requester");}
-
-        // Connect pusher used for globalDebWriter and evtWriter
-        pusher = zmq_socket(context, ZMQ_PUSH);
-        if (pusher==NULL){report_and_exit("init_otf2_logger client requester");}
-        zmq_ret = zmq_connect(pusher, "tcp://localhost:5556");
-        if (zmq_ret<0){report_and_exit("init_otf2_logger client connect pusher");}
-        
+        // Generate context, and sockets
+        init_zmq_client();
     }
     return(0);
 }
 
+// TODO: Confirm validity
 //' assign_regionRef_array_master
 //' @description Array is not assigned on master, 
 //'     rather is signalled to assign on server
@@ -401,39 +380,57 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
 // [[Rcpp::export]]
 RcppExport SEXP assign_regionRef_array_master(int num_funcs){
     int zmq_ret;
-    void *regionRef_socket_client;
 
     current_stage = STAGE_ASSIGN_REGIONREF_ARRAY; // Update stage
     NUM_FUNCS = num_funcs;
 
-    regionRef_socket_client = zmq_socket(context, ZMQ_PUSH);
-    zmq_ret = zmq_connect(regionRef_socket_client, "tcp://localhost:5554");
-    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_connect", regionRef_socket_client); }
-    zmq_ret = zmq_send(regionRef_socket_client, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ_ID: 0
-    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_send", regionRef_socket_client); }
-    zmq_ret = zmq_close(regionRef_socket_client);
-    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_close", regionRef_socket_client); }
+    zmq_ret = zmq_send(pusher, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ_ID: 0
+    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_send"); }
     return (R_NilValue);
 }
+////' assign_regionRef_array_master
+////' @description Array is not assigned on master, 
+////'     rather is signalled to assign on server
+////' @param num_funcs Required length of array to store regionRef for each func
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP assign_regionRef_array_master(int num_funcs){
+//    int zmq_ret;
+//    void *regionRef_socket_client;
+//
+//    current_stage = STAGE_ASSIGN_REGIONREF_ARRAY; // Update stage
+//    NUM_FUNCS = num_funcs;
+//
+//    regionRef_socket_client = zmq_socket(context, ZMQ_PUSH);
+//    zmq_ret = zmq_connect(regionRef_socket_client, "tcp://localhost:5554");
+//    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_connect", regionRef_socket_client); }
+//    zmq_ret = zmq_send(regionRef_socket_client, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ_ID: 0
+//    if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_send", regionRef_socket_client); }
+//    //zmq_ret = zmq_close(regionRef_socket_client);
+//    //if (zmq_ret<0){ report_and_exit("assign_regionRef_array_client zmq_close", regionRef_socket_client); }
+//    return (R_NilValue);
+//}
 
-//' assign_regionRef_array_slave
-//' @param num_funcs Required length of array to store regionRef for each func
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP assign_regionRef_array_slave(int num_funcs) {
-    current_stage = STAGE_ASSIGN_REGIONREF_ARRAY; // Update stage
-    NUM_FUNCS = num_funcs;
 
-    regionRef_array = (OTF2_RegionRef*) malloc(NUM_FUNCS*sizeof(*regionRef_array));
-    if (regionRef_array==NULL){ report_and_exit("assign_regionRef_array_slave malloc", NULL);}
-
-    // Set all entries to -1 for debugging
-    for (int i=0; i<NUM_FUNCS; ++i){
-        regionRef_array[i] = -1;
-    }
-
-    return (R_NilValue);
-}
+// TODO: Confirm validity
+////' assign_regionRef_array_slave
+////' @param num_funcs Required length of array to store regionRef for each func
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP assign_regionRef_array_slave(int num_funcs) {
+//    current_stage = STAGE_ASSIGN_REGIONREF_ARRAY; // Update stage
+//    NUM_FUNCS = num_funcs;
+//
+//    regionRef_array = (OTF2_RegionRef*) malloc(NUM_FUNCS*sizeof(*regionRef_array));
+//    if (regionRef_array==NULL){ report_and_exit("assign_regionRef_array_slave malloc", NULL);}
+//
+//    // Set all entries to -1 for debugging
+//    for (int i=0; i<NUM_FUNCS; ++i){
+//        regionRef_array[i] = -1;
+//    }
+//
+//    return (R_NilValue);
+//}
 
 //' get_regionRef_from_array_slave
 //' @param func_index Index of function to get regionRef for
@@ -443,44 +440,51 @@ RcppExport int get_regionRef_from_array_slave(int func_index) {
     return(regionRef_array[func_index-1]); // Fix offset in C
 }
 
+// TODO: Confirm validity
 // @name assign_regionRef_array_server
 // @description Listen for num_funcs then alloc OTF2_RegionRef[] as required
 void assign_regionRef_array_server(){
-    void *regionRef_socket_server;
     int zmq_ret;
 
-    // Bind socket to recv num_funcs
-    regionRef_socket_server = zmq_socket(context, ZMQ_PULL); // ZMQ_PULL
-    zmq_ret = zmq_bind(regionRef_socket_server, "tcp://*:5554");
-    if (zmq_ret!=0){ report_and_exit("assign_regionRef_array_server regionRef_socket_server", regionRef_socket_server); }
-
     // Assign regionRef array of length num_funcs
-    zmq_ret = zmq_recv(regionRef_socket_server, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ ID: 0
-    if ( zmq_ret <= 0 ) { report_and_exit("assign_regionRef_array_server pull recv", regionRef_socket_server); }
+    zmq_ret = zmq_recv(puller, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ ID: 0
+    if ( zmq_ret <= 0 ) { report_and_exit("assign_regionRef_array_server pull recv"); }
 
     // Assign and reset all values to -1 for debugging
     regionRef_array = (OTF2_RegionRef*) malloc(NUM_FUNCS*sizeof(*regionRef_array));
-    if (regionRef_array==NULL){ report_and_exit("assign_regionRef_array_server regionRef_array", regionRef_socket_server); }
+    if (regionRef_array==NULL){ report_and_exit("assign_regionRef_array_server regionRef_array"); }
     for (int i=0; i<NUM_FUNCS; ++i){ regionRef_array[i] = -1; }
-
-    zmq_close(regionRef_socket_server); // Close socket immediately (reopened later for events)
-
 }
+
+//// @name assign_regionRef_array_server
+//// @description Listen for num_funcs then alloc OTF2_RegionRef[] as required
+//void assign_regionRef_array_server(){
+//    void *regionRef_socket_server;
+//    int zmq_ret;
+//
+//    // Bind socket to recv num_funcs
+//    regionRef_socket_server = zmq_socket(context, ZMQ_PULL); // ZMQ_PULL
+//    zmq_ret = zmq_bind(regionRef_socket_server, "tcp://*:5554");
+//    if (zmq_ret!=0){ report_and_exit("assign_regionRef_array_server regionRef_socket_server", regionRef_socket_server); }
+//
+//    // Assign regionRef array of length num_funcs
+//    zmq_ret = zmq_recv(regionRef_socket_server, &NUM_FUNCS, sizeof(NUM_FUNCS), 0); // ZMQ ID: 0
+//    if ( zmq_ret <= 0 ) { report_and_exit("assign_regionRef_array_server pull recv", regionRef_socket_server); }
+//
+//    // Assign and reset all values to -1 for debugging
+//    regionRef_array = (OTF2_RegionRef*) malloc(NUM_FUNCS*sizeof(*regionRef_array));
+//    if (regionRef_array==NULL){ report_and_exit("assign_regionRef_array_server regionRef_array", regionRef_socket_server); }
+//    for (int i=0; i<NUM_FUNCS; ++i){ regionRef_array[i] = -1; }
+//
+//    zmq_close(regionRef_socket_server); // Close socket immediately (reopened later for events)
+//
+//}
 
 // @name free_regionRef_array_server
 // @description Free memory assigned for regionRef_array
 void free_regionRef_array_server(){
     free(regionRef_array);
 }
-
-// @TODO: Remove this
-////' free_regionRef_array_slave
-////' @return R_NilValue
-//// [[Rcpp::export]]
-//RcppExport SEXP free_regionRef_array_slave(){
-//    free(regionRef_array);
-//    return(R_NilValue);
-//}
 
 // TODO: Use puller socket here 
 // @name globalDefWriter_server
@@ -514,49 +518,7 @@ void globalDefWriter_server() { // Server
     snprintf(fp_buffer, 50, "(pid: %d) Finished listening for globalDefWriter\n", getpid());
     fupdate_server(fp, fp_buffer);
 }
-//void globalDefWriter_server() { // Server
-//    int zmq_ret; // Error check send/recvs, and sockets
-//    void *responder; // Recv global_defs, respond with regionRef
-//
-//    //  Socket to talk to clients
-//    responder = zmq_socket(context, ZMQ_REP);
-//    zmq_ret = zmq_bind(responder, "tcp://*:5555");
-//    if (zmq_ret!=0){ report_and_exit("Binding responder", responder); }
-//
-//    // DEBUGGING
-//    char fp_buffer[50];
-//    snprintf(fp_buffer, 50, "(pid: %d) Listening for globalDefWriter\n", getpid());
-//    fupdate_server(fp, fp_buffer);
-//
-//    // Receive globalDef strings, and return with send regionRef
-//    Zmq_otf2_defWriter buffer;
-//    while (1) {
-//        zmq_ret = zmq_recv(responder, &buffer, sizeof(buffer), 0); // ZMQ ID: 1
-//        if ( zmq_ret < 0 ) { 
-//            report_and_exit("globalDefWriter_server zmq_recv", responder); 
-//        } else if (zmq_ret == 0) { // ZMQ ID: 4
-//            break; // Signal end of globalDef from client
-//        } else {
-//            // Define as stringRef, regionRef
-//            OTF2_StringRef stringRef = globalDefWriter_WriteString_server(buffer.func_name);
-//            OTF2_RegionRef regionRef = globalDefWriter_WriteRegion_server(stringRef);
-//            regionRef_array[buffer.func_index-1] = regionRef; // populate regionRef array, C indexing from 0
-//
-//            // Return regionRef ID
-//            zmq_ret = zmq_send(responder, &regionRef, sizeof(regionRef), 0); // ZMQ ID: 2
-//            if (zmq_ret<0) { report_and_exit("globalDefWriter_server zmq_send regionRef", responder); }
-//        }
-//    }
-//
-//    // DEBUGGING
-//    snprintf(fp_buffer, 50, "(pid: %d) Finished listening for globalDefWriter\n", getpid());
-//    fupdate_server(fp, fp_buffer);
-//
-//    // Cleanup socket
-//    zmq_close(responder);
-//}
 
-// @TODO use pusher here
 //' finalize_GlobalDefWriter_client
 //' @return RNilValue
 // [[Rcpp::export]]
@@ -684,8 +646,8 @@ RcppExport SEXP finalize_EvtWriter_client() {
     if (zmq_ret < 0 ) { report_and_exit("finalize_EvtWriter_client zmq_send"); }
 
     // Cleanup socket
-    zmq_ret = zmq_close(pusher);
-    if (zmq_ret < 0 ) { report_and_exit("finalize_EvtWriter_client zmq_close"); }
+    //zmq_ret = zmq_close(pusher);
+    //if (zmq_ret < 0 ) { report_and_exit("finalize_EvtWriter_client zmq_close"); }
 
     return(R_NilValue);
 }
@@ -695,19 +657,17 @@ RcppExport SEXP finalize_EvtWriter_client() {
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP finalize_sync_client() {
-    int zmq_ret, rc; // Debugging recv/sends and socket
+    int zmq_ret; // Debugging recv/sends and socket
     char buffer; // Expecting length 0 message
 
     current_stage = STAGE_SYNC;
 
-    syncer = zmq_socket(context, ZMQ_PULL); 
-    if (syncer == NULL){ report_and_exit("finalize_sync_client syncer"); }
-    rc = zmq_bind(syncer, "tcp://*:5557");
-    assert (rc == 0); 
-
     // sent from logger/server at end of events
     zmq_ret = zmq_recv(syncer, &buffer, sizeof(buffer), 0);  // ZMQ ID: 7
-    if (zmq_ret < 0 ) { 
+    if (zmq_ret > 0 ) { // Recv-ed noise on port
+        report_and_exit("finalize_sync_client zmq_recv non-empty"); 
+    }
+    else if (zmq_ret < 0 ) { 
 
         if (errno==4){ // Retry
             // sent from logger/server at end of events
@@ -722,10 +682,10 @@ RcppExport SEXP finalize_sync_client() {
     }
 
     // Clean up zmq socket and context
-    zmq_ret = zmq_close(syncer);
-    if (zmq_ret < 0 ) { report_and_exit("finalize_sync_client zmq_close"); }
-    zmq_ret = zmq_ctx_destroy(context);
-    if (zmq_ret < 0 ) { report_and_exit("finalize_sync_client zmq_ctx_destroy"); }
+    //zmq_ret = zmq_close(syncer);
+    //if (zmq_ret < 0 ) { report_and_exit("finalize_sync_client zmq_close"); }
+    //zmq_ret = zmq_ctx_destroy(context);
+    //if (zmq_ret < 0 ) { report_and_exit("finalize_sync_client zmq_ctx_destroy"); }
 
     return(R_NilValue);
 }
@@ -737,21 +697,87 @@ RcppExport SEXP finalize_sync_client() {
 void finalize_sync_server() {
     int zmq_ret;
 
-    syncer = zmq_socket(context, ZMQ_PUSH); 
-    zmq_ret = zmq_connect(syncer, "tcp://localhost:5557");
-    if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_connect", NULL); }
-
     // sent from logger/server at end of events
     zmq_ret = zmq_send(syncer, NULL, 0, 0);  // ZMQ ID: 7
     if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_send", syncer); }
 
     // Clean up zmq socket and context
-    zmq_ret = zmq_close(syncer);
-    if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_close", NULL); }
-    zmq_ret = zmq_ctx_destroy(context);
-    if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_ctx_destroy", NULL); }
+    //zmq_ret = zmq_close(syncer);
+    //if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_close", NULL); }
+    //zmq_ret = zmq_ctx_destroy(context);
+    //if (zmq_ret < 0 ) { report_and_exit("finalize_sync_server zmq_ctx_destroy", NULL); }
 }
 
+void finalize_zmq_server(){
+    zmq_close(puller);
+    zmq_close(syncer);
+    //zmq_close(responder);
+    zmq_ctx_destroy(context);
+}
+
+void init_zmq_server(){
+    int zmq_ret; 
+
+    // Init zmq context
+    context = zmq_ctx_new();
+    if (context==NULL){ report_and_exit("init_otf2_logger server context"); }
+
+    // Puller
+    puller = zmq_socket(context, ZMQ_PULL);
+    if (puller==NULL){ report_and_exit("init_otf2_logger server puller"); }
+    zmq_ret = zmq_bind(puller, "tcp://*:5556");
+    if (zmq_ret!=0){ report_and_exit("server zmq_bind puller", puller); }
+
+    // Syncer
+    syncer = zmq_socket(context, ZMQ_PUSH); 
+    if (syncer==NULL){ report_and_exit("init_otf2_logger server syncer"); }
+    zmq_ret = zmq_bind(syncer, "tcp://*:5557");
+    if (zmq_ret < 0 ) { report_and_exit("server zmq_bind syncer", NULL); }
+
+    // Responder - Socket to publish func list to new R procs
+    //responder = zmq_socket(context, ZMQ_REP);
+    //zmq_ret = zmq_bind(responder, "tcp://*:5559");
+    //if ( zmq_ret < 0 ){ 
+    //    report_and_exit("server zmq_bind responder", NULL); 
+    //}
+}
+
+//' init_zmq_client
+//' @description Open zmq context and sockets
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP init_zmq_client(){
+    int zmq_ret; 
+
+    // Init otf2 objs
+    context = zmq_ctx_new();
+    if (context==NULL){report_and_exit("init_otf2_logger client context");}
+
+    // Connect pusher used for globalDebWriter and evtWriter
+    pusher = zmq_socket(context, ZMQ_PUSH);
+    if (pusher==NULL){report_and_exit("init_otf2_logger client pusher");}
+    zmq_ret = zmq_connect(pusher, "tcp://localhost:5556");
+    if (zmq_ret<0){report_and_exit("init_otf2_logger client connect pusher");}
+
+    // Syncer
+    syncer = zmq_socket(context, ZMQ_PULL); 
+    if (syncer == NULL){ report_and_exit("init_otf2_logger client syncer"); }
+    zmq_ret = zmq_connect(syncer, "tcp://localhost:5557");
+    if (zmq_ret != 0){ report_and_exit("init_otf2_logger client connect syncer"); }
+    return(R_NilValue);
+}
+
+//' finalize_zmq_client
+//' @description Close zmq context and sockets
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP finalize_zmq_client(){
+    zmq_close(pusher);
+    zmq_close(syncer);
+    //zmq_close(requester);
+    zmq_ctx_destroy(context);
+    return(R_NilValue);
+}
 
 // @name init_Archive_server
 // @description Initialize static otf2 {archive} objs
@@ -959,34 +985,34 @@ void globalDefWriter_WriteLocations_server() {
 }
 
 
-//' close_EvtWriterSocket_client
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP close_EvtWriterSocket_client(){
-    // Closer pusher to avoid sharing socket
-    if (pusher==NULL){ report_and_exit("close_EvtWriterSocket_client() pusher"); }
-    if ( zmq_close(pusher) < 0 ){ report_and_exit("close_EvtWriterSocket_client socket"); }
+////' close_EvtWriterSocket_client
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP close_EvtWriterSocket_client(){
+//    // Closer pusher to avoid sharing socket
+//    if (pusher==NULL){ report_and_exit("close_EvtWriterSocket_client() pusher"); }
+//    if ( zmq_close(pusher) < 0 ){ report_and_exit("close_EvtWriterSocket_client socket"); }
+//
+//    // Also close context! Will respawn after fork
+//    if ( zmq_ctx_destroy(context) < 0 ){ report_and_exit("close_EvtWriterSocket_client context"); }
+//    
+//    return(R_NilValue);
+//}
 
-    // Also close context! Will respawn after fork
-    if ( zmq_ctx_destroy(context) < 0 ){ report_and_exit("close_EvtWriterSocket_client context"); }
-    
-    return(R_NilValue);
-}
 
-
-//' open_EvtWriterSocket_client
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP open_EvtWriterSocket_client(){
-    // Reopen context
-    context = zmq_ctx_new ();
-    if ( context == NULL ){ report_and_exit("open_EvtWriterSocket_client context ctx_new"); }
-
-    pusher = zmq_socket(context, ZMQ_PUSH);
-    if ( pusher == NULL ){ report_and_exit("open_EvtWriterSocket_client pusher socket"); }
-    if ( zmq_connect(pusher, "tcp://localhost:5556") != 0 ){ report_and_exit("open_EvtWriterSocket_client pusher connect"); }
-    return(R_NilValue);
-}
+////' open_EvtWriterSocket_client
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP open_EvtWriterSocket_client(){
+//    // Reopen context
+//    context = zmq_ctx_new ();
+//    if ( context == NULL ){ report_and_exit("open_EvtWriterSocket_client context ctx_new"); }
+//
+//    pusher = zmq_socket(context, ZMQ_PUSH);
+//    if ( pusher == NULL ){ report_and_exit("open_EvtWriterSocket_client pusher socket"); }
+//    if ( zmq_connect(pusher, "tcp://localhost:5556") != 0 ){ report_and_exit("open_EvtWriterSocket_client pusher connect"); }
+//    return(R_NilValue);
+//}
 
 
 
@@ -1045,7 +1071,6 @@ RcppExport SEXP evtWriter_Write_client(int func_index, bool event_type)
 // @param flag_lgo Log all events in log file
 //  and logged
 int run_evtWriters_server(bool flag_log){
-    void *new_proc_rep;
     int zmq_ret; // Debugging recv/sends and socket
     Zmq_otf2_data buffer;
     int nprocs=1;
@@ -1059,15 +1084,6 @@ int run_evtWriters_server(bool flag_log){
 
     // Ensure evt_writers defined
     if (evt_writers == NULL) { report_and_exit("run_evtWriters_server evt_writers", NULL); }
-
-    // Socket to publish func list to new R procs
-    new_proc_rep = zmq_socket(context, ZMQ_REP);
-    zmq_ret = zmq_bind(new_proc_rep, "tcp://*:5559");
-    if ( zmq_ret != 0 ){ 
-        zmq_close(new_proc_rep);
-        zmq_close(puller);
-        report_and_exit("globalDefWriter_update_new_proc new_proc_publisher zmq_bind", NULL); 
-    }
 
     // DEBUGGING
     char fp_buffer[50];
@@ -1112,11 +1128,9 @@ int run_evtWriters_server(bool flag_log){
                 if (buffer.regionRef > maxUsedLocationRef){ maxUsedLocationRef = buffer.regionRef; }
             } else if (buffer.datatype == ZMQ_OTF2_SOCK_CLUSTER_ON){ // ZMQ ID: 5f
                 nprocs = buffer.regionRef;
-                if (get_regionRef_array_server(nprocs, new_proc_rep) != 0){
-                    zmq_close(new_proc_rep);
-                    zmq_close(puller);
-                    report_and_exit("get_regionRef_array_server");
-                }
+                //if (get_regionRef_array_server(nprocs, responder) != 0){
+                //    report_and_exit("get_regionRef_array_server");
+                //}
                 for (int i=1; i<=nprocs; ++i){
                     OTF2_EvtWriter_Enter( evt_writers[i], NULL /* attributeList */,
                             buffer.time, slaveActive_regionRef /* region */ );
@@ -1134,8 +1148,6 @@ int run_evtWriters_server(bool flag_log){
             retflag = -1;
             break; // exit from while loop
         } else if (zmq_ret > 0) { // Unknown datatype
-            zmq_close(new_proc_rep);
-            zmq_close(puller);
             report_and_exit("run_evtWriters_server puller unknown data", NULL); 
         }
     }
@@ -1144,40 +1156,38 @@ int run_evtWriters_server(bool flag_log){
     fupdate_server(fp, fp_buffer);
 
     // Cleanup socket
-    zmq_close(puller);
-    zmq_close(new_proc_rep);
+    //zmq_close(puller);
     return(retflag);
 }
 
-// @name get_regionRef_array_server
-// @description Triggered by receiving ZMQ_OTF2_SOCK_CLUSTER_ON
-// @param num_new_procs Number of new procs spawned
-// @param responder ZMQ_REP socket recv proc_id, send regionRef_array
-// @return non-zero if error
-int get_regionRef_array_server(OTF2_RegionRef num_new_procs, void *responder){
-    int proc_id;
-    int zmq_ret; 
-    char fp_buffer[50];
-
-    for (OTF2_RegionRef i = 0; i < num_new_procs; ++i){
-
-        zmq_ret = zmq_recv(responder, &proc_id, sizeof(proc_id), 0); // ZMQ ID: 6a
-        if (zmq_ret < 0 ) { return (-1); }
-
-        // DEBUGGING
-        snprintf(fp_buffer, 50, "Received newproc signal from proc %d\n", proc_id);
-        fupdate_server(fp, fp_buffer);
-
-        zmq_ret = zmq_send(responder, regionRef_array, NUM_FUNCS*sizeof(*regionRef_array), 0); // ZMQ ID: 6b
-        if ( zmq_ret < 0 ){ return (-2); }
-        
-        // DEBUGGING
-        snprintf(fp_buffer, 50, "Finished sending regionRef_array to proc %d\n", proc_id);
-        fupdate_server(fp, fp_buffer);
-    }
-    return(0);
-
-}
+//// @name get_regionRef_array_server
+//// @description Triggered by receiving ZMQ_OTF2_SOCK_CLUSTER_ON
+//// @param num_new_procs Number of new procs spawned
+//// @param responder ZMQ_REP socket recv proc_id, send regionRef_array
+//// @return non-zero if error
+//int get_regionRef_array_server(OTF2_RegionRef num_new_procs, void *responder){
+//    int proc_id;
+//    int zmq_ret; 
+//    char fp_buffer[50];
+//
+//    for (OTF2_RegionRef i = 0; i < num_new_procs; ++i){
+//
+//        zmq_ret = zmq_recv(responder, &proc_id, sizeof(proc_id), 0); // ZMQ ID: 6a
+//        if (zmq_ret < 0 ) { return (-1); }
+//
+//        // DEBUGGING
+//        snprintf(fp_buffer, 50, "Received newproc signal from proc %d\n", proc_id);
+//        fupdate_server(fp, fp_buffer);
+//
+//        zmq_ret = zmq_send(responder, regionRef_array, NUM_FUNCS*sizeof(*regionRef_array), 0); // ZMQ ID: 6b
+//        if ( zmq_ret < 0 ){ return (-2); }
+//        
+//        // DEBUGGING
+//        snprintf(fp_buffer, 50, "Finished sending regionRef_array to proc %d\n", proc_id);
+//        fupdate_server(fp, fp_buffer);
+//    }
+//    return(0);
+//}
 
 ///////////////////////////////
 // Helper functions
@@ -1192,43 +1202,33 @@ int get_regionRef_array_server(OTF2_RegionRef num_new_procs, void *responder){
 // @param socket Additional non-global zmq socket to close
 void report_and_exit(const char* msg, void *socket){
     // Close any open sockets
-    if (pusher != NULL ) zmq_close(pusher);
-    if (puller != NULL ) zmq_close(pusher);
-    if (requester != NULL ) zmq_close(requester);
-    if (socket != NULL ) zmq_close(socket);
-    if (context != NULL ) zmq_ctx_destroy(context);
+   // if (pusher != NULL ) zmq_close(pusher);
+   // if (puller != NULL ) zmq_close(puller);
+   // if (requester != NULL ) zmq_close(requester);
+   // if (socket != NULL ) zmq_close(socket);
+   // if (context != NULL ) zmq_ctx_destroy(context);
 
     if (IS_LOGGER){ // Print to log file
+        finalize_zmq_server();
 
-        if (fp==NULL){
-            // Open log file
+        if (fp==NULL){ // Open log file if needed
             fp = fopen(log_filename, "w");
-            fprintf(fp, "ERROR: Couldn't find log file pointer, made new one\n");
+            fprintf(fp, "WARNING: Couldn't find log file pointer, made new one\n");
         }
         fprintf(fp, "[errno: %d] ERROR: %s\n", errno, msg);
         fprintf(fp, "File closing\n");
         fclose(fp);
-
+        //kill(0, SIGTERM);
+        kill(getpid(), SIGKILL);
     } else { // Print to Rcout (recommend using logfile for makeCluster)
-        FILE *fp;
-        char filename[20];
-
-        snprintf(filename, 20 , "slave_error_%d.log", locationRef);
-
+        finalize_zmq_client();
         Rcout << "[R proc id: " << locationRef << "] CLIENT ERROR: " << msg << "\n";
         Rcout << "ERROR INFO - pid:" << getpid() << ", ppid: " << getppid() << ",sid: " << getsid(getpid()) << "\n";
         Rcout << "ERROR INFO - Errno:" << errno << "\n"; 
-        Rcout << "ERROR INFO - Output file: " << filename << "\n";
 
-        fp = fopen(filename,"w");
-        fprintf(fp, "[R proc id: %d] CLIENT ERROR: %s\n", locationRef, msg);
-        fprintf(fp, " ERROR INFO - pid: %d , ppid: %d, sid: %d\n", getpid(), getppid(), getsid(getpid()) );
-        fprintf(fp, "ERROR INFO - Errno: %d\n", errno);
-        fclose(fp);
-
-        kill(0, SIGTERM);
+        Rcpp::stop("[R proc id: %d] CLIENT ERROR: %s\n" , locationRef, msg);
+        //kill(0, SIGTERM);
     }
-
 }
 
 // @name fupdate_server
@@ -1236,13 +1236,18 @@ void report_and_exit(const char* msg, void *socket){
 // @param fp File pointer to log file
 // @param msg Message to write to log file
 void fupdate_server(FILE *fp, const char* msg){
-    if (fp!=NULL){
-       fprintf(fp, "%s\n", msg);
-    } else {
-        char fp_buffer[100];
-        snprintf(fp_buffer, 100, "Log file not found - msg: %s\n", msg);
-        report_and_exit(fp_buffer, NULL);
+    if (fp==NULL){
+        fp = fopen(log_filename, "w");
     }
+    fprintf(fp, "%s\n", msg);
+
+    //if (fp!=NULL){
+    //   fprintf(fp, "%s\n", msg);
+    //} else {
+    //    char fp_buffer[100];
+    //    snprintf(fp_buffer, 100, "Log file not found - msg: %s\n", msg);
+    //    report_and_exit(fp_buffer, NULL);
+    //}
 }
 
 //' set_locationRef
@@ -1344,38 +1349,242 @@ RcppExport SEXP stopCluster_master(){
     return(R_NilValue);
 }
 
-//' get_regionRef_array_slave
-//' @description Requests regionRef array from logger proc
-//' @param num_funcs Total number of functions in R namespace
-//' @return R_NilValue
-// [[Rcpp::export]]
-RcppExport SEXP get_regionRef_array_slave(const int num_funcs){
-    int zmq_ret;
-
-    // Make sure array assigned
-    if (regionRef_array==NULL){ report_and_exit("get_regionRef_array_slave regionRef_array"); }
-
-    // Requester for func_list from server
-    requester = zmq_socket(context, ZMQ_REQ);
-    zmq_ret = zmq_connect(requester, "tcp://localhost:5559");
-    if ( zmq_ret != 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber connect"); }
-
-    zmq_ret = zmq_send(requester, &locationRef, sizeof(locationRef), 0); // ZMQ ID: 6a
-    if (zmq_ret < 0 ) { report_and_exit("get_regionRef_array_slave new_proc_pusher zmq_send"); }
-    zmq_ret = zmq_recv(requester, regionRef_array, num_funcs*sizeof(*regionRef_array), 0); // ZMQ ID: 6b
-    if ( zmq_ret < 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber zmq_recv"); }
-
-    // Cleanup
-    zmq_ret = zmq_close(requester);
-    if ( zmq_ret != 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber zmq_close"); }
-
-    return(R_NilValue);
-}
+////' get_regionRef_array_slave
+////' @description Requests regionRef array from logger proc
+////' @param num_funcs Total number of functions in R namespace
+////' @return R_NilValue
+//// [[Rcpp::export]]
+//RcppExport SEXP get_regionRef_array_slave(const int num_funcs){
+//    int zmq_ret;
+//
+//    // Make sure array assigned
+//    if (regionRef_array==NULL){ report_and_exit("get_regionRef_array_slave regionRef_array"); }
+//
+//    // Requester for func_list from server
+//    requester = zmq_socket(context, ZMQ_REQ);
+//    zmq_ret = zmq_connect(requester, "tcp://localhost:5559");
+//    if ( zmq_ret != 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber connect"); }
+//
+//    zmq_ret = zmq_send(requester, &locationRef, sizeof(locationRef), 0); // ZMQ ID: 6a
+//    if (zmq_ret < 0 ) { report_and_exit("get_regionRef_array_slave new_proc_pusher zmq_send"); }
+//    zmq_ret = zmq_recv(requester, regionRef_array, num_funcs*sizeof(*regionRef_array), 0); // ZMQ ID: 6b
+//    if ( zmq_ret < 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber zmq_recv"); }
+//
+//    // Cleanup
+//    zmq_ret = zmq_close(requester);
+//    if ( zmq_ret != 0 ){ report_and_exit("get_regionRef_array_slave new_proc_subscriber zmq_close"); }
+//
+//    return(R_NilValue);
+//}
 
 
 ///////////////////////////////
 // Testing
 ///////////////////////////////
+
+//' Verify structs have unique sizes in order to distinguish between events or errors.
+//'     Intended for developers
+//' @return 0 if success, else non-zero
+// [[Rcpp::export]]
+RcppExport int test__struct_size(){
+    if ( sizeof(Zmq_otf2_data)==sizeof(ERR_MSG) ){
+        return -1;
+    }
+    return 0;
+}
+
+// @description Test Request-Respond sockets
+int _test__ports_req_rep(pid_t child_pid, void *context,
+        char* bind_name, char* connect_name, int port_num, int i_port,
+        int *send_buf, int *recv_buf, int len_buf, int num_msg)
+{
+    void *socket;
+    int size_buf = len_buf*sizeof(*send_buf);
+
+    if ( child_pid != 0){ // Parent
+        IS_LOGGER=false;
+        if ( (socket = zmq_socket(context, ZMQ_REQ)) == NULL ){
+            return(-200-i_port);
+        }
+        if ( zmq_bind(socket, bind_name) != 0 ){
+            zmq_close(socket);
+            return(-300-i_port);
+        }
+
+        for (int i_msg; i_msg<num_msg; ++i_msg){
+            for (int i=0; i<len_buf; ++i){ send_buf[i] = i_msg; }
+            if ( zmq_send(socket, send_buf, size_buf, 0) != size_buf ){
+                zmq_close(socket);
+                return(-400-i_port);
+            }
+            if ( zmq_recv(socket, recv_buf, size_buf, 0) != size_buf ){
+                zmq_close(socket);
+                return(-500-i_port);
+            }
+            for (int i=0; i<len_buf; ++i){ 
+                if (recv_buf[i] != i_msg+1){ 
+                    zmq_close(socket);
+                    return(-600-i_port); 
+                }
+            }
+        }
+    } else { // Child
+        IS_LOGGER=true;
+        socket = zmq_socket(context, ZMQ_REP);
+        zmq_connect(socket, connect_name);
+        for (int i_msg; i_msg<num_msg; ++i_msg){
+            zmq_recv(socket, recv_buf, size_buf, 0);
+            for (int i=0; i<len_buf; ++i){ send_buf[i] = recv_buf[i]+1; }
+            zmq_send(socket, send_buf, size_buf, 0);
+        }
+    }
+    zmq_close(socket);
+    return(0);
+}
+
+// TODO: Impliment sigterm handler for clients and server
+void sigterm_handler_master(int signal){
+    report_and_exit("RECEIVED SIGTERM");
+}
+void sigterm_handler_slave(int signal){
+    report_and_exit("RECEIVED SIGTERM");
+}
+void sigterm_handler_server(int signal){
+    report_and_exit("RECEIVED SIGTERM");
+}
+void tmp_sigterm_handler(int signal){
+    report_and_exit("RECEIVED SIGTERM");
+}
+
+void kill_child_after_sync(void *context, pid_t child_pid){
+    void *socket;
+    if (child_pid != 0){ // Parent
+        bool buffer=false;
+        if ( ( socket = zmq_socket(context, ZMQ_PULL) ) == NULL ){
+            report_and_exit("kill_child_after_sync zmq_socket");
+        }
+
+        if ( zmq_bind(socket, "tcp://*:5550") != 0 ){
+            report_and_exit("kill_child_after_sync zmq_bind");
+        }
+
+        int zmq_ret = zmq_recv(socket, &buffer, sizeof(buffer), 0);
+        if (zmq_ret==0){
+            kill(child_pid, SIGTERM);
+        } else if ( zmq_ret>0 ){
+            report_and_exit("kill_child_after_sync zmq_recv >0");
+        } else {
+            report_and_exit("kill_child_after_sync zmq_recv <1");
+        }
+
+        kill(child_pid, SIGTERM);
+        zmq_close(socket);
+    } else { // Child
+        signal(SIGTERM, tmp_sigterm_handler);
+        if ( ( socket = zmq_socket(context, ZMQ_PUSH) ) == NULL ){
+            report_and_exit("kill_child_after_sync zmq_socket");
+        }
+        if ( zmq_connect(socket, "tcp://localhost:5550") != 0 ){
+            report_and_exit("kill_child_after_sync zmq_connect");
+        }
+        if ( zmq_send(socket, NULL, 0, 0) < 0 ){
+            report_and_exit("kill_child_after_sync zmq_send");
+        }
+        zmq_send(socket, NULL, 0, 0); // Hangs until recv sigterm
+        zmq_close(socket);
+        sleep(10);
+    }
+}
+
+
+
+
+//' Test ports used by rTrace
+//'     Intended for developers
+//' @param ports List of ports to test on valid range \[1024,49151\], default {5554,5556,5557,5559}
+//' @param port_type 1:=req-rep, 2:=push-pull, 3:=pub-sub, else error
+//' @param num_messages Number of messages to send
+//' @param message_size Size of each msg in KB
+//' @return 0 if success, else non-zero
+// [[Rcpp::export]]
+RcppExport int test__ports( int port_type, 
+        Rcpp::NumericVector ports = Rcpp::NumericVector::create(5554,5556,5557,5559),
+        int num_messages=1000, size_t message_size=8 ) 
+{
+    pid_t child_pid;
+    int num_ports, port, len_buf;
+    int *send_buf, *recv_buf;
+    char bind_name[21], connect_name[21];
+
+    // Check valid port number not in valid range
+    for (int i=0; i<ports.length(); ++i){
+        if ( (ports[i]<1024) || (ports[i]>49151) ){
+            return(-100-i);
+        }
+    }
+    // Check valid port type
+    if ( (port_type < 0) || (port_type > 3) ){
+        return(-99);
+    }
+
+    num_ports = ports.length();
+    send_buf = (int*)malloc(message_size*1024);
+    recv_buf = (int*)malloc(message_size*1024);
+    len_buf = message_size/sizeof(*send_buf) * 1024;
+
+
+    // Fork "server" proc as child
+    child_pid = fork();
+    if ( child_pid == (pid_t) -1 ){ // ERROR
+        return(-1);
+    }
+
+    // Spawn context on new proc
+    if ( (context = zmq_ctx_new()) == NULL ){
+        return(-2);
+    }
+
+    for (int i=0; i<num_ports; ++i){
+        port = ports[i];
+
+        snprintf(bind_name, 21, "tcp://*:%4d", port);
+        snprintf(connect_name, 21, "tcp://localhost:%4d", port);
+
+        if (child_pid != 0){
+            Rcout << "Testing socket on port: " << ports[i] << 
+                ", bind_name: " << bind_name <<
+                ", connect_name: " << connect_name << std::endl;
+        }
+
+        switch (port_type){
+
+            case 2:
+            {
+                int ret_test = _test__ports_req_rep(child_pid, context,
+                        bind_name, connect_name, port, i, 
+                        send_buf, recv_buf, len_buf, num_messages);
+                if (ret_test != 0){ 
+                    Rcout << "ERROR: _test__ports_req_rep fail, return code: " << ret_test << "\n";
+                    return(ret_test); }
+                if (child_pid != 0) { Rcout << "SUCCESS\n"; }
+                break;
+            }
+            default:
+            {
+                // Unrecognized port_type
+                break;
+            }
+        }
+    }
+    free(send_buf);
+    free(recv_buf);
+
+    kill_child_after_sync(context, child_pid);
+    zmq_ctx_destroy(context);
+    //if (child_pid!=0) {EXIT(1);}
+    //if (child_pid!=0) {return 1;}
+    return 0;
+}
 
 //' get_pid
 // [[Rcpp::export]]
