@@ -274,12 +274,7 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
         return(NULL) # break or return(NULL)
     }
 
-    ## Create otf2 region and event descriptions
-   # if (flag_slave_proc){
-   #     regionRef <- get_regionRef_from_array_slave(func_global_index) 
-   # } else {
-   #     regionRef <- define_otf2_regionRef_client(func_name, func_global_index)
-   # }
+    ## Create otf2 region and event descriptions on server
     if (!flag_slave_proc){
         define_otf2_regionRef_client(func_name, func_global_index)
     }
@@ -342,12 +337,6 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     ## Needed for finding index offset
     num_func_per_package <- get_num_functions(flag_user_functions=flag_user_functions)
     total_num_funcs <- sum(num_func_per_package)
-
-    #if (flag_slave_proc){
-    #    ## Make sure to free at end of function!
-    #    assign_regionRef_array_slave(total_num_funcs)
-    #    get_regionRef_array_slave(total_num_funcs)
-    #}
 
     for (package_name in package_list) {
 
