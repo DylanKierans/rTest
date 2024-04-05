@@ -20,13 +20,6 @@ assign_regionRef_array_master <- function(num_funcs) {
     .Call('_rTrace_assign_regionRef_array_master', PACKAGE = 'rTrace', num_funcs)
 }
 
-#' get_regionRef_from_array_slave
-#' @param func_index Index of function to get regionRef for
-#' @return regionRef
-get_regionRef_from_array_slave <- function(func_index) {
-    .Call('_rTrace_get_regionRef_from_array_slave', PACKAGE = 'rTrace', func_index)
-}
-
 #' finalize_GlobalDefWriter_client
 #' @return RNilValue
 finalize_GlobalDefWriter_client <- function() {
@@ -110,11 +103,12 @@ print_errnos <- function() {
     .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
 }
 
-#' stopCluster_master
-#' @description Signal to end cluster
+#' otf2_handle_proc
+#' @description Signal to server to send regionRef array to new procs
+#' @param is_init True if init proc, else false if finalizing proc
 #' @return R_NilValue
-stopCluster_master <- function() {
-    .Call('_rTrace_stopCluster_master', PACKAGE = 'rTrace')
+otf2_handle_proc <- function(is_init) {
+    .Call('_rTrace_otf2_handle_proc', PACKAGE = 'rTrace', is_init)
 }
 
 #' Verify structs have unique sizes in order to distinguish between events or errors.

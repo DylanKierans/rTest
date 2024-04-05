@@ -226,6 +226,9 @@ get_end_cluster_wrapper_expression <- function() {
 
         # Close sockets on all procs clientside
         if (pkg.env$INSTRUMENTATION_INIT){
+            ## End placeholder
+            clusterEvalQ(cl, { otf2_handle_proc(F) })
+
             finalize_zmq_client()
             clusterEvalQ(cl, { finalize_zmq_client() })
             #close_EvtWriterSocket_client()
@@ -241,7 +244,7 @@ get_end_cluster_wrapper_expression <- function() {
                 init_zmq_client()
 
                 # End slave placeholder event
-                stopCluster_master()
+                #stopCluster_master()
             }
 
             # Restore instrumentation state
@@ -309,6 +312,8 @@ get_psock_wrapper_expression <- function() {
 
                 # Assign regionRef_array on all slaves
                 #get_regionRef_array_master(nnodes) # start workflow to send regionRefs to each slave
+                #signal_cluster_master(nnodes) # start placeholder events for new procs
+                clusterEvalQ(cl, { otf2_handle_proc(T); })
                 clusterEvalQ(cl, { instrument_all_functions(flag_slave_proc=T); })
 
                 # Update max number of R procs if needed

@@ -280,6 +280,9 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
    # } else {
    #     regionRef <- define_otf2_regionRef_client(func_name, func_global_index)
    # }
+    if (!flag_slave_proc){
+        define_otf2_regionRef_client(func_name, func_global_index)
+    }
 
     if (pkg.env$PRINT_INSTRUMENTS) {
         #print(paste0("INSTRUMENTING: function `", func_name,"`",
