@@ -130,8 +130,8 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 RcppExport SEXP init_zmq_client();
 RcppExport SEXP finalize_zmq_client();
 //RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
-RcppExport int init_otf2_logger(int, Rcpp::String archivePath = "./rTrace", Rcpp::String archiveName = "rTrace", 
-        Rcpp::NumericVector ports = {5556,5557}, bool flag_print_pids=false);
+RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, 
+        Rcpp::NumericVector, bool);
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
@@ -287,10 +287,10 @@ RcppExport int set_ports(Rcpp::NumericVector ports){
 //' @param flag_print_pids True to print pids of parent and child procs
 //' @return <0 if error, 0 if R master, else >0 if child
 // [[Rcpp::export]]
-RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, 
-        Rcpp::String archiveName, 
-        Rcpp::NumericVector ports,
-        bool flag_print_pids)
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rTrace", 
+        Rcpp::String archiveName = "rTrace", 
+        Rcpp::NumericVector ports = Rcpp::NumericVector::create(5556,5557),
+        bool flag_print_pids=false)
 {
     // TODO: Verify this acts as intended to save child proc
     signal(SIGHUP, sighup_handler);

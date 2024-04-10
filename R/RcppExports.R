@@ -13,7 +13,7 @@ NULL
 #' @param ports Port numbers for zmq sockets (must be length <NUM_PORTS)
 #' @param flag_print_pids True to print pids of parent and child procs
 #' @return <0 if error, 0 if R master, else >0 if child
-init_otf2_logger <- function(max_nprocs, archivePath, archiveName, ports, flag_print_pids) {
+init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace", ports = as.numeric( c(5556,5557)), flag_print_pids = FALSE) {
     .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, ports, flag_print_pids)
 }
 
