@@ -829,7 +829,12 @@ OTF2_TimeStamp epoch_time_server(){
     int zmq_ret;
     OTF2_TimeStamp time;
     zmq_ret = zmq_recv(pusher, &time, sizeof(time), 0); // ZMQ_ID: 2
-    if (zmq_ret!=sizeof(time)){ report_and_exit("epoch_start_server zmq_recv"); }
+    if (zmq_ret!=sizeof(time)){ 
+        // DEBUGGING
+        char fp_buffer[50];
+        snprintf(fp_buffer, 50, "zmq_ret: %d\n", zmq_ret);
+        fupdate(fp,fp_buffer);
+        report_and_exit("epoch_start_server zmq_recv"); }
     return(time);
 }
 
