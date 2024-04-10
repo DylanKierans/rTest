@@ -76,6 +76,7 @@ instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
 
     ## Assign array on logger proc for regionRef of each func
     total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
+    epoch_time_client()
     assign_regionRef_array_master(total_num_funcs)
 
     ## TODO: Run this instead as a test during pkg install
@@ -117,6 +118,7 @@ instrumentation_finalize <- function()
     }
 
     finalize_EvtWriter_client()
+    epoch_time_client()
     finalize_sync_client()
     finalize_zmq_client()
     return(invisible(NULL))

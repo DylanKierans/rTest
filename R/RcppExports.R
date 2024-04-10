@@ -74,6 +74,12 @@ evtWriter_MeasurementOnOff_client <- function(measurementMode) {
     .Call('_rTrace_evtWriter_MeasurementOnOff_client', PACKAGE = 'rTrace', measurementMode)
 }
 
+#' Send current timestamp to server. Only used for epoch_start and epoch_end
+#' @return R_NilValue
+epoch_time_client <- function() {
+    .Call('_rTrace_epoch_time_client', PACKAGE = 'rTrace')
+}
+
 #' Write event to evt_writer
 #' @param func_index Function index in global list
 #' @param event_type True for enter, False for leave region

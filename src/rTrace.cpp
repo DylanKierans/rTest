@@ -129,9 +129,7 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 ///////////////////////////////
 RcppExport SEXP init_zmq_client();
 RcppExport SEXP finalize_zmq_client();
-//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
-RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, 
-        Rcpp::NumericVector, bool);
+RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
@@ -142,6 +140,7 @@ RcppExport int get_locationRef();
 RcppExport int set_maxUsedLocationRef_client(int);
 RcppExport SEXP finalize_EvtWriter_client();
 RcppExport SEXP finalize_sync_client();
+RcppExport SEXP epoch_time_client();
 
 // OTF2 Server/logger functions
 void init_zmq_server();
@@ -161,6 +160,7 @@ void globalDefWriter_WriteLocationGroups_server();
 void evtWriter_MeasurementOnOff_server(OTF2_EvtWriter*, OTF2_TimeStamp, bool);
 void assign_regionRef_array_server();
 void free_regionRef_array_server();
+OTF2_TimeStamp epoch_time_server();
 
 // Helper functions for debugging
 void report_and_exit(const char*, void *sock=NULL);
@@ -265,6 +265,7 @@ void sighup_handler(int signal) {
 //' set_ports
 //' @param ports Ports to use for zmq sockets
 //' @return 0 , else Rcpp::stop on error
+// [[Rcpp::export]]
 RcppExport int set_ports(Rcpp::NumericVector ports){
     int num_ports = ports.length();
     if (num_ports>NUM_PORTS){
@@ -330,6 +331,10 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         // Generate context, and sockets
         init_zmq_server();
 
+        // Get init time used in finalize_GlobalDef
+        //epoch_start = get_time(); 
+        epoch_start = epoch_time_server();
+
         // Assign array for regionRefs of each func
         current_stage = STAGE_ASSIGN_REGIONREF_ARRAY;
         assign_regionRef_array_server();
@@ -346,6 +351,9 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         fupdate_server(fp, "evtWriter\n");
         int evtWriters_flag = run_evtWriters_server(true /* flag_log */);
         fupdate_server(fp, "evtWriter complete\n");
+
+        // Get end time used in finalize_otf2_objs
+        epoch_end = epoch_time_server();
 
         // Cleanup regionRef_array
         current_stage = STAGE_PRE_FINALIZE;
@@ -509,7 +517,15 @@ void finalize_otf2_objs_server(){
 
     ////
     //finalize_GlobalDefWriter_server(); 
-    epoch_end =  get_time();
+    //epoch_end =  get_time();
+    //epoch_end =  epoch_time_server();
+
+    // DEBUGGING
+    char fp_buffer[50];
+    snprintf(fp_buffer, 50, "epoch_start: %lu\n", epoch_start);
+    fupdate_server(fp, fp_buffer);
+    snprintf(fp_buffer, 50, "epoch_end: %lu\n", epoch_end);
+    fupdate_server(fp, fp_buffer);
 
     // We need to define the clock used for this trace and the overall timestamp range.
     OTF2_GlobalDefWriter_WriteClockProperties( 
@@ -789,8 +805,6 @@ void init_GlobalDefWriter_server() {
     // DEBUGGING
     if (archive == NULL) { report_and_exit("init_GlobalDefWriter archive", NULL); }
 
-    epoch_start = get_time(); // Get init time for finalize
-
     // Now write the global definitions by getting a writer object for it.
     global_def_writer = OTF2_Archive_GetGlobalDefWriter( archive );
     if (global_def_writer == NULL) { report_and_exit("OTF2_Archive_GetGlobalDefWriter", NULL); }
@@ -800,6 +814,24 @@ void init_GlobalDefWriter_server() {
     globalDefWriter_WriteString_server(stringRefValue);
 }
 
+//' Send current timestamp to server. Only used for epoch_start and epoch_end
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP epoch_time_client(){
+    int zmq_ret;
+    epoch_start = get_time(); // Get init time for finalize
+    zmq_ret = zmq_send(pusher, &epoch_start, sizeof(epoch_start), 0); // ZMQ_ID: 2
+    if (zmq_ret!=sizeof(epoch_start)){ report_and_exit("epoch_start_client zmq_send"); }
+    return(R_NilValue);
+}
+
+OTF2_TimeStamp epoch_time_server(){
+    int zmq_ret;
+    OTF2_TimeStamp time;
+    zmq_ret = zmq_recv(pusher, &time, sizeof(time), 0); // ZMQ_ID: 2
+    if (zmq_ret!=sizeof(time)){ report_and_exit("epoch_start_server zmq_recv"); }
+    return(time);
+}
 
 // @name globalDefWriter_WriteString_server
 // @description Define new id-value pair in globaldefwriter

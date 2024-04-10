@@ -109,6 +109,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// epoch_time_client
+RcppExport SEXP epoch_time_client();
+RcppExport SEXP _rTrace_epoch_time_client() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(epoch_time_client());
+    return rcpp_result_gen;
+END_RCPP
+}
 // evtWriter_Write_client
 RcppExport SEXP evtWriter_Write_client(int func_index, bool event_type);
 RcppExport SEXP _rTrace_evtWriter_Write_client(SEXP func_indexSEXP, SEXP event_typeSEXP) {
@@ -239,6 +249,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_zmq_client", (DL_FUNC) &_rTrace_init_zmq_client, 0},
     {"_rTrace_finalize_zmq_client", (DL_FUNC) &_rTrace_finalize_zmq_client, 0},
     {"_rTrace_evtWriter_MeasurementOnOff_client", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff_client, 1},
+    {"_rTrace_epoch_time_client", (DL_FUNC) &_rTrace_epoch_time_client, 0},
     {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},
     {"_rTrace_set_locationRef", (DL_FUNC) &_rTrace_set_locationRef, 1},
     {"_rTrace_get_locationRef", (DL_FUNC) &_rTrace_get_locationRef, 0},
