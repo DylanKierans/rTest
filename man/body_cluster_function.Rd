@@ -4,12 +4,12 @@
 \alias{body_cluster_function}
 \title{body_cluster_function}
 \usage{
-body_cluster_function(func_ptr, regionRef, fork_cluster = F)
+body_cluster_function(func_ptr, evtID, fork_cluster = F)
 }
 \arguments{
-\item{func_ptr}{Pointer to function}
+\item{func_ptr}{function - Pointer to function}
 
-\item{regionRef}{OTF2_regionRef - regionRef for function}
+\item{evtID}{int - ID number for function (func_index)}
 
 \item{fork_cluster}{Boolean - True if fork cluster, else psock}
 }

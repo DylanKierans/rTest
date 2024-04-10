@@ -101,9 +101,10 @@ static void *context;      ///* zmq context - clients and server
 static void *syncer;    ///* zmq socket - clients and server synchronization
 static void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
 static void *puller;           ///* zmq socket - server recv otf2 eventlog
-//static void *requester;    ///* zmq socket - slaves(5559) (comm with responder for globalDefWriter)
-//static void *responder; ///* zmq socket - publish func list to new R procs
 static pid_t child_pid;           ///* child_pid for server (used by master)
+
+#define NUM_PORTS 2
+static int PORTS[NUM_PORTS]; ///* Port numbers for push-pull
 
 // Counters
 static const OTF2_StringRef OFFSET_NUM_STRINGREF=10; ///* Offset for NUM_STRINGREF to avoid overwriting
@@ -128,7 +129,8 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 ///////////////////////////////
 RcppExport SEXP init_zmq_client();
 RcppExport SEXP finalize_zmq_client();
-RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
+//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
+RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
@@ -259,21 +261,44 @@ void sighup_handler(int signal) {
 //  Awaits messages from main process at suitable steps
 //////////////////////////////////////
 
+//' set_ports
+//' @param ports Ports to use for zmq sockets
+//' @return 0 , else Rcpp::stop on error
+RcppExport int set_ports(Rcpp::NumericVector ports){
+    int num_ports = ports.length();
+    if (num_ports>NUM_PORTS){
+        Rcpp::stop("ERROR: Number of ports given greater than NUM_PORTS");
+    }
+    for (int i=0; i<num_ports; ++i){
+        if ( (ports[i]<1024) || (ports[i]>49151) ){
+            Rcpp::stop("ERROR: Invalid port range");
+        }
+        PORTS[i] = ports[i];
+    }
+    return(0);
+}
+
 //' Fork and initialize zeromq sockets for writing globalDef definitions
 //' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 //' @param archivePath Path to otf2 archive
 //' @param archiveName Name of otf2 archive
+//' @param ports Port numbers for zmq sockets (must be length <NUM_PORTS)
 //' @param flag_print_pids True to print pids of parent and child procs
 //' @return <0 if error, 0 if R master, else >0 if child
 // [[Rcpp::export]]
 RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rTrace", 
-        Rcpp::String archiveName = "rTrace", bool flag_print_pids=false)
+        Rcpp::String archiveName = "rTrace", 
+        Rcpp::NumericVector ports = {5556,5557},
+        bool flag_print_pids=false)
 {
     // TODO: Verify this acts as intended to save child proc
     signal(SIGHUP, sighup_handler);
 
     // Progress tracker
     current_stage = STAGE_PRE_INIT;
+
+    // Check port ranges
+    set_ports(ports);
 
     child_pid = fork();
     if (child_pid == (pid_t) -1 ){ // ERROR
@@ -607,6 +632,7 @@ void finalize_zmq_server(){
 
 void init_zmq_server(){
     int zmq_ret; 
+    char buffer[30];
 
     // Init zmq context
     context = zmq_ctx_new();
@@ -615,13 +641,17 @@ void init_zmq_server(){
     // Puller
     puller = zmq_socket(context, ZMQ_PULL);
     if (puller==NULL){ report_and_exit("init_otf2_logger server puller"); }
-    zmq_ret = zmq_bind(puller, "tcp://*:5556");
+    //zmq_ret = zmq_bind(puller, "tcp://*:5556");
+    snprintf(buffer, 30, "tcp://*:%d", PORTS[0]);
+    zmq_ret = zmq_bind(puller, buffer);
     if (zmq_ret!=0){ report_and_exit("server zmq_bind puller", puller); }
 
     // Syncer
     syncer = zmq_socket(context, ZMQ_PUSH); 
     if (syncer==NULL){ report_and_exit("init_otf2_logger server syncer"); }
-    zmq_ret = zmq_bind(syncer, "tcp://*:5557");
+    //zmq_ret = zmq_bind(syncer, "tcp://*:5557");
+    snprintf(buffer, 30, "tcp://*:%d", PORTS[1]);
+    zmq_ret = zmq_bind(puller, buffer);
     if (zmq_ret < 0 ) { report_and_exit("server zmq_bind syncer", NULL); }
 }
 
@@ -631,6 +661,7 @@ void init_zmq_server(){
 // [[Rcpp::export]]
 RcppExport SEXP init_zmq_client(){
     int zmq_ret; 
+    char buffer[30];
 
     // Init otf2 objs
     context = zmq_ctx_new();
@@ -640,12 +671,16 @@ RcppExport SEXP init_zmq_client(){
     pusher = zmq_socket(context, ZMQ_PUSH);
     if (pusher==NULL){report_and_exit("init_otf2_logger client pusher");}
     zmq_ret = zmq_connect(pusher, "tcp://localhost:5556");
+    snprintf(buffer, 30, "tcp://localhost:%d", PORTS[0]);
+    zmq_ret = zmq_connect(pusher, buffer);
     if (zmq_ret<0){report_and_exit("init_otf2_logger client connect pusher");}
 
     // Syncer
     syncer = zmq_socket(context, ZMQ_PULL); 
     if (syncer == NULL){ report_and_exit("init_otf2_logger client syncer"); }
-    zmq_ret = zmq_connect(syncer, "tcp://localhost:5557");
+    //zmq_ret = zmq_connect(syncer, "tcp://localhost:5557");
+    snprintf(buffer, 30, "tcp://localhost:%d", PORTS[1]);
+    zmq_ret = zmq_connect(syncer, buffer);
     if (zmq_ret != 0){ report_and_exit("init_otf2_logger client connect syncer"); }
     return(R_NilValue);
 }
@@ -892,7 +927,6 @@ RcppExport SEXP evtWriter_Write_client(int func_index, bool event_type)
     else { buffer.datatype = ZMQ_OTF2_EVENT_LEAVE; }
 
     // DEBUGGING - Write event info to unique file
-    /*
     if (buffer.pid == 0){ // Master
         FILE *fp = fopen("write_client_0.log", "a");
         fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
@@ -903,6 +937,7 @@ RcppExport SEXP evtWriter_Write_client(int func_index, bool event_type)
         fprintf(fp, "pid: %d, time: %lu, regionRef: %u\n", buffer.pid, buffer.time, buffer.regionRef);
         fclose(fp);
     }
+    /*
     */
 
     if (pusher==NULL){ report_and_exit("evtWriter_Write_client pusher"); }

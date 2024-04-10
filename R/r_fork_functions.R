@@ -5,13 +5,13 @@
 
 #' body_default_function
 #' @description Returns instrumented body for default functions
-#' @param func_ptr Pointer to function
-#' @param regionRef OTF2 regionRef for function
+#' @param func_ptr function - Pointer to function
+#' @param evtID int - ID number for function (func_index)
 #' @return type(as.call) Updated function body
-body_default_function <- function(func_ptr, regionRef){
+body_default_function <- function(func_ptr, evtID){
     .wrapper_expression = do.call('substitute', list( 
         get_wrapper_expression()[[1]],
-        list(X_regionRef_X=regionRef)
+        list(X_evtID_X=evtID)
     ))
 
     .wrapper_expression = as.expression(.wrapper_expression)
@@ -23,11 +23,11 @@ body_default_function <- function(func_ptr, regionRef){
 
 #' body_cluster_function
 #' @description Returns instrumented body for functions of type fork/psock
-#' @param func_ptr Pointer to function
-#' @param regionRef OTF2_regionRef - regionRef for function
+#' @param func_ptr function - Pointer to function
+#' @param evtID int - ID number for function (func_index)
 #' @param fork_cluster Boolean - True if fork cluster, else psock
 #' @return type(as.call) Updated function body
-body_cluster_function <- function(func_ptr, regionRef, fork_cluster=F)
+body_cluster_function <- function(func_ptr, evtID, fork_cluster=F)
 {
 
     if (fork_cluster){ # FORK
@@ -39,14 +39,14 @@ body_cluster_function <- function(func_ptr, regionRef, fork_cluster=F)
     entry_exp = wrapper_expression$entry;
     entry_exp = do.call('substitute', list( 
         entry_exp[[1]],
-        list(X_regionRef_X=regionRef)
+        list(X_evtID_X=evtID)
     ))
     entry_exp = as.expression(entry_exp)
 
     exit_exp = wrapper_expression$exit;
     exit_exp = do.call('substitute', list( 
         exit_exp[[1]],
-        list(X_regionRef_X=regionRef)
+        list(X_evtID_X=evtID)
     ))
     exit_exp = as.expression(exit_exp)
 
@@ -61,23 +61,23 @@ body_cluster_function <- function(func_ptr, regionRef, fork_cluster=F)
 
 #' body_end_cluster_function
 #' @description Returns instrumented body for functions of type end fork
-#' @param func_ptr Pointer to function
-#' @param regionRef OTF2 regionRef for function
+#' @param func_ptr function - Pointer to function
+#' @param evtID int - ID number for function (func_index)
 #' @return type(as.call) Updated function body
-body_end_cluster_function <- function(func_ptr, regionRef){
+body_end_cluster_function <- function(func_ptr, evtID){
 
     wrapper_expression <- get_end_cluster_wrapper_expression()
     entry_exp = wrapper_expression$entry;
     entry_exp = do.call('substitute', list( 
         entry_exp[[1]],
-        list(X_regionRef_X=regionRef)
+        list(X_evtID_X=evtID)
     ))
     entry_exp = as.expression(entry_exp)
 
     exit_exp = wrapper_expression$exit;
     exit_exp = do.call('substitute', list( 
         exit_exp[[1]],
-        list(X_regionRef_X=regionRef)
+        list(X_evtID_X=evtID)
     ))
     exit_exp = as.expression(exit_exp)
 
@@ -90,11 +90,11 @@ body_end_cluster_function <- function(func_ptr, regionRef){
 
 #' get_new_function_body
 #' @description Returns instrumented body for function type {fork, end fork, default}
-#' @param func_ptr Pointer to function
+#' @param func_ptr function - Pointer to function
 #' @param func_name Char[] - Name of function, only used for debugging
-#' @param regionRef Int - OTF2 regionRef for function
+#' @param evtID int - ID number for function (func_index)
 #' @return type(as.call) Updated function body
-get_new_function_body <- function(func_ptr, func_name, regionRef)
+get_new_function_body <- function(func_ptr, func_name, evtID)
 {
     # Expression and body usage taken from: https://stackoverflow.com/a/31374476
 
@@ -112,7 +112,7 @@ get_new_function_body <- function(func_ptr, func_name, regionRef)
     for (end_cluster_function in end_cluster_function_list){
         if (identical(end_cluster_function, func_ptr)){
             if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: End fork function `", func_name, "`"))
-            new_body <- body_end_cluster_function(func_ptr, regionRef)
+            new_body <- body_end_cluster_function(func_ptr, evtID)
             return(new_body)
         }
     }
@@ -121,7 +121,7 @@ get_new_function_body <- function(func_ptr, func_name, regionRef)
     for (fork_cluster_function in fork_cluster_function_list){
         if (identical(fork_cluster_function, func_ptr)){
             if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Fork function `", func_name, "`"))
-            new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=T)
+            new_body <- body_cluster_function(func_ptr, evtID, fork_cluster=T)
             return(new_body)
         }
     }
@@ -130,14 +130,14 @@ get_new_function_body <- function(func_ptr, func_name, regionRef)
     for (psock_cluster_function in psock_cluster_function_list){
         if (identical(psock_cluster_function, func_ptr)){
             if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: PSOCK function `", func_name, "`"))
-            new_body <- body_cluster_function(func_ptr, regionRef, fork_cluster=F)
+            new_body <- body_cluster_function(func_ptr, evtID, fork_cluster=F)
             return(new_body)
         }
     }
 
     ## Else default function
     if (pkg.env$PRINT_INSTRUMENTS) print(paste0("INSTRUMENTING: Default function `", func_name, "`"))
-    new_body <- body_default_function(func_ptr, regionRef)
+    new_body <- body_default_function(func_ptr, evtID)
     return(new_body)
 }
 
@@ -167,7 +167,7 @@ get_fork_wrapper_expression <- function() {
 
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1
                 if ( pkg.env$FUNCTION_DEPTH < pkg.env$MAX_FUNCTION_DEPTH){
-                    evtWriter_Write_client(X_regionRef_X,F)
+                    evtWriter_Write_client(X_evtID_X,F)
                 }
             }
 
@@ -188,7 +188,7 @@ get_fork_wrapper_expression <- function() {
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) 
             {
                 ## zmq version - OTF2 Event
-                evtWriter_Write_client(X_regionRef_X,T)
+                evtWriter_Write_client(X_evtID_X,T)
             }
 
             instrumentation_disable(flag_check_depth=F)
@@ -212,7 +212,7 @@ get_end_cluster_wrapper_expression <- function() {
             # Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
-                evtWriter_Write_client(X_regionRef_X,T) # OTF2 Enter event
+                evtWriter_Write_client(X_evtID_X,T) # OTF2 Enter event
             }
 
             ## Disable instrumentation on all procs
@@ -241,7 +241,7 @@ get_end_cluster_wrapper_expression <- function() {
             if (INSTRUMENTATION_ENABLED_BEFORE){
                 instrumentation_enable()
                 if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
-                    evtWriter_Write_client(X_regionRef_X,F) # OTF2 Leave event
+                    evtWriter_Write_client(X_evtID_X,F) # OTF2 Leave event
                 }
                 # Decrement depth counter
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
@@ -267,7 +267,7 @@ get_psock_wrapper_expression <- function() {
             ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH) {
-                evtWriter_Write_client(X_regionRef_X,T)
+                evtWriter_Write_client(X_evtID_X,T)
             }
             instrumentation_disable(flag_check_depth=F)
         }
@@ -315,7 +315,7 @@ get_psock_wrapper_expression <- function() {
                 clusterEvalQ(cl, instrumentation_enable(flag_reset_depth=TRUE));
 
                 if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH){
-                    evtWriter_Write_client(X_regionRef_X,F)
+                    evtWriter_Write_client(X_evtID_X,F)
                 }
                 # Decrement depth
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH - 1

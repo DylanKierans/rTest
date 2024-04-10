@@ -4,12 +4,12 @@
 \alias{body_end_cluster_function}
 \title{body_end_cluster_function}
 \usage{
-body_end_cluster_function(func_ptr, regionRef)
+body_end_cluster_function(func_ptr, evtID)
 }
 \arguments{
-\item{func_ptr}{Pointer to function}
+\item{func_ptr}{function - Pointer to function}
 
-\item{regionRef}{OTF2 regionRef for function}
+\item{evtID}{int - ID number for function (func_index)}
 }
 \value{
 type(as.call) Updated function body

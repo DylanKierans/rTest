@@ -4,14 +4,14 @@
 \alias{get_new_function_body}
 \title{get_new_function_body}
 \usage{
-get_new_function_body(func_ptr, func_name, regionRef)
+get_new_function_body(func_ptr, func_name, evtID)
 }
 \arguments{
-\item{func_ptr}{Pointer to function}
+\item{func_ptr}{function - Pointer to function}
 
 \item{func_name}{Char[] - Name of function, only used for debugging}
 
-\item{regionRef}{Int - OTF2 regionRef for function}
+\item{evtID}{int - ID number for function (func_index)}
 }
 \value{
 type(as.call) Updated function body

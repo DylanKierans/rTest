@@ -24,14 +24,14 @@ get_wrapper_expression <- function() {
             ## Increment depth counter
             pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH + 1
             if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
-                evtWriter_Write_client(X_regionRef_X,T)
+                evtWriter_Write_client(X_evtID_X,T)
             }
         }
 
         on.exit( { 
             if (pkg.env$INSTRUMENTATION_ENABLED) {
                 if (pkg.env$FUNCTION_DEPTH <= pkg.env$MAX_FUNCTION_DEPTH ) {
-                    evtWriter_Write_client(X_regionRef_X,F)
+                    evtWriter_Write_client(X_evtID_X,F)
                 }
                 ## Decrement depth counter
                 pkg.env$FUNCTION_DEPTH <- pkg.env$FUNCTION_DEPTH -  1
@@ -280,16 +280,12 @@ try_insert_instrumentation <- function(func_info, func_ptrs, env_is_locked,
     }
 
     if (pkg.env$PRINT_INSTRUMENTS) {
-        #print(paste0("INSTRUMENTING: function `", func_name,"`",
-        #            ", regionRef: ", regionRef))
         print(paste0("INSTRUMENTING: function `", func_name,"`",
                     ", func_index: ", func_global_index))
     }
 
-    ## @TODO: Use func index here instead
     # Get new body for funcs of type: {fork_function, end_fork_function, default}
     body(func_ptr) <- get_new_function_body(func_ptr, func_name, func_global_index)
-    #body(func_ptr) <- get_new_function_body(func_ptr, func_name, regionRef)
 
     ## TODO: Add check for if compiled before, recompile
     if (flag_compile_function){
@@ -402,10 +398,7 @@ instrument_all_functions <- function(package_list=NULL, flag_user_functions=TRUE
     # End definition of GlobalDef and regionRef array
     if (!flag_slave_proc){ 
         finalize_GlobalDefWriter_client() 
-    } else { ;
-        #free_regionRef_array_slave() # @TODO: Remove this!
     }
-
 }
 
 #' skip_function
