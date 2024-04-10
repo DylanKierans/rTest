@@ -10,6 +10,21 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// init_otf2_logger
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, Rcpp::String archiveName, Rcpp::NumericVector ports, bool flag_print_pids);
+RcppExport SEXP _rTrace_init_otf2_logger(SEXP max_nprocsSEXP, SEXP archivePathSEXP, SEXP archiveNameSEXP, SEXP portsSEXP, SEXP flag_print_pidsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type max_nprocs(max_nprocsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::String >::type archivePath(archivePathSEXP);
+    Rcpp::traits::input_parameter< Rcpp::String >::type archiveName(archiveNameSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type ports(portsSEXP);
+    Rcpp::traits::input_parameter< bool >::type flag_print_pids(flag_print_pidsSEXP);
+    rcpp_result_gen = Rcpp::wrap(init_otf2_logger(max_nprocs, archivePath, archiveName, ports, flag_print_pids));
+    return rcpp_result_gen;
+END_RCPP
+}
 // assign_regionRef_array_master
 RcppExport SEXP assign_regionRef_array_master(int num_funcs);
 RcppExport SEXP _rTrace_assign_regionRef_array_master(SEXP num_funcsSEXP) {
@@ -215,6 +230,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 5},
     {"_rTrace_assign_regionRef_array_master", (DL_FUNC) &_rTrace_assign_regionRef_array_master, 1},
     {"_rTrace_finalize_GlobalDefWriter_client", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter_client, 0},
     {"_rTrace_define_otf2_regionRef_client", (DL_FUNC) &_rTrace_define_otf2_regionRef_client, 2},

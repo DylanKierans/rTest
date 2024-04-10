@@ -6,6 +6,17 @@
 #' @return 0 , else Rcpp::stop on error
 NULL
 
+#' Fork and initialize zeromq sockets for writing globalDef definitions
+#' @param max_nprocs Maximum number of R processes (ie evtWriters required)
+#' @param archivePath Path to otf2 archive
+#' @param archiveName Name of otf2 archive
+#' @param ports Port numbers for zmq sockets (must be length <NUM_PORTS)
+#' @param flag_print_pids True to print pids of parent and child procs
+#' @return <0 if error, 0 if R master, else >0 if child
+init_otf2_logger <- function(max_nprocs, archivePath, archiveName, ports, flag_print_pids) {
+    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, ports, flag_print_pids)
+}
+
 #' assign_regionRef_array_master
 #' @description Array is not assigned on master, 
 #'     rather is signalled to assign on server

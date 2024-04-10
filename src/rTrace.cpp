@@ -129,8 +129,9 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 ///////////////////////////////
 RcppExport SEXP init_zmq_client();
 RcppExport SEXP finalize_zmq_client();
-//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
-RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
+//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, Rcpp::NumericVector, bool);
+RcppExport int init_otf2_logger(int, Rcpp::String archivePath = "./rTrace", Rcpp::String archiveName = "rTrace", 
+        Rcpp::NumericVector ports = {5556,5557}, bool flag_print_pids=false);
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP finalize_GlobalDefWriter_client();
@@ -286,10 +287,10 @@ RcppExport int set_ports(Rcpp::NumericVector ports){
 //' @param flag_print_pids True to print pids of parent and child procs
 //' @return <0 if error, 0 if R master, else >0 if child
 // [[Rcpp::export]]
-RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rTrace", 
-        Rcpp::String archiveName = "rTrace", 
-        Rcpp::NumericVector ports = {5556,5557},
-        bool flag_print_pids=false)
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, 
+        Rcpp::String archiveName, 
+        Rcpp::NumericVector ports,
+        bool flag_print_pids)
 {
     // TODO: Verify this acts as intended to save child proc
     signal(SIGHUP, sighup_handler);
@@ -636,23 +637,23 @@ void init_zmq_server(){
 
     // Init zmq context
     context = zmq_ctx_new();
-    if (context==NULL){ report_and_exit("init_otf2_logger server context"); }
+    if (context==NULL){ report_and_exit("init_zmq_server context"); }
 
     // Puller
     puller = zmq_socket(context, ZMQ_PULL);
-    if (puller==NULL){ report_and_exit("init_otf2_logger server puller"); }
+    if (puller==NULL){ report_and_exit("init_zmq_server puller"); }
     //zmq_ret = zmq_bind(puller, "tcp://*:5556");
     snprintf(buffer, 30, "tcp://*:%d", PORTS[0]);
     zmq_ret = zmq_bind(puller, buffer);
-    if (zmq_ret!=0){ report_and_exit("server zmq_bind puller", puller); }
+    if (zmq_ret!=0){ report_and_exit("init_zmq_server zmq_bind puller", puller); }
 
     // Syncer
     syncer = zmq_socket(context, ZMQ_PUSH); 
-    if (syncer==NULL){ report_and_exit("init_otf2_logger server syncer"); }
+    if (syncer==NULL){ report_and_exit("init_zmq_server syncer"); }
     //zmq_ret = zmq_bind(syncer, "tcp://*:5557");
     snprintf(buffer, 30, "tcp://*:%d", PORTS[1]);
     zmq_ret = zmq_bind(puller, buffer);
-    if (zmq_ret < 0 ) { report_and_exit("server zmq_bind syncer", NULL); }
+    if (zmq_ret < 0 ) { report_and_exit("init_zmq_server zmq_bind syncer", NULL); }
 }
 
 //' init_zmq_client
@@ -665,23 +666,23 @@ RcppExport SEXP init_zmq_client(){
 
     // Init otf2 objs
     context = zmq_ctx_new();
-    if (context==NULL){report_and_exit("init_otf2_logger client context");}
+    if (context==NULL){report_and_exit("init_zmq_client context");}
 
     // Connect pusher used for globalDebWriter and evtWriter
     pusher = zmq_socket(context, ZMQ_PUSH);
-    if (pusher==NULL){report_and_exit("init_otf2_logger client pusher");}
+    if (pusher==NULL){report_and_exit("init_zmq_client pusher");}
     zmq_ret = zmq_connect(pusher, "tcp://localhost:5556");
     snprintf(buffer, 30, "tcp://localhost:%d", PORTS[0]);
     zmq_ret = zmq_connect(pusher, buffer);
-    if (zmq_ret<0){report_and_exit("init_otf2_logger client connect pusher");}
+    if (zmq_ret<0){report_and_exit("init_zmq_client connect pusher");}
 
     // Syncer
     syncer = zmq_socket(context, ZMQ_PULL); 
-    if (syncer == NULL){ report_and_exit("init_otf2_logger client syncer"); }
+    if (syncer == NULL){ report_and_exit("init_zmq_client syncer"); }
     //zmq_ret = zmq_connect(syncer, "tcp://localhost:5557");
     snprintf(buffer, 30, "tcp://localhost:%d", PORTS[1]);
     zmq_ret = zmq_connect(syncer, buffer);
-    if (zmq_ret != 0){ report_and_exit("init_otf2_logger client connect syncer"); }
+    if (zmq_ret != 0){ report_and_exit("init_zmq_server connect syncer"); }
     return(R_NilValue);
 }
 
