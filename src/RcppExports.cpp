@@ -25,6 +25,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// set_ports
+RcppExport int set_ports(Rcpp::NumericVector ports);
+RcppExport SEXP _rTrace_set_ports(SEXP portsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type ports(portsSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_ports(ports));
+    return rcpp_result_gen;
+END_RCPP
+}
 // assign_regionRef_array_master
 RcppExport SEXP assign_regionRef_array_master(int num_funcs);
 RcppExport SEXP _rTrace_assign_regionRef_array_master(SEXP num_funcsSEXP) {
@@ -65,16 +76,6 @@ BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     rcpp_result_gen = Rcpp::wrap(finalize_EvtWriter_client());
-    return rcpp_result_gen;
-END_RCPP
-}
-// finalize_sync_client
-RcppExport SEXP finalize_sync_client();
-RcppExport SEXP _rTrace_finalize_sync_client() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(finalize_sync_client());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -119,6 +120,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// evtWriter_proc_client
+RcppExport SEXP evtWriter_proc_client(bool proc_init);
+RcppExport SEXP _rTrace_evtWriter_proc_client(SEXP proc_initSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< bool >::type proc_init(proc_initSEXP);
+    rcpp_result_gen = Rcpp::wrap(evtWriter_proc_client(proc_init));
+    return rcpp_result_gen;
+END_RCPP
+}
 // evtWriter_Write_client
 RcppExport SEXP evtWriter_Write_client(int func_index, bool event_type);
 RcppExport SEXP _rTrace_evtWriter_Write_client(SEXP func_indexSEXP, SEXP event_typeSEXP) {
@@ -139,6 +151,46 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const int >::type id(idSEXP);
     rcpp_result_gen = Rcpp::wrap(set_locationRef(id));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_pid
+RcppExport int get_pid();
+RcppExport SEXP _rTrace_get_pid() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_pid());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_tid
+RcppExport int get_tid();
+RcppExport SEXP _rTrace_get_tid() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_tid());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_ppid
+RcppExport int get_ppid();
+RcppExport SEXP _rTrace_get_ppid() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_ppid());
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_pgid
+RcppExport int get_pgid();
+RcppExport SEXP _rTrace_get_pgid() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_pgid());
     return rcpp_result_gen;
 END_RCPP
 }
@@ -173,17 +225,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// otf2_handle_proc
-RcppExport SEXP otf2_handle_proc(bool is_init);
-RcppExport SEXP _rTrace_otf2_handle_proc(SEXP is_initSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< bool >::type is_init(is_initSEXP);
-    rcpp_result_gen = Rcpp::wrap(otf2_handle_proc(is_init));
-    return rcpp_result_gen;
-END_RCPP
-}
 // test__struct_size
 RcppExport int test__struct_size();
 RcppExport SEXP _rTrace_test__struct_size() {
@@ -208,59 +249,55 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// get_pid
-RcppExport int get_pid();
-RcppExport SEXP _rTrace_get_pid() {
+// test__signal
+RcppExport int test__signal(const int signal_proc, const bool is_master);
+RcppExport SEXP _rTrace_test__signal(SEXP signal_procSEXP, SEXP is_masterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_pid());
+    Rcpp::traits::input_parameter< const int >::type signal_proc(signal_procSEXP);
+    Rcpp::traits::input_parameter< const bool >::type is_master(is_masterSEXP);
+    rcpp_result_gen = Rcpp::wrap(test__signal(signal_proc, is_master));
     return rcpp_result_gen;
 END_RCPP
 }
-// get_tid
-RcppExport int get_tid();
-RcppExport SEXP _rTrace_get_tid() {
+// r_report_and_exit
+RcppExport SEXP r_report_and_exit(Rcpp::String msg);
+RcppExport SEXP _rTrace_r_report_and_exit(SEXP msgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_tid());
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_ppid
-RcppExport int get_ppid();
-RcppExport SEXP _rTrace_get_ppid() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(get_ppid());
+    Rcpp::traits::input_parameter< Rcpp::String >::type msg(msgSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_report_and_exit(msg));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 5},
+    {"_rTrace_set_ports", (DL_FUNC) &_rTrace_set_ports, 1},
     {"_rTrace_assign_regionRef_array_master", (DL_FUNC) &_rTrace_assign_regionRef_array_master, 1},
     {"_rTrace_finalize_GlobalDefWriter_client", (DL_FUNC) &_rTrace_finalize_GlobalDefWriter_client, 0},
     {"_rTrace_define_otf2_regionRef_client", (DL_FUNC) &_rTrace_define_otf2_regionRef_client, 2},
     {"_rTrace_finalize_EvtWriter_client", (DL_FUNC) &_rTrace_finalize_EvtWriter_client, 0},
-    {"_rTrace_finalize_sync_client", (DL_FUNC) &_rTrace_finalize_sync_client, 0},
     {"_rTrace_init_zmq_client", (DL_FUNC) &_rTrace_init_zmq_client, 0},
     {"_rTrace_finalize_zmq_client", (DL_FUNC) &_rTrace_finalize_zmq_client, 0},
     {"_rTrace_evtWriter_MeasurementOnOff_client", (DL_FUNC) &_rTrace_evtWriter_MeasurementOnOff_client, 1},
     {"_rTrace_epoch_time_client", (DL_FUNC) &_rTrace_epoch_time_client, 0},
+    {"_rTrace_evtWriter_proc_client", (DL_FUNC) &_rTrace_evtWriter_proc_client, 1},
     {"_rTrace_evtWriter_Write_client", (DL_FUNC) &_rTrace_evtWriter_Write_client, 2},
     {"_rTrace_set_locationRef", (DL_FUNC) &_rTrace_set_locationRef, 1},
-    {"_rTrace_get_locationRef", (DL_FUNC) &_rTrace_get_locationRef, 0},
-    {"_rTrace_set_maxUsedLocationRef_client", (DL_FUNC) &_rTrace_set_maxUsedLocationRef_client, 1},
-    {"_rTrace_print_errnos", (DL_FUNC) &_rTrace_print_errnos, 0},
-    {"_rTrace_otf2_handle_proc", (DL_FUNC) &_rTrace_otf2_handle_proc, 1},
-    {"_rTrace_test__struct_size", (DL_FUNC) &_rTrace_test__struct_size, 0},
-    {"_rTrace_test__ports", (DL_FUNC) &_rTrace_test__ports, 4},
     {"_rTrace_get_pid", (DL_FUNC) &_rTrace_get_pid, 0},
     {"_rTrace_get_tid", (DL_FUNC) &_rTrace_get_tid, 0},
     {"_rTrace_get_ppid", (DL_FUNC) &_rTrace_get_ppid, 0},
+    {"_rTrace_get_pgid", (DL_FUNC) &_rTrace_get_pgid, 0},
+    {"_rTrace_get_locationRef", (DL_FUNC) &_rTrace_get_locationRef, 0},
+    {"_rTrace_set_maxUsedLocationRef_client", (DL_FUNC) &_rTrace_set_maxUsedLocationRef_client, 1},
+    {"_rTrace_print_errnos", (DL_FUNC) &_rTrace_print_errnos, 0},
+    {"_rTrace_test__struct_size", (DL_FUNC) &_rTrace_test__struct_size, 0},
+    {"_rTrace_test__ports", (DL_FUNC) &_rTrace_test__ports, 4},
+    {"_rTrace_test__signal", (DL_FUNC) &_rTrace_test__signal, 2},
+    {"_rTrace_r_report_and_exit", (DL_FUNC) &_rTrace_r_report_and_exit, 1},
     {NULL, NULL, 0}
 };
 

@@ -1,2 +1,4 @@
 
-rm -f  src/*.o src/*.so */*~ *~
+#rm -f  src/*.o src/*.so */*~ *~
+rm -f  src/*.o src/*.so
+rm -f tests/testthat/log.log

@@ -1,4 +1,4 @@
-
+# Simple sanity tests for developer
 
 testthat::test_that("Incorrect order of function calls", {
     expect_error({

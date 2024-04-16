@@ -6,5 +6,14 @@ Init evt_writers complete
 
 Init of otf2 objs complete
 
-[errno: 88] ERROR: run_evtWriters_server zmq_bind puller
-File closing
+epoch_time_server epoch_start
+
+epoch_time_server epoch_start complete
+
+regionRef_array length: 3817
+assign_regionRef_array_server complete
+
+(pid: 284027) Listening for globalDefWriter
+
+sigfoo_handler: 21, pid: 284027, ppid: 283988, pgid: 283988, child_pid: 0
+CLOSING DUE TO SIGRTRACE

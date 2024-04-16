@@ -56,33 +56,44 @@ is_instrumentation_enabled <- function() {
 
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
+#' @param ports Default ports for zeromq sockets
+#' @param max_function_depth Set max function depth for tracing (default: 10)
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
+#'  (default: TRUE)
 #' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
+#'  Intended for developers(default: FALSE)
+#' @param print_func_indexes Print function indexes during instrumentation. 
+#'  Intended for developers (default: FALSE)
+#' @param unlock_envs Keep envs unlocked when instrumenting.
+#'  Intended for developers (default: TRUE)
 #' @export
-instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
+instrumentation_init <- function(ports=c(5556,5557), max_function_depth = 10, 
+        flag_user_functions=T, verbose_wrapping=F,
+        print_func_indexes=F, unlock_envs = T
+        )
 {
     if (is_instrumentation_init()){
         print("ERROR: `instrumentation_init` has already been called")
-        stop()
+        r_report_and_exit("`instrumentation_init` has already been called")
+        #stop()
     }
     ## Update package vars
+    pkg.env$MAX_FUNCTION_DEPTH <- max_function_depth 
     pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
     pkg.env$PRINT_SKIPS <- verbose_wrapping
+    pkg.env$PRINT_FUNC_INDEXES <- print_func_indexes 
+    pkg.env$UNLOCK_ENVS <- unlock_envs
+
     pkg.env$INSTRUMENTATION_INIT <- TRUE
 
     ## Initiate new proc - close R if not Master
-    ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0
+    ret <- init_otf2_logger(parallelly::availableCores(), ports=ports) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
 
     ## Assign array on logger proc for regionRef of each func
     total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
     epoch_time_client()
     assign_regionRef_array_master(total_num_funcs)
-
-    ## TODO: Run this instead as a test during pkg install
-    if(test__struct_size() != 0){
-        stop("ERROR: Invalid internal struct size")
-    }
 
     return(invisible(NULL))
 }
@@ -98,7 +109,6 @@ is_instrumentation_init <- function() {
 }
 
 
-# @TODO: zmq this
 #' instrumentation_finalize
 #' @description Close otf2 objs for instrumentation
 #' @export
@@ -117,30 +127,15 @@ instrumentation_finalize <- function()
         instrumentation_disable()
     }
 
-    finalize_EvtWriter_client()
-    epoch_time_client()
-    finalize_sync_client()
-    finalize_zmq_client()
+    finalize_EvtWriter_client() # Send NULL msg
+    epoch_time_client()         # Send get_time()
+    #print("finalize_sync_client")
+    #finalize_sync_client()      # Recv null msg on syncer, and return
+    #print("finalize_sync_client complete")
+    finalize_zmq_client()       # Close sockets and context
     return(invisible(NULL))
 }
 
-
-
-#' instrumentation_debug
-#' @description Enable certain debug features
-#' @param print_func_indexes info
-#' @param max_function_depth info
-#' @param unlock_env info
-#' @export
-instrumentation_debug <- function(print_func_indexes = pkg.env$PRINT_FUNC_INDEXES,
-                                  max_function_depth = pkg.env$MAX_FUNCTION_DEPTH,
-                                  unlock_env = pkg.env$UNLOCK_ENVS )
-{
-    pkg.env$PRINT_FUNC_INDEXES <- print_func_indexes 
-    pkg.env$MAX_FUNCTION_DEPTH <- max_function_depth 
-    pkg.env$UNLOCK_ENVS <- unlock_env
-    invisible()
-}
 
 #' instrumentation_wrapper
 #' @description Simple function to provider wrapper for instrumenting a single function call.

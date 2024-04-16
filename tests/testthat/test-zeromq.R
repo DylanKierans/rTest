@@ -9,3 +9,7 @@ testthat::test_that("ZeroMQ data transfer over default sockets", {
     expect_equal(0, 0)
     # expect_equal(test__ports(2), 0)
 })
+
+testthat::test_that("Valid structs for zmq payloads", {
+    expect_equal(test__struct_size(), 0)
+})

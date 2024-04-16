@@ -4,12 +4,31 @@
 \alias{instrumentation_init}
 \title{instrumentation_init}
 \usage{
-instrumentation_init(flag_user_functions = T, verbose_wrapping = F)
+instrumentation_init(
+  ports = c(5556, 5557),
+  max_function_depth = 10,
+  flag_user_functions = T,
+  verbose_wrapping = F,
+  print_func_indexes = F,
+  unlock_envs = T
+)
 }
 \arguments{
-\item{flag_user_functions}{Boolean - TRUE to include user functions in dataframe}
+\item{ports}{Default ports for zeromq sockets}
 
-\item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout}
+\item{max_function_depth}{Set max function depth for tracing (default: 10)}
+
+\item{flag_user_functions}{Boolean - TRUE to include user functions in dataframe
+(default: TRUE)}
+
+\item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
+Intended for developers(default: FALSE)}
+
+\item{print_func_indexes}{Print function indexes during instrumentation.
+Intended for developers (default: FALSE)}
+
+\item{unlock_envs}{Keep envs unlocked when instrumenting.
+Intended for developers (default: TRUE)}
 }
 \description{
 Create otf2 objs for instrumentation, and initiate global vars
