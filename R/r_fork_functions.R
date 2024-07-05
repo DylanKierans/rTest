@@ -397,17 +397,12 @@ master_init_slave <- function(cl) {
     parallel::clusterEvalQ(cl, eval(parse(text = pkg_cmd)))
 
     # Export rTrace variables 
-    vars <- c( "INSTRUMENTATION_INIT", "INSTRUMENTATION_ENABLED",
-        "INSTRUMENTATION_STATUS_SAVED", "MAX_FUNCTION_DEPTH",
-        "FUNCTION_DEPTH", "UNLOCK_ENVS", "PRINT_INSTRUMENTS",
-        "PRINT_SKIPS", "PRINT_FUNC_INDEXES"
-    )
-    parallel::clusterExport(cl, c("vars"), envir=environment())
-    parallel::clusterExport(cl, vars, envir=pkg.env)
+    parallel::clusterExport(cl, c("RTRACE_VARS"), envir=environment())
+    parallel::clusterExport(cl, RTRACE_VARS, envir=pkg.env)
     parallel::clusterEvalQ(cl, {
         FUNCTION_DEPTH <- 0 # Reset function depth
         unlock_envs("rTrace")
-        for(n in vars) { assign(n, get(n, .GlobalEnv), pkg.env) }
+        for(n in RTRACE_VARS) { assign(n, get(n, .GlobalEnv), pkg.env) }
         lock_envs("rTrace")
     })
 

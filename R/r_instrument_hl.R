@@ -54,17 +54,26 @@ is_instrumentation_enabled <- function() {
 }
 
 
+## YOU ARE HERE 
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
-#' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout
+#' @param collect_metrics Boolean - Enable papi/perf metric collection with instrumentation
+#' @param verbose_wrapping Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout. Intended for developers
 #' @export
-instrumentation_init <- function(flag_user_functions=T, verbose_wrapping=F)
+instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbose_wrapping=F)
 {
     ## Update package vars
     pkg.env$PRINT_INSTRUMENTS <- verbose_wrapping
     pkg.env$PRINT_SKIPS <- verbose_wrapping
     pkg.env$INSTRUMENTATION_INIT <- TRUE
+
+    ### YOU ARE HERE
+    ## Interface to pmpmeas 
+    if (collect_metrics){
+        pkg.env$COLLECT_METRICS <- TRUE
+        pmpmeas_init()
+    }
 
     ## Initiate new proc - close R if not Master
     ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0

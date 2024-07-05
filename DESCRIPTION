@@ -13,4 +13,4 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 URL: https://github.com/DylanKierans/rTrace
 BugReports: https://github.com/DylanKierans/rTrace/issues
-SystemRequirements: otf-trace, libotf-trace-dev, zeromq
+SystemRequirements: otf-trace, libotf-trace-dev, zeromq, papi, perf
