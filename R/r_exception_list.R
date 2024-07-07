@@ -63,7 +63,8 @@ get_function_exception_list <- function() {
 
     # These functions contain on.exit() and blocks instrumentation insert
     on.exit_functions <- c()
-    if (R.utils::isPackageLoaded("R.utils")){ on.exit_functions <- append(on.exit_functions, c(R.utils::read.table)) }
+    #if (R.utils::isPackageLoaded("R.utils")){ on.exit_functions <- append(on.exit_functions, c(R.utils::read.table)) }
+    if (R.utils::isPackageLoaded("utils")){ on.exit_functions <- append(on.exit_functions, c(utils::read.table)) }
 
     function_exception_list <- append(function_exception_list, on.exit_functions)
 

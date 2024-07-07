@@ -396,6 +396,14 @@ master_init_slave <- function(cl) {
     parallel::clusterExport(cl, c("pkg_cmd"), envir=environment())
     parallel::clusterEvalQ(cl, eval(parse(text = pkg_cmd)))
 
+    ## Attempted to store as pkg.env$RTRACE_VARS in rTrace.R, results in error
+    RTRACE_VARS <- c( "INSTRUMENTATION_INIT", "INSTRUMENTATION_ENABLED",
+        "INSTRUMENTATION_STATUS_SAVED", "MAX_FUNCTION_DEPTH",
+        "FUNCTION_DEPTH", "UNLOCK_ENVS", "PRINT_INSTRUMENTS",
+        "PRINT_SKIPS", "PRINT_FUNC_INDEXES", 
+        "COLLECT_METRICS"
+    )
+
     # Export rTrace variables 
     parallel::clusterExport(cl, c("RTRACE_VARS"), envir=environment())
     parallel::clusterExport(cl, RTRACE_VARS, envir=pkg.env)

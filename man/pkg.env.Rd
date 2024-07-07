@@ -17,6 +17,8 @@
 \item{PRINT_INSTRUMENTS}{}
 \item{PRINT_SKIPS}{}
 \item{PRINT_FUNC_INDEXES}{}
+\item{COLLECT_METRICS}{}
+\item{RTRACE_VARS}{}
 }
 }
 \usage{

@@ -72,11 +72,10 @@ instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbo
     ## Interface to pmpmeas 
     if (collect_metrics){
         pkg.env$COLLECT_METRICS <- TRUE
-        pmpmeas_init()
     }
 
     ## Initiate new proc - close R if not Master
-    ret <- init_otf2_logger(parallelly::availableCores()) # Master R proc returns 0
+    ret <- init_otf2_logger(parallelly::availableCores(), collect_metrics=collect_metrics) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
 
     ## Assign array on logger proc for regionRef of each func

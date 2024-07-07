@@ -5,10 +5,11 @@
 #' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 #' @param archivePath Path to otf2 archive
 #' @param archiveName Name of otf2 archive
+#' @param collect_metrics Collect HWPC metrics via pmpmeas
 #' @param flag_print_pids True to print pids of parent and child procs
 #' @return <0 if error, 0 if R master, else >0 if child
-init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace", flag_print_pids = FALSE) {
-    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, flag_print_pids)
+init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName = "rTrace", collect_metrics = FALSE, flag_print_pids = FALSE) {
+    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids)
 }
 
 #' assign_regionRef_array_master

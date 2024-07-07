@@ -7,8 +7,17 @@ ZEROMQ_PKG_CPPFLAGS=-I${ZEROMQ_ROOT}/include
 ZEROMQ_PKG_LIBS=-L${ZEROMQ_ROOT}/lib -lzmq
 
 # pmpmeas - papi
-PMPMEAS_PKG_CPPFLAGS=`pkg-config --cflags papi`
-PMPMEAS_PKG_LIBS=`pkg-config --libs papi`
+# num = PAPI_get_opt(PAPI_MAX_HWCTRS,NULL)
+# papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||g"
+#PAPICNTMAX=3
+#PAPICNTMAX=`papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||"`
+#PMPMEAS_PKG_CPPFLAGS=`pkg-config --cflags papi` -DUSEPAPI -DPAPICNTMAX=${PAPICNTMAX} -DRTRACE_SUPPORT -D_COLLECT_METRICS
+#PMPMEAS_PKG_LIBS=`pkg-config --libs papi` 
+#
+PAPICNTMAX=$(papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
+PMPMEAS_PKG_CPPFLAGS=$(pkg-config --cflags papi) -DUSEPAPI -DPAPICNTMAX=${PAPICNTMAX} -DRTRACE_SUPPORT -D_COLLECT_METRICS
+PMPMEAS_PKG_LIBS=$(pkg-config --libs papi)
 
 PKG_CPPFLAGS=-I. ${OTF2_PKG_CPPFLAGS} ${ZEROMQ_PKG_CPPFLAGS} ${PMPMEAS_PKG_CPPFLAGS}
-PKG_LIBS=-L. ${OTF2_PKG_LIBS} ${ZEROMQ_PKG_LIBS} ${PMPMMEAS_PKG_LIBS}
+PKG_LIBS=-L. ${OTF2_PKG_LIBS} ${ZEROMQ_PKG_LIBS} ${PMPMEAS_PKG_LIBS}
+

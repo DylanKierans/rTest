@@ -8,6 +8,7 @@ init_otf2_logger(
   max_nprocs,
   archivePath = "./rTrace",
   archiveName = "rTrace",
+  collect_metrics = FALSE,
   flag_print_pids = FALSE
 )
 }
@@ -17,6 +18,8 @@ init_otf2_logger(
 \item{archivePath}{Path to otf2 archive}
 
 \item{archiveName}{Name of otf2 archive}
+
+\item{collect_metrics}{Collect HWPC metrics via pmpmeas}
 
 \item{flag_print_pids}{True to print pids of parent and child procs}
 }

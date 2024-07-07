@@ -4,12 +4,18 @@
 \alias{instrumentation_init}
 \title{instrumentation_init}
 \usage{
-instrumentation_init(flag_user_functions = T, verbose_wrapping = F)
+instrumentation_init(
+  flag_user_functions = T,
+  collect_metrics = F,
+  verbose_wrapping = F
+)
 }
 \arguments{
 \item{flag_user_functions}{Boolean - TRUE to include user functions in dataframe}
 
-\item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout}
+\item{collect_metrics}{Boolean - Enable papi/perf metric collection with instrumentation}
+
+\item{verbose_wrapping}{Boolean - Print info about skipping or instrumenting each function. Produces large amount of info to stdout. Intended for developers}
 }
 \description{
 Create otf2 objs for instrumentation, and initiate global vars

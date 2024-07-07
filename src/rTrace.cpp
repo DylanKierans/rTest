@@ -27,6 +27,7 @@
 #include <otf2/otf2.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include "utils.h"
 
 // getpid
 #include <sys/types.h>
@@ -37,8 +38,12 @@
 #include <sys/wait.h>
 
 // PMPMEAS
+#include <stdbool.h>
 #include "pmpmeas.h"
 #include "meas.h"
+#include "meastypes.h"
+#include "pmpmeas-api.h"
+using namespace PMPMEAS;
 
 //#define DEBUG /* Uncomment to enable verbose debug info */
 //#define DUMMY_TIMESTEPS /* Uncomment for 1s timestep for each subsequent event call */
@@ -101,6 +106,9 @@ static int NUM_METRICS=0;  ///* Number of metrics, only applicable if COLLECT_ME
 static long long *pmpmeas_vals;
 static int pmpmeas_n;
 static OTF2_Type *typeIDs;
+std::list<MeasType*> pmpmeas_type_lst;
+std::list<Meas*> pmpmeas_meas_lst;
+std::list<Meas*> pmpmeas_match_lst;
 
 // DEBUGGING
 static FILE *fp; ///* Log file on server proc
@@ -111,7 +119,7 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 // Function declarations
 ///////////////////////////////
 // R client functions (master/slaves)
-RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
+//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
 RcppExport SEXP finalize_GlobalDefWriter_client();
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
 RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
@@ -150,12 +158,9 @@ int get_regionRef_array_server(OTF2_RegionRef, void*);
 void free_regionRef_array_server();
 void globalDefWriter_metrics_server();
 
-
 // Helper functions for debugging
-void report_and_exit(const char*, void *sock=NULL);
 void fupdate_server(FILE*, const char*);
 RcppExport SEXP print_errnos();
-
 
 ///////////////////////////////
 // Function definitions
@@ -280,7 +285,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         fupdate_server(fp, "Init of otf2 objs complete\n");
 
         // Init zmq context
-        context = zmq_ctx_new ();
+        context = zmq_ctx_new();
 
         if (COLLECT_METRICS){
             // Server creates metrics from pmpmeas objects
@@ -1007,14 +1012,14 @@ void globalDefWriter_metrics_server()
     OTF2_ErrorCode ret;
 
     // Meas contains all metrics of specific type (eg time, papi, perf)
-    for (list<Meas*>::iterator m = pmpmeas_match_lst.begin(); m != pmpmeas_match_lst.end(); m++){
-        switch( (*m)->_type() )
+    for (std::list<Meas*>::iterator m = pmpmeas_match_lst.begin(); m != pmpmeas_match_lst.end(); m++){
+        switch( (*m)->type() )
         {
             case (MeasType::PAPI):
                 metricType = OTF2_METRIC_TYPE_PAPI;
                 break;
             case (MeasType::PERF):
-                metricType = OTF2_METRIC_TYPE_PERF;
+                metricType = OTF2_METRIC_TYPE_OTHER; // perf
                 break;
             default: // TIME or unrecognized
                 continue;
@@ -1022,13 +1027,13 @@ void globalDefWriter_metrics_server()
         }
 
         // Cycle through each metric of given type, and create metric
-        for ( int i=0; i<(*m)->ncnt(); i++ ){
-            char *ename = (*m)->ename(i);    
+        for ( int i=0; i<(*m)->cnt(); i++ ){
+            const char *ename = (*m)->ename(i);    
             Rcpp::String stringEname(ename);
 
             stringRef_name = globalDefWriter_WriteString_server(stringEname);
 
-            ret = OTF2_GlobalDefWriter_WriteMetricMember(globalDefWriter,
+            ret = OTF2_GlobalDefWriter_WriteMetricMember(global_def_writer,
                 NUM_METRICS++ /* MetricMemberRef */,
                 stringRef_name, 
                 0 /*stringRef_description*/,
@@ -1047,15 +1052,15 @@ void globalDefWriter_metrics_server()
 
     OTF2_MetricMemberRef *metricMembers;
     
-    metricMembers = (OTF2_MetricMemberRef*)malloc(NUM_METRICS*sizeof(*OTF2_MetricMemberRef));
-    typeIDs = (OTF2_Type*)malloc(NUM_METRICS*sizeof(*typeIDs));
+    metricMembers = (OTF2_MetricMemberRef*) malloc(NUM_METRICS*sizeof(*metricMembers));
+    typeIDs = (OTF2_Type*) malloc(NUM_METRICS*sizeof(*typeIDs));
 
-    for (OTF2_MetricMemberRef i=0; i<NUM_METRICS; ++i){ 
+    for (int i=0; i<NUM_METRICS; ++i){ 
         metricMembers[i] = i; 
         typeIDs[i] = OTF2_TYPE_INT64;
     }
 
-    ret = OTF2_GlobalDefWriter_WriteMetricClass(globalDefWriter,
+    ret = OTF2_GlobalDefWriter_WriteMetricClass(global_def_writer,
 		0 /* MetricRef */,
 		NUM_METRICS,
 		metricMembers,
@@ -1146,7 +1151,7 @@ void run_evtWriters_server(bool flag_log){
                             0 /* MetricRef */,
                             pmpmeas_n,
                             typeIDs,
-                            pmpmeas_vals);
+                            (OTF2_MetricValue*)pmpmeas_vals);
                 } else {
                     zmq_ret = zmq_recv(puller, NULL, 0, 0); // ZMQ ID: 5c_ii
                 }
