@@ -20,5 +20,6 @@ makeCluster.c
 src/Makevars
 src/config.h
 config.*
+!src/config.h.in
 src/stamp-h1
 autom4te.cache/
