@@ -38,6 +38,7 @@
 
 #include "papiinf.h"
 #include "utils.h"
+#include "config.h"
 
 using namespace PMPMEAS;
 
@@ -47,7 +48,7 @@ PapiInf::PapiInf(void)
 {
     int ret;
 
-#if USEPAPI
+#ifdef USEPAPI
     _cnt++;
     if (_cnt > 1)
     {
@@ -91,7 +92,7 @@ int PapiInf::create(const std::string& ename)
 {
     int ret;
 
-#if USEPAPI
+#ifdef USEPAPI
     if (_nevent == PAPICNTMAX)
     {
         #ifdef RTRACE_SUPPORT
@@ -131,7 +132,7 @@ void PapiInf::cleanup()
 {
     int ret;
 
-#if USEPAPI
+#ifdef USEPAPI
     ret = PAPI_cleanup_eventset(_ctx);
     if (ret != PAPI_OK)
     {
@@ -151,7 +152,7 @@ void PapiInf::cleanup()
 
 void PapiInf::start(void)
 {
-#if USEPAPI
+#ifdef USEPAPI
     if (PAPI_start(_ctx) != PAPI_OK)
     {
         #ifdef RTRACE_SUPPORT
@@ -168,7 +169,7 @@ void PapiInf::stop(void)
 {
     int ret;
 
-#if USEPAPI
+#ifdef USEPAPI
     ret = PAPI_stop(_ctx, _eval);
     if (ret != PAPI_OK)
     {
@@ -186,7 +187,7 @@ void PapiInf::read(void)
 {
 	int ret;
 
-#if USEPAPI
+#ifdef USEPAPI
     ret = PAPI_read(_ctx, _eval);
     if (ret != PAPI_OK)
     {

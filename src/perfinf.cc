@@ -48,6 +48,7 @@
 #include <linux/perf_event.h>
 #include <asm/unistd.h>
 #include "utils.h"
+#include "config.h"
 
 int PerfInf::_cnt = 0;
 

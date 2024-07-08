@@ -45,6 +45,7 @@
 #include <vector>
 #include <string.h>
 #include "utils.h"
+#include "config.h"
 
 using namespace std;
 

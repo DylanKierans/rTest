@@ -15,3 +15,9 @@
 
 # tmp 
 makeCluster.c
+
+# Created by configuration 
+src/Makevars
+src/config.h
+config.*
+src/stamp-h1
