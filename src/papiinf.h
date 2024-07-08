@@ -42,20 +42,11 @@
 #include <string>
 #include <papi.h>
 
+//#define PAPICNTMAX 3
+
 namespace PMPMEAS {
 
-class Inf{
-private:
-    std::string _ename[PAPICNTMAX];     //!< Event name
-
-public:
-    const char* ename(int i) const
-    {
-        return _ename[i].c_str();
-    }
-};
-
-class PapiInf:Inf
+class PapiInf
 {
 private:
     static int _cnt;
