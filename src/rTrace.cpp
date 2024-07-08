@@ -22,6 +22,7 @@
 // @note Use pmpmeas_init to parse environment variables
 // @note New object Meas for each meas_type, contains multiple metrics via _cnt
 //   Names and values stored in papi/perf interface (include/papiinf.hh)
+// @note Move pmpmeas to sub-directory and update buildchain
 
 #include "Rcpp.h"
 #include <otf2/otf2.h>
@@ -122,20 +123,20 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 //RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
 RcppExport SEXP finalize_GlobalDefWriter_client();
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
-RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
-RcppExport SEXP close_EvtWriterSocket_client();
 RcppExport SEXP open_EvtWriterSocket_client();
+RcppExport SEXP close_EvtWriterSocket_client();
 RcppExport SEXP evtWriter_Write_client(int, bool);
+RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
 RcppExport int set_maxUsedLocationRef_client(int);
+RcppExport SEXP stopCluster_master();
+RcppExport SEXP finalize_EvtWriter_client();
+RcppExport SEXP finalize_otf2_client();
 RcppExport SEXP assign_regionRef_array_master(int);
 RcppExport SEXP get_regionRef_array_master(const int);
-RcppExport SEXP stopCluster_master();
 RcppExport SEXP assign_regionRef_array_slave(int);
 RcppExport int get_regionRef_from_array_slave(int);
 RcppExport SEXP free_regionRef_array_slave();
 RcppExport SEXP get_regionRef_array_slave(const int);
-RcppExport SEXP finalize_EvtWriter_client();
-RcppExport SEXP finalize_otf2_client();
 
 // OTF2 Server/logger functions
 void init_Archive_server(Rcpp::String, Rcpp::String);
@@ -144,7 +145,7 @@ void init_EvtWriters_server();
 void finalize_EvtWriters_server();
 void init_GlobalDefWriter_server();
 void finalize_GlobalDefWriter_server();
-void run_evtWriters_server(bool);
+void run_EvtWriters_server(bool);
 void globalDefWriter_server();
 void finalize_otf2_server();
 OTF2_StringRef globalDefWriter_WriteString_server(Rcpp::String stringRefValue);
@@ -157,6 +158,12 @@ void assign_regionRef_array_server();
 int get_regionRef_array_server(OTF2_RegionRef, void*);
 void free_regionRef_array_server();
 void globalDefWriter_metrics_server();
+
+// Wrappers for pmpmeas
+RcppExport SEXP r_pmpmeas_init();
+RcppExport SEXP r_pmpmeas_finish();
+RcppExport SEXP r_pmpmeas_start();
+RcppExport SEXP r_pmpmeas_stop(float);
 
 // Helper functions for debugging
 void fupdate_server(FILE*, const char*);
@@ -248,10 +255,12 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
     // Set COLLECT_METRICS global on server and client before fork
     if (collect_metrics){
         #ifndef _COLLECT_METRICS
-            Rcpp::stop("rTrace not build for metric collection. Rebuild or run with `collect_metrics=false`");
+            Rcpp::stop("rTrace not built for metric collection. Rebuild or run with `collect_metrics=false`");
         #endif
-        pmpmeas_init();
-        pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
+
+        // Called via R r_pmpmeas_init() before init_otf2_logger()
+        //pmpmeas_init();
+        //pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
     }
     COLLECT_METRICS = collect_metrics;
 
@@ -287,9 +296,10 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         // Init zmq context
         context = zmq_ctx_new();
 
+        // Server creates metrics from pmpmeas objects
         if (COLLECT_METRICS){
-            // Server creates metrics from pmpmeas objects
             globalDefWriter_metrics_server();
+            fupdate_server(fp, "globalDefWriter_metrics_server complete\n");
         }
 
         // Assign array for regionRefs of each func
@@ -302,8 +312,13 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
 
         // Server listens for events
         fupdate_server(fp, "evtWriter\n");
-        run_evtWriters_server(false);
+        run_EvtWriters_server(false);
         fupdate_server(fp, "evtWriter complete\n");
+
+        // Clean up pmpmeas objects
+        if (COLLECT_METRICS){
+            r_pmpmeas_finish();
+        }
 
         // Write definitions for proc structures
         globalDefWriter_WriteSystemTreeNode_server(0,0); // 1 system tree node
@@ -343,6 +358,45 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         zmq_connect(pusher, "tcp://localhost:5556");
     }
     return(0);
+}
+
+//' r_pmpmeas_init
+//' @description Wrapper for pmpmeas_init
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP r_pmpmeas_init(){
+    pmpmeas_init();
+    pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
+    return (R_NilValue);
+}
+
+//' r_pmpmeas_finish
+//' @description Wrapper for pmpmeas_finish
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP r_pmpmeas_finish(){
+    if (pmpmeas_vals != NULL) { pmpmeas_read_finalize(); }
+    pmpmeas_finish();
+    return (R_NilValue);
+}
+
+//' r_pmpmeas_start
+//' @description Wrapper for pmpmeas_start
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP r_pmpmeas_start(){
+    pmpmeas_start("tag");
+    return (R_NilValue);
+}
+
+//' r_pmpmeas_stop
+//' @description Wrapper for pmpmeas_stop
+//' @param weight Weight to scale metric values (eg average over N runs)
+//' @return R_NilValue
+// [[Rcpp::export]]
+RcppExport SEXP r_pmpmeas_stop(float weight){
+    pmpmeas_stop(weight);
+    return (R_NilValue);
 }
 
 //' assign_regionRef_array_master
@@ -579,7 +633,6 @@ RcppExport SEXP finalize_otf2_client() {
             report_and_exit("finalize_otf2_client zmq_ret"); 
         }
 
-        //report_and_exit("finalize_otf2_client zmq_ret"); 
     }
 
     // Clean up zmq socket and context
@@ -1074,11 +1127,12 @@ void globalDefWriter_metrics_server()
 }
 
 // TODO: function for evtWriters err check
-// @name run_evtWriters_server
-// @description Main function during which all otf2 event information is processed
+// @name run_EvtWriters_server
+// @description Main function during which all otf2 event information is processed. 
+//      Terminated by call to `finalize_EvtWriter_client` on client (ZMQ ID: 5x)
 // @param flag_lgo Log all events in log file
 //  and logged
-void run_evtWriters_server(bool flag_log){
+void run_EvtWriters_server(bool flag_log){
     void *puller;               ///< Recv otf2 eventlog
     void *new_proc_rep;
     int zmq_ret, rc; // Debugging recv/sends and socket
@@ -1086,18 +1140,20 @@ void run_evtWriters_server(bool flag_log){
     int nprocs=1;
     OTF2_StringRef slaveActive_stringRef;
     OTF2_RegionRef slaveActive_regionRef;
+    int rcvmore, rcvmore_ret;
+    size_t rcvmore_len = sizeof(rcvmore);
 
     // Placeholder for region of ZMQ_OTF2_SOCK_CLUSTER
     slaveActive_stringRef = globalDefWriter_WriteString_server("SLAVE_ACTIVE");
     slaveActive_regionRef = globalDefWriter_WriteRegion_server(slaveActive_stringRef);
 
     // Ensure evt_writers defined
-    if (evt_writers == NULL) { report_and_exit("run_evtWriters_server evt_writers", NULL); }
+    if (evt_writers == NULL) { report_and_exit("run_EvtWriters_server evt_writers", NULL); }
 
     //  Socket to talk to clients for EvtWriter
     puller = zmq_socket(context, ZMQ_PULL);
     rc = zmq_bind(puller, "tcp://*:5556");
-    if (rc!=0){ report_and_exit("run_evtWriters_server zmq_bind puller", puller); }
+    if (rc!=0){ report_and_exit("run_EvtWriters_server zmq_bind puller", puller); }
 
     // Socket to publish func list to new R procs
     new_proc_rep = zmq_socket(context, ZMQ_REP);
@@ -1119,13 +1175,37 @@ void run_evtWriters_server(bool flag_log){
     while (1) {
         // YOU ARE HERE
         if (COLLECT_METRICS){
-            zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), ZMQ_RCVMORE); // ZMQ ID: 5
+            zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // ZMQ ID: 5
+
+            // DEBUGGING
+            //fupdate_server(fp, "COLLECT_METRICS=T: Initial recv\n");
+
+            /* int zmq_getsockopt (void *socket, int option_name, void *option_value, size_t *option_len); */
+            zmq_getsockopt(puller, ZMQ_RCVMORE, &rcvmore, &rcvmore_len);
+            if (rcvmore){
+                rcvmore_ret = zmq_recv(puller, pmpmeas_vals, sizeof(pmpmeas_n*sizeof(*pmpmeas_vals)), 0); // ZMQ ID: 5c_ii
+                OTF2_EvtWriter_Metric(evt_writers[buffer.pid],
+                        NULL /* attribute list */,
+                        buffer.time,
+                        0 /* MetricRef */,
+                        pmpmeas_n,
+                        typeIDs,
+                        (OTF2_MetricValue*)pmpmeas_vals);
+
+                // DEBUGGING
+                //fupdate_server(fp, "COLLECT_METRICS=T: EvtWriter_Metric complete\n");
+            } else { ;
+                // DEBUGGING
+                //fupdate_server(fp, "COLLECT_METRICS=T: no 2nd recv\n");
+            }
+
         } else {
             zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // ZMQ ID: 5
+            fupdate_server(fp, "COLLECT_METRICS=F\n");
         }
 
         if (zmq_ret < 0){
-            report_and_exit("run_evtWriters_server puller zmq_recv", NULL); 
+            report_and_exit("run_EvtWriters_server puller zmq_recv", NULL); 
 
         } else if (zmq_ret == 0) { // Signal to stop listening
             break; // ZMQ ID: 5x
@@ -1137,25 +1217,6 @@ void run_evtWriters_server(bool flag_log){
             snprintf(fp_buffer, 100, "Server recv datatype: %d, pid: %d, time: %lu, regionRef(if applicable): %u\n", 
                 buffer.datatype, buffer.pid, buffer.time, buffer.regionRef);
             fupdate_server(fp, fp_buffer);
-
-            if (COLLECT_METRICS){
-                // Multipart recv
-                if ( (buffer.datatype==ZMQ_OTF2_EVENT_ENTER) || (buffer.datatype==ZMQ_OTF2_EVENT_LEAVE) ) { 
-                    zmq_ret = zmq_recv(puller, pmpmeas_vals, sizeof(pmpmeas_n*sizeof(*pmpmeas_vals)), 0); // ZMQ ID: 5c_ii
-                    if (zmq_ret <= 0){
-                        report_and_exit("run_evtWriters_server puller zmq_recv pmpmeas_vals", NULL); 
-                    }
-                    OTF2_EvtWriter_Metric(evt_writers[buffer.pid],
-                            NULL /* attribute list */,
-                            buffer.time,
-                            0 /* MetricRef */,
-                            pmpmeas_n,
-                            typeIDs,
-                            (OTF2_MetricValue*)pmpmeas_vals);
-                } else {
-                    zmq_ret = zmq_recv(puller, NULL, 0, 0); // ZMQ ID: 5c_ii
-                }
-            }
 
             // Usual part for non-metric collection
             if (buffer.datatype == ZMQ_OTF2_MEASUREMENT_ON ){ // ZMQ ID: 5a
@@ -1198,7 +1259,7 @@ void run_evtWriters_server(bool flag_log){
         } else if (zmq_ret > 0) { // Unknown datatype
             zmq_close(new_proc_rep);
             zmq_close(puller);
-            report_and_exit("run_evtWriters_server puller unknown data", NULL); 
+            report_and_exit("run_EvtWriters_server puller unknown data", NULL); 
         }
 
     }
@@ -1294,7 +1355,7 @@ void report_and_exit(const char* msg, void *socket){
 }
 
 // @name fupdate_server
-// @description Write message to server log file
+// @description Write message to server log file `log_filename`
 // @param fp File pointer to log file
 // @param msg Message to write to log file
 void fupdate_server(FILE *fp, const char* msg){
@@ -1305,6 +1366,10 @@ void fupdate_server(FILE *fp, const char* msg){
         snprintf(fp_buffer, 100, "Log file not found - msg: %s\n", msg);
         report_and_exit(fp_buffer, NULL);
     }
+
+    // DEBUGGING
+    fclose(fp);
+    fp = fopen(log_filename, "a");
 }
 
 //' set_locationRef

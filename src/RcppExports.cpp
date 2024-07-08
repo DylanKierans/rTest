@@ -25,6 +25,47 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// r_pmpmeas_init
+RcppExport SEXP r_pmpmeas_init();
+RcppExport SEXP _rTrace_r_pmpmeas_init() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(r_pmpmeas_init());
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_pmpmeas_finish
+RcppExport SEXP r_pmpmeas_finish();
+RcppExport SEXP _rTrace_r_pmpmeas_finish() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(r_pmpmeas_finish());
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_pmpmeas_start
+RcppExport SEXP r_pmpmeas_start();
+RcppExport SEXP _rTrace_r_pmpmeas_start() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(r_pmpmeas_start());
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_pmpmeas_stop
+RcppExport SEXP r_pmpmeas_stop(float weight);
+RcppExport SEXP _rTrace_r_pmpmeas_stop(SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< float >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(r_pmpmeas_stop(weight));
+    return rcpp_result_gen;
+END_RCPP
+}
 // assign_regionRef_array_master
 RcppExport SEXP assign_regionRef_array_master(int num_funcs);
 RcppExport SEXP _rTrace_assign_regionRef_array_master(SEXP num_funcsSEXP) {
@@ -260,6 +301,10 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 5},
+    {"_rTrace_r_pmpmeas_init", (DL_FUNC) &_rTrace_r_pmpmeas_init, 0},
+    {"_rTrace_r_pmpmeas_finish", (DL_FUNC) &_rTrace_r_pmpmeas_finish, 0},
+    {"_rTrace_r_pmpmeas_start", (DL_FUNC) &_rTrace_r_pmpmeas_start, 0},
+    {"_rTrace_r_pmpmeas_stop", (DL_FUNC) &_rTrace_r_pmpmeas_stop, 1},
     {"_rTrace_assign_regionRef_array_master", (DL_FUNC) &_rTrace_assign_regionRef_array_master, 1},
     {"_rTrace_assign_regionRef_array_slave", (DL_FUNC) &_rTrace_assign_regionRef_array_slave, 1},
     {"_rTrace_get_regionRef_from_array_slave", (DL_FUNC) &_rTrace_get_regionRef_from_array_slave, 1},

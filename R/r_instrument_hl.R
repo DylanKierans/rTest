@@ -70,17 +70,23 @@ instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbo
 
     ### YOU ARE HERE
     ## Interface to pmpmeas 
-    if (collect_metrics){
-        pkg.env$COLLECT_METRICS <- TRUE
+    pkg.env$COLLECT_METRICS <- collect_metrics
+    if (pkg.env$COLLECT_METRICS){
+        r_pmpmeas_init();
     }
 
     ## Initiate new proc - close R if not Master
-    ret <- init_otf2_logger(parallelly::availableCores(), collect_metrics=collect_metrics) # Master R proc returns 0
+    ret <- init_otf2_logger(parallelly::availableCores(), collect_metrics=pkg.env$COLLECT_METRICS) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
 
     ## Assign array on logger proc for regionRef of each func
     total_num_funcs <- sum(get_num_functions(flag_user_functions = T))
     assign_regionRef_array_master(total_num_funcs)
+
+    ## Start counters
+    if (pkg.env$COLLECT_METRICS){
+        r_pmpmeas_start()
+    }
 
     return(invisible(NULL))
 }
@@ -115,8 +121,19 @@ instrumentation_finalize <- function()
         instrumentation_disable()
     }
 
+    warning("DEBUG: finalize_EvtWriter_client")
     finalize_EvtWriter_client()
-    finalize_otf2_client()
+    warning("DEBUG: complete finalize_EvtWriter_client")
+    warning("DEBUG: finalize_otf2_client")
+    finalize_otf2_client() # Hanging here!
+    warning("DEBUG: complete finalize_otf2_client")
+
+    if (pkg.env$COLLECT_METRICS){
+        warning("DEBUG: r_pmpmeas_stop _finish")
+        r_pmpmeas_stop(1.0) # Might not be necessary
+        r_pmpmeas_finish()
+        warning("DEBUG: complete r_pmpmeas_stop _finish")
+    }
     return(invisible(NULL))
 }
 

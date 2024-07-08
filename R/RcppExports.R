@@ -12,6 +12,35 @@ init_otf2_logger <- function(max_nprocs, archivePath = "./rTrace", archiveName =
     .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids)
 }
 
+#' r_pmpmeas_init
+#' @description Wrapper for pmpmeas_init
+#' @return R_NilValue
+r_pmpmeas_init <- function() {
+    .Call('_rTrace_r_pmpmeas_init', PACKAGE = 'rTrace')
+}
+
+#' r_pmpmeas_finish
+#' @description Wrapper for pmpmeas_finish
+#' @return R_NilValue
+r_pmpmeas_finish <- function() {
+    .Call('_rTrace_r_pmpmeas_finish', PACKAGE = 'rTrace')
+}
+
+#' r_pmpmeas_start
+#' @description Wrapper for pmpmeas_start
+#' @return R_NilValue
+r_pmpmeas_start <- function() {
+    .Call('_rTrace_r_pmpmeas_start', PACKAGE = 'rTrace')
+}
+
+#' r_pmpmeas_stop
+#' @description Wrapper for pmpmeas_stop
+#' @param weight Weight to scale metric values (eg average over N runs)
+#' @return R_NilValue
+r_pmpmeas_stop <- function(weight) {
+    .Call('_rTrace_r_pmpmeas_stop', PACKAGE = 'rTrace', weight)
+}
+
 #' assign_regionRef_array_master
 #' @description Array is not assigned on master, 
 #'     rather is signalled to assign on server
