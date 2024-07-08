@@ -21,3 +21,4 @@ src/Makevars
 src/config.h
 config.*
 src/stamp-h1
+autom4te.cache/
