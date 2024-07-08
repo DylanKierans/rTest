@@ -1,6 +1,6 @@
 Package: rTrace
 Title: Test Package for C LibOTF Wrapper
-Version: 0.0.2.0
+Version: 0.0.3.0
 Authors@R: 
     person("Dylan", "Kierans", , "dylankierans53@gmail.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
@@ -10,7 +10,7 @@ LinkingTo: Rcpp
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 URL: https://github.com/DylanKierans/rTrace
 BugReports: https://github.com/DylanKierans/rTrace/issues
 SystemRequirements: otf-trace, libotf-trace-dev, zeromq, papi, perf

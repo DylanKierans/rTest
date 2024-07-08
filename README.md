@@ -10,6 +10,8 @@ Wrapper built using [`Rcpp`](https://cran.r-project.org/web/packages/Rcpp/index.
 
 Using `ZeroMQ` socket to communicate with process responsible for otf2 logging.
 
+Using `PMPMEAS (Poor Man's Performance Measurement tool)` to interface with papi/perf for performance metrics.
+
 
 ## Installation
 
@@ -42,6 +44,8 @@ instrumentation_finalize()
 
 Dylan Kierans
 
+Dirk Pleiter (PMPMEAS)
+
 ## License 
 
 Licensed under GPL-3.0
@@ -52,7 +56,7 @@ Licensed under GPL-3.0
     * Functions
     * Package variables in `pkg.env`
 
-* Add get/set functions for `pkg.env` global variables
+* Add get/set function for `pkg.env` global variables
     * `MAX_FUNCTION_DEPTH`
     * `PRINT_SKIPS`, `PRINT_FUNC_INDEXES`, `PRINT_INSTRUMENTS`
     * `FLAG_INSTRUMENT_ALL`, `FLAG_INSTRUMENT_USER_FUNCTIONS`
@@ -60,4 +64,6 @@ Licensed under GPL-3.0
 * Compile functions with `cmpfun` (disabled to speed up testing workflow)
 
 * Allow users to specify functions to instrument or add exceptions
+
+* Correct integration of pmpmeas as sub-repo
 
