@@ -67,3 +67,5 @@ Licensed under GPL-3.0
 
 * Correct integration of pmpmeas as sub-repo
 
+* Integrate socket and port management from tests branch
+
