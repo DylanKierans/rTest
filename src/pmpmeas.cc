@@ -45,7 +45,6 @@
 #include "pmpmeas.h"
 #include "meas.h"
 #include "utils.h"
-//#include "rTrace.h"
 
 using namespace std;
 using namespace PMPMEAS;
@@ -54,8 +53,6 @@ list<MeasType*> pmpmeas_type_lst;
 list<Meas*> pmpmeas_meas_lst;
 list<Meas*> pmpmeas_match_lst;
 
-int pmpmeas_meas_cnt_total;
-long long *pmpmeas_meas_vals;
 
 #define LENGTH_ERR_MSG 1280
 

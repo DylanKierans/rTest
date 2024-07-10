@@ -1027,14 +1027,16 @@ void run_EvtWriters_server(bool flag_log){
     int zmq_ret, rc; // Debugging recv/sends and socket
     Zmq_otf2_data buffer;
     int nprocs=1;
-    OTF2_StringRef slaveActive_stringRef;
-    OTF2_RegionRef slaveActive_regionRef;
-    int rcvmore;
-    size_t rcvmore_len = sizeof(rcvmore);
+    OTF2_StringRef slaveActive_stringRef, measurementOn_stringRef; ///< Placeholder events for when measurement enabled, and/or thread is active (possible duplication for multi-proc scripts)
+    OTF2_RegionRef slaveActive_regionRef, measurementOn_regionRef;
+    int rcvmore;                            ///< Boolean value for if multipart message
+    size_t rcvmore_len = sizeof(rcvmore);   ///< Size of rcvmore (need int*) for multipart message
 
     // Placeholder for region of ZMQ_OTF2_SOCK_CLUSTER
     slaveActive_stringRef = globalDefWriter_WriteString_server("SLAVE_ACTIVE");
     slaveActive_regionRef = globalDefWriter_WriteRegion_server(slaveActive_stringRef);
+    measurementOn_stringRef = globalDefWriter_WriteString_server("RTRACE_ON");
+    measurementOn_regionRef = globalDefWriter_WriteRegion_server(measurementOn_stringRef);
 
     // Ensure evt_writers defined
     if (evt_writers == NULL) { report_and_exit("run_EvtWriters_server evt_writers", NULL); }
@@ -1107,8 +1109,12 @@ void run_EvtWriters_server(bool flag_log){
             // Usual part for non-metric collection
             if (buffer.datatype == ZMQ_OTF2_MEASUREMENT_ON ){ // ZMQ ID: 5a
                 evtWriter_MeasurementOnOff_server(evt_writers[buffer.pid], buffer.time, true);
+                OTF2_EvtWriter_Enter( evt_writers[buffer.pid], NULL /* attributeList */,
+                        buffer.time, measurementOn_regionRef /* region */ );
 
             } else if (buffer.datatype == ZMQ_OTF2_MEASUREMENT_OFF ){ // ZMQ ID: 5b
+                OTF2_EvtWriter_Leave( evt_writers[buffer.pid], NULL /* attributeList */,
+                        buffer.time, measurementOn_regionRef /* region */ );
                 evtWriter_MeasurementOnOff_server(evt_writers[buffer.pid], buffer.time, false);
 
             } else if (buffer.datatype == ZMQ_OTF2_EVENT_ENTER ){ // ZMQ ID: 5c
