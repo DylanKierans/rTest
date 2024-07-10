@@ -672,6 +672,10 @@ void finalize_zmq_server(){
     zmq_close(puller);
     zmq_close(syncer);
     zmq_ctx_destroy(context);
+
+    puller = NULL;
+    syncer = NULL;
+    context = NULL;
 }
 
 // Open zmq sockets and context
@@ -748,6 +752,10 @@ RcppExport SEXP finalize_zmq_client(){
     zmq_close(pusher);
     zmq_close(syncer);
     zmq_ctx_destroy(context);
+
+    pusher = NULL;
+    syncer = NULL;
+    context = NULL;
     return(R_NilValue);
 }
 

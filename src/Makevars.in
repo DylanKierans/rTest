@@ -1,6 +1,6 @@
 # otf2
-OTF2_PKG_CPPFLAGS= -I/home/dylanki/local/otf2/3.0.3/include/../include
-OTF2_PKG_LIBS= -L/home/dylanki/local/otf2/3.0.3/lib -lotf2
+OTF2_PKG_CPPFLAGS= @OTF2_PKG_CPPFLAGS@
+OTF2_PKG_LIBS= @OTF2_PKG_LIBS@
 
 # zmq
 ZEROMQ_PKG_CPPFLAGS=-I${ZEROMQ_ROOT}/include
