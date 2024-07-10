@@ -130,8 +130,6 @@ public:
         _get(0);
     }
 
-	// YOU ARE HERE - TODO remove copy operator on return
-    //inline std::vector<long long> read()
 	inline long long* read()
 	{
 		_read();
@@ -186,6 +184,15 @@ public:
         const char *ret;
         switch (_type())
         {
+            case MeasType::TIME_BOOT:
+                ret = "time_boot";
+                break;
+            case MeasType::TIME_CPU:
+                ret = "time_cpu";
+                break;
+            case MeasType::TIME_THRD:
+                ret = "time_thrd";
+                break;
             case (MeasType::PAPI):
                 ret = _papi.ename(i);
                 break;

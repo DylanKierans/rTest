@@ -1,13 +1,10 @@
 // @file rTrace.cpp
 // @brief Rcpp functions for underlying otf2 library
-// @date 2024-07-02
+// @date 2024-07-10
 // @version 0.03
 // @author D.Kierans (dylanki@kth.se)
-// @note Location ~= thread, LocationGroup ~= Process, SystemTree ~= Node
-// @note errno 98 indicates socket alreayd in use 
-// @note errno 88 (ENOTSOCK) indicates not socket
-// @note errno 4 (EINTR) Interrupted system call
-// @note errno 11 (EAGAIN/EWOULDBLOCK) Resource (socket) not available
+// @note OTF2 - Location ~= thread, LocationGroup ~= Process, SystemTree ~= Node
+// @note View err numbers with print_errnos
 // @note Clients refer to active R processes {master,slaves}=={clients}. 
 //      Server refers to otf2 logger proc {server}n{clients}=0
 // @note WARNING - Was receiving consistent noise on port 5558
@@ -15,20 +12,19 @@
 // @todo Signal handling for both procs
 // @todo get epochs from Master proc
 // @todo Multipart message implimentation for repeated buffer usage
-// @todo Test removal of regionRef on client end. 
-//      Would reduce synchronization time when spawning new procs, but may increase 
-//      evtWrite time on server due to random memory access
+// @todo Move pmpmeas to sub-directory and update buildchain
 //
 // @note Use pmpmeas_init to parse environment variables
 // @note New object Meas for each meas_type, contains multiple metrics via _cnt
 //   Names and values stored in papi/perf interface (include/papiinf.hh)
-// @note Move pmpmeas to sub-directory and update buildchain
 
-#include "Rcpp.h"
 #include <otf2/otf2.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "utils.h"
+#include "Rcpp.h"
+using namespace Rcpp;
 
 // getpid
 #include <sys/types.h>
@@ -38,155 +34,61 @@
 #include <zmq.h>
 #include <sys/wait.h>
 
+// rTrace function declarations
+#include "rTrace.h"
+
 // PMPMEAS
-#include <stdbool.h>
-#include "pmpmeas.h"
-#include "meas.h"
-#include "meastypes.h"
 #include "pmpmeas-api.h"
 using namespace PMPMEAS;
 
-//#define DEBUG /* Uncomment to enable verbose debug info */
-//#define DUMMY_TIMESTEPS /* Uncomment for 1s timestep for each subsequent event call */
-#define MAX_FUNCTION_NAME_LEN 40 // Max length of R function
 
-using namespace Rcpp;
 
-// Different events during entry collection phase
-typedef enum {
-    ZMQ_OTF2_EVENT_ENTER, 
-    ZMQ_OTF2_EVENT_LEAVE, 
-    ZMQ_OTF2_MEASUREMENT_ON, 
-    ZMQ_OTF2_MEASUREMENT_OFF, 
-    ZMQ_OTF2_USED_LOCATIONREFS, 
-    ZMQ_OTF2_SOCK_CLUSTER_ON,
-    ZMQ_OTF2_SOCK_CLUSTER_OFF
-} zmq_otf2_datatypes;
-
-// Struct used for majority of data transfer during event collection phase
-typedef struct Zmq_otf2_data {
-    OTF2_TimeStamp time;  
-    OTF2_RegionRef regionRef; ///< Could probably generalize this datatype better, used for diverse int-like datatypes, see set_maxUsedLocationRef()
-    pid_t pid;
-    zmq_otf2_datatypes datatype;
-} Zmq_otf2_data;
-
-// Struct used for defining globalDefWriter key-values
-typedef struct Zmq_otf2_defWriter {
-    char func_name[MAX_FUNCTION_NAME_LEN];
-    int func_index; 
-} Zmq_otf2_defWriter;
+///////////////////////////////
+// Global vars
+///////////////////////////////
 
 // OTF2 objects for logger
-static OTF2_Archive* archive;
-static OTF2_GlobalDefWriter* global_def_writer;
+OTF2_Archive* archive;
+OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
-static OTF2_EvtWriter** evt_writers;
+OTF2_EvtWriter** evt_writers;
 
 // ZeroMQ sockets
-static bool IS_LOGGER=false; ///* Used by report_and_exit() to abtain exit behaviour
-static void *context;      ///* zmq context - clients and server
-static void *requester;    ///* zmq socket - master(5555) and slaves(5559) (comm with responder for globalDefWriter)
-static void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
+bool IS_LOGGER=false; ///* Used by report_and_exit() to abtain exit behaviour
+void *context;      ///* zmq context - clients and server
+void *requester;    ///* zmq socket - master(5555) and slaves(5559) (comm with responder for globalDefWriter)
+void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
 
 // Counters
-static const OTF2_StringRef OFFSET_NUM_STRINGREF=10; ///* Offset for NUM_STRINGREF to avoid overwriting
-static OTF2_StringRef NUM_STRINGREF=OFFSET_NUM_STRINGREF; ///* Number of events recorded with WriteString, offset to avoid overwriting
-static OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
-static OTF2_RegionRef *regionRef_array; ///* regionRef for each func_index on server
-static int NUM_FUNCS;  ///* total num R functions to instrument - length(reigonRef_array)
+const OTF2_StringRef OFFSET_NUM_STRINGREF=10; ///* Offset for NUM_STRINGREF to avoid overwriting
+OTF2_StringRef NUM_STRINGREF=OFFSET_NUM_STRINGREF; ///* Number of events recorded with WriteString, offset to avoid overwriting
+OTF2_RegionRef NUM_REGIONREF=0; ///* Number of regions recorded with WriteRegion
+OTF2_RegionRef *regionRef_array; ///* regionRef for each func_index on server
+int NUM_FUNCS;  ///* total num R functions to instrument - length(reigonRef_array)
 
 // IDs
-static OTF2_LocationRef maxLocationRef=0; ///* Cap for max number of R procs
-static OTF2_LocationRef maxUsedLocationRef=1; ///* Maximum number of used R procs <maxLocationRef
-static int locationRef=0; ///* LocationRef of current client proc
+OTF2_LocationRef maxLocationRef=1; ///* Cap for max number of R procs
+OTF2_LocationRef maxUsedLocationRef=1; ///* Maximum number of used R procs <maxLocationRef
+int locationRef=0; ///* LocationRef of current client proc
 
 // PMPMEAS - Metric collection
-static bool COLLECT_METRICS = false;
-static int NUM_METRICS=0;  ///* Number of metrics, only applicable if COLLECT_METRICS is defined/enabled
-static long long *pmpmeas_vals;
-static int pmpmeas_n;
-static OTF2_Type *typeIDs;
-std::list<MeasType*> pmpmeas_type_lst;
-std::list<Meas*> pmpmeas_meas_lst;
-std::list<Meas*> pmpmeas_match_lst;
+bool COLLECT_METRICS = false;
+int NUM_METRICS=0;  ///* Number of metrics, only applicable if COLLECT_METRICS is defined/enabled
+long long *pmpmeas_vals;
+int pmpmeas_n;
+OTF2_Type *typeIDs;
 
-// DEBUGGING
-static FILE *fp; ///* Log file on server proc
-char log_filename[]="log.log"; ///* Name of log file on server proc
-
-
-///////////////////////////////
-// Function declarations
-///////////////////////////////
-// R client functions (master/slaves)
-//RcppExport int init_otf2_logger(int, Rcpp::String, Rcpp::String, bool);
-RcppExport SEXP finalize_GlobalDefWriter_client();
-RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
-RcppExport SEXP open_EvtWriterSocket_client();
-RcppExport SEXP close_EvtWriterSocket_client();
-RcppExport SEXP evtWriter_Write_client(int, bool);
-RcppExport SEXP evtWriter_MeasurementOnOff_client(bool);
-RcppExport int set_maxUsedLocationRef_client(int);
-RcppExport SEXP stopCluster_master();
-RcppExport SEXP finalize_EvtWriter_client();
-RcppExport SEXP finalize_otf2_client();
-RcppExport SEXP assign_regionRef_array_master(int);
-RcppExport SEXP get_regionRef_array_master(const int);
-RcppExport SEXP assign_regionRef_array_slave(int);
-RcppExport int get_regionRef_from_array_slave(int);
-RcppExport SEXP free_regionRef_array_slave();
-RcppExport SEXP get_regionRef_array_slave(const int);
-
-// OTF2 Server/logger functions
-void init_Archive_server(Rcpp::String, Rcpp::String);
-void finalize_Archive_server();
-void init_EvtWriters_server();
-void finalize_EvtWriters_server();
-void init_GlobalDefWriter_server();
-void finalize_GlobalDefWriter_server();
-void run_EvtWriters_server(bool);
-void globalDefWriter_server();
-void finalize_otf2_server();
-OTF2_StringRef globalDefWriter_WriteString_server(Rcpp::String stringRefValue);
-OTF2_RegionRef globalDefWriter_WriteRegion_server(OTF2_StringRef stringRef_RegionName);
-void globalDefWriter_WriteSystemTreeNode_server(OTF2_StringRef, OTF2_StringRef);
-void globalDefWriter_WriteLocations_server();
-void globalDefWriter_WriteLocationGroups_server();
-void evtWriter_MeasurementOnOff_server(OTF2_EvtWriter*, OTF2_TimeStamp, bool);
-void assign_regionRef_array_server();
-int get_regionRef_array_server(OTF2_RegionRef, void*);
-void free_regionRef_array_server();
-void globalDefWriter_metrics_server();
-
-// Wrappers for pmpmeas
-RcppExport SEXP r_pmpmeas_init();
-RcppExport SEXP r_pmpmeas_finish();
-RcppExport SEXP r_pmpmeas_start();
-RcppExport SEXP r_pmpmeas_stop(float);
-
-// Helper functions for debugging
-void fupdate_server(FILE*, const char*);
-RcppExport SEXP print_errnos();
 
 ///////////////////////////////
 // Function definitions
 ///////////////////////////////
 
 // TODO: Ensure this doesn't cause overflow of wtime
-// @name get_time
+// get_time
 // @description Returns wall-clock time in units of milliseconds (1E-6s)
-// @return OTF2_Timestamp - Wallclock time (or ncounts if DUMMY_TIMESTEPS #defined)
-static OTF2_TimeStamp get_time() {
-    static OTF2_TimeStamp wtime;
-
-    // Dummy timestamps O(1)
-#ifdef DUMMY_TIMESTEPS
-#ifdef DEBUG
-    Rcout << "time: " << wtime << "\n";
-#endif 
-    return wtime++;
-#endif 
+// @return OTF2_Timestamp - Wallclock time 
+OTF2_TimeStamp get_time() {
+    OTF2_TimeStamp wtime;
 
     // Wallclock time O(1E-6)
 	struct timeval t;
@@ -222,7 +124,7 @@ static OTF2_FlushCallbacks flush_callbacks =
 //////////////////////////////////////
 
 // TODO: Review usage of SIGHUP during R makeCluster()
-// @name signal_hup_handler
+// signal_hup_handler
 // @description This was introduced due to R procs being sent SIGHUP during forking
 void signal_hup_handler(int signal) {
     // Make sure only catching intended signal, else rethrow
@@ -244,23 +146,18 @@ void signal_hup_handler(int signal) {
 //' @param flag_print_pids True to print pids of parent and child procs
 //' @return <0 if error, 0 if R master, else >0 if child
 // [[Rcpp::export]]
-RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rTrace", 
-        Rcpp::String archiveName = "rTrace", bool collect_metrics=false,
-        bool flag_print_pids=false)
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, 
+        Rcpp::String archiveName, bool collect_metrics,
+        bool flag_print_pids)
 {
     // TODO: Verify this acts as intended to save child proc
     signal(SIGHUP, signal_hup_handler);
 
-    // YOU ARE HERE
     // Set COLLECT_METRICS global on server and client before fork
     if (collect_metrics){
         #ifndef _COLLECT_METRICS
             Rcpp::stop("rTrace not built for metric collection. Rebuild or run with `collect_metrics=false`");
         #endif
-
-        // Called via R r_pmpmeas_init() before init_otf2_logger()
-        //pmpmeas_init();
-        //pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
     }
     COLLECT_METRICS = collect_metrics;
 
@@ -278,7 +175,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         }
 
         IS_LOGGER = true;
-        maxLocationRef = max_nprocs;
+        set_maxLocationRef(max_nprocs);
 
         // Open log file
         fp = fopen(log_filename, "w");
@@ -286,9 +183,9 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         fupdate_server(fp, "File opened\n");
 
         // OTF2 Objs
-        init_Archive_server(archivePath, archiveName);
+        init_Archive_server(archivePath.get_cstring(), archiveName.get_cstring());
         fupdate_server(fp, "Init archive complete\n");
-        init_EvtWriters_server( );
+        init_EvtWriters_server();
         fupdate_server(fp, "Init evt_writers complete\n");
         init_GlobalDefWriter_server();
         fupdate_server(fp, "Init of otf2 objs complete\n");
@@ -323,7 +220,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         // Write definitions for proc structures
         globalDefWriter_WriteSystemTreeNode_server(0,0); // 1 system tree node
         globalDefWriter_WriteLocationGroups_server(); // n location groups (n procs)
-        globalDefWriter_WriteLocations_server(); // n locations (1 per proc)
+        globalDefWriter_WriteLocations_server(true); // n locations (1 per proc)
 
         // Finalization
         finalize_EvtWriters_server(); // Moving this after globalDef because num_events used in WriteLocation_server
@@ -334,9 +231,10 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
         fupdate_server(fp, "COMPLETE!\n");
         if (fp!=NULL){fclose(fp);}
 
+        // @TODO use this to clean up from list<meas> tmp
         // Clean up pmpmeas metric_array memory
-        if (COLLECT_METRICS){
-            pmpmeas_read_finalize();
+        if (COLLECT_METRICS){ ;
+            // pmpmeas_read_finalize();
         }
 
         return(1);
@@ -366,7 +264,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "./rT
 // [[Rcpp::export]]
 RcppExport SEXP r_pmpmeas_init(){
     pmpmeas_init();
-    pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
+    //pmpmeas_read_init(&pmpmeas_vals, &pmpmeas_n);
     return (R_NilValue);
 }
 
@@ -375,7 +273,7 @@ RcppExport SEXP r_pmpmeas_init(){
 //' @return R_NilValue
 // [[Rcpp::export]]
 RcppExport SEXP r_pmpmeas_finish(){
-    if (pmpmeas_vals != NULL) { pmpmeas_read_finalize(); }
+    //if (pmpmeas_vals != NULL) { pmpmeas_read_finalize(); }
     pmpmeas_finish();
     return (R_NilValue);
 }
@@ -446,7 +344,7 @@ RcppExport int get_regionRef_from_array_slave(int func_index) {
     return(regionRef_array[func_index-1]); // Fix offset in C
 }
 
-// @name assign_regionRef_array_server
+// assign_regionRef_array_server
 // @description Listen for num_funcs then alloc OTF2_RegionRef[] as required
 void assign_regionRef_array_server(){
     void *regionRef_socket_server;
@@ -470,7 +368,7 @@ void assign_regionRef_array_server(){
 
 }
 
-// @name free_regionRef_array_server
+// free_regionRef_array_server
 // @description Free memory assigned for regionRef_array
 void free_regionRef_array_server(){
     free(regionRef_array);
@@ -484,7 +382,7 @@ RcppExport SEXP free_regionRef_array_slave(){
     return(R_NilValue);
 }
 
-// @name globalDefWriter_server
+// globalDefWriter_server
 // @description Receive globalDef strings, and return with send regionRef
 //  Ends when recvs message of length 0 from client
 void globalDefWriter_server() { // Server
@@ -645,7 +543,7 @@ RcppExport SEXP finalize_otf2_client() {
 }
 
 
-// @name finalize_otf2_server
+// finalize_otf2_server
 // @description Signal to client end of server work (synchronization)
 // @return R_NilValue
 void finalize_otf2_server() {
@@ -668,14 +566,14 @@ void finalize_otf2_server() {
 }
 
 
-// @name init_Archive_server
+// init_Archive_server
 // @description Initialize static otf2 {archive} objs
 // @param archivePath Path to the archive i.e. the directory where the anchor file is located.
 // @param archiveName Name of the archive. It is used to generate sub paths e.g. "archiveName.otf2"
-void init_Archive_server(Rcpp::String archivePath="./rTrace", Rcpp::String archiveName="rTrace") 
+void init_Archive_server(const char* archivePath, const char* archiveName)
 {
-    archive = OTF2_Archive_Open( archivePath.get_cstring(),
-                                               archiveName.get_cstring(),
+    archive = OTF2_Archive_Open( archivePath,
+                                               archiveName,
                                                OTF2_FILEMODE_WRITE,
                                                1024 * 1024 /* event chunk size */,
                                                4 * 1024 * 1024 /* def chunk size*/,
@@ -694,7 +592,7 @@ void init_Archive_server(Rcpp::String archivePath="./rTrace", Rcpp::String archi
 }
 
 
-// @name finalize_Archive_server
+// finalize_Archive_server
 // @description Close static otf2 {archive} objs
 void finalize_Archive_server() {
     // DEBUGGING
@@ -709,7 +607,7 @@ void finalize_Archive_server() {
 }
 
 
-// @name init_EvtWriters_server
+// init_EvtWriters_server
 // @description Initialize static otf2 {evt_writers} objs
 void init_EvtWriters_server() {
     // DEBUGGING: OTF2_Archive_GetEvtWriter throwing error 
@@ -727,7 +625,7 @@ void init_EvtWriters_server() {
 }
 
 
-// @name finalize_EvtWriters_server
+// finalize_EvtWriters_server
 // @description Close static otf2 {evt_writers} objs
 void finalize_EvtWriters_server() {
     // DEBUGGING
@@ -745,9 +643,13 @@ void finalize_EvtWriters_server() {
     OTF2_Archive_CloseEvtFiles( archive );
 }
 
+void set_maxLocationRef(OTF2_LocationRef x){
+    maxLocationRef = x;
+}
+
 
 // Enable or disable event measurement
-// @name evtWriter_MeasurementOnOff_server
+// evtWriter_MeasurementOnOff_server
 // @param evt_writer Event writer linked to proc
 // @param time Timestamp
 // @param measurementMode True to enable, else disable
@@ -786,7 +688,7 @@ RcppExport SEXP evtWriter_MeasurementOnOff_client(bool measurementMode) {
 }
 
 
-// @name init_GlobalDefWriter_server
+// init_GlobalDefWriter_server
 // @description Initialize static otf2 {globaldefwriter} obj
 void init_GlobalDefWriter_server() {
     // DEBUGGING
@@ -799,23 +701,14 @@ void init_GlobalDefWriter_server() {
     if (global_def_writer == NULL) { report_and_exit("OTF2_Archive_GetGlobalDefWriter", NULL); }
 
     // Define empty string in first stringRef value
-    Rcpp::String stringRefValue="";
+    const char* stringRefValue="";
     globalDefWriter_WriteString_server(stringRefValue);
 }
 
-// @name finalize_GlobalDefWriter_server
+// finalize_GlobalDefWriter_server
 // @description Finalize static otf2 {globaldefwriter} obj
 //     Write clock information before ending tracing
 void finalize_GlobalDefWriter_server() {
-#ifdef DUMMY_TIMESTEPS
-    // We need to define the clock used for this trace and the overall timestamp range.
-    OTF2_GlobalDefWriter_WriteClockProperties( 
-            global_def_writer /* writerHandle */,
-            1 /* resolution - 1 tick per second */,
-            0 /* epoch - 0 for dummy */,
-            NUM_EVENTS /* traceLength */,
-            OTF2_UNDEFINED_TIMESTAMP );
-#else
     epoch_end =  get_time();
 
     // We need to define the clock used for this trace and the overall timestamp range.
@@ -825,22 +718,21 @@ void finalize_GlobalDefWriter_server() {
             epoch_start /* epoch - globalOffset */,
             epoch_end - epoch_start /* traceLength */,
             OTF2_UNDEFINED_TIMESTAMP );
-#endif
 }
 
 
-// @name globalDefWriter_WriteString_server
+// globalDefWriter_WriteString_server
 // @description Define new id-value pair in globaldefwriter
 // @param stringRefValue String assigned to given id
 // @return NUM_STRINGREF 
-OTF2_StringRef globalDefWriter_WriteString_server(Rcpp::String stringRefValue)
+OTF2_StringRef globalDefWriter_WriteString_server(const char* stringRefValue)
 {
-    OTF2_GlobalDefWriter_WriteString(global_def_writer, NUM_STRINGREF, stringRefValue.get_cstring() );
+    OTF2_GlobalDefWriter_WriteString(global_def_writer, NUM_STRINGREF, stringRefValue );
     return(NUM_STRINGREF++); // ++ applied after return value!
 }
 
 
-// @name globalDefWriter_WriteRegion
+// globalDefWriter_WriteRegion
 // @description Define new region description in global writer
 // @param stringRef_RegionName Name to be associated with region
 // @return regionRef id/index for string
@@ -862,7 +754,7 @@ OTF2_RegionRef globalDefWriter_WriteRegion_server(OTF2_StringRef stringRef_Regio
 
 
 // TODO: Get names from sys calls
-// @name globalDefWriter_WriteSystemTreeNode_server
+// globalDefWriter_WriteSystemTreeNode_server
 // @description Write the system tree including a definition for the location group to the global definition writer.
 // @param stringRef_name Name to be associated with SystemTreeNode (eg MyHost)
 // @param stringRef_class Class to be associated with SystemTreeNode (eg node)
@@ -878,7 +770,7 @@ void globalDefWriter_WriteSystemTreeNode_server( OTF2_StringRef stringRef_name, 
             OTF2_UNDEFINED_SYSTEM_TREE_NODE /* parent */ );
 }
 
-// @name globalDefWriter_WriteLocationGroups_server
+// globalDefWriter_WriteLocationGroups_server
 // @description Write LocationGroup (ie proc) information
 void globalDefWriter_WriteLocationGroups_server() {
 
@@ -903,14 +795,18 @@ void globalDefWriter_WriteLocationGroups_server() {
     }
 }
 
-// @name globalDefWriter_WriteLocations_server
+// globalDefWriter_WriteLocations_server
 // @description Write a definition for the location to the global definition writer.
-void globalDefWriter_WriteLocations_server() {
+// @param flag_server_logfile True to write logging info to fp
+void globalDefWriter_WriteLocations_server(bool flag_server_logfile) {
     OTF2_StringRef stringRef_LocationName = globalDefWriter_WriteString_server("Main thread");
-    
     char fp_buffer[100];
-    snprintf(fp_buffer, 100, "maxUsedLocationRef: %lu\n", maxUsedLocationRef);
-    fupdate_server(fp, fp_buffer);
+    
+    // DEBUGGING
+    if (flag_server_logfile){
+        snprintf(fp_buffer, 100, "maxUsedLocationRef: %lu\n", maxUsedLocationRef);
+        fupdate_server(fp, fp_buffer);
+    }
 
     for (OTF2_LocationRef i=0; i<maxUsedLocationRef; ++i){
         // Write a definition for the location to the global definition writer.
@@ -918,10 +814,11 @@ void globalDefWriter_WriteLocations_server() {
         OTF2_EvtWriter_GetNumberOfEvents(evt_writers[i], &num_events);
 
         // DEBUGGING
-        char fp_buffer[100];
-        snprintf(fp_buffer, 100, "globalDefWriter_WriteLocation - LocationRef: %lu, Num events: %ld\n",
-            i, num_events);
-        fupdate_server(fp, fp_buffer);
+        if (flag_server_logfile){
+            snprintf(fp_buffer, 100, "globalDefWriter_WriteLocation - LocationRef: %lu, Num events: %ld\n",
+                i, num_events);
+            fupdate_server(fp, fp_buffer);
+        }
 
         OTF2_GlobalDefWriter_WriteLocation( global_def_writer,
                 i /* locationRef */,
@@ -999,13 +896,17 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 
     if (pusher==NULL){ report_and_exit("evtWriter_Write_client pusher"); }
 
-    // YOU ARE HERE
+    // Use PMPMEAS metrics, and send as multipart. Else send single message
     if (COLLECT_METRICS){
-        pmpmeas_read(pmpmeas_vals);
+        Pmpmeas_vals pmpmeas_vals=pmpmeas_read();
 
         // Send multi-part message. First event, then metrics
         zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), ZMQ_SNDMORE); // ZMQ ID: 5c // ZMQ ID: 5d
-        zmq_ret = zmq_send(pusher, pmpmeas_vals, sizeof(pmpmeas_n*sizeof(*pmpmeas_vals)), 0); // ZMQ ID: 5c_ii // ZMQ ID: 5d_ii
+        zmq_ret = zmq_send(pusher, pmpmeas_vals.data, pmpmeas_vals.n*sizeof(*pmpmeas_vals.data), 0); // ZMQ ID: 5c_ii // ZMQ ID: 5d_ii
+
+        // DEBUGGING
+        //printf("pmpmeas_vals.n = %d\n, pmpmeas_vals.data = [%lld, %lld, ...]\n", 
+        //    pmpmeas_vals.n, pmpmeas_vals.data[0], pmpmeas_vals.data[1]);
     } else {
         zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), 0); // ZMQ ID: 5c // ZMQ ID: 5d
     }
@@ -1021,40 +922,9 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
     return(R_NilValue);
 }
 
-/*
-// YOU ARE HERE
-OTF2_ErrorCode OTF2_EvtWriter_Metric(OTF2_EvtWriter *	writer,
-		OTF2_AttributeList *  	attributeList,
-		OTF2_TimeStamp  	time,
-		OTF2_MetricRef  	metric,
-		uint8_t  	numberOfMetrics,
-		const OTF2_Type *  	typeIDs,
-		const OTF2_MetricValue *  	metricValues 
-	) 	
-
-OTF2_ErrorCode OTF2_GlobalDefWriter_WriteMetricMember 	( 	OTF2_GlobalDefWriter *  	writerHandle,
-		OTF2_MetricMemberRef  	self,
-		OTF2_StringRef  	name,
-		OTF2_StringRef  	description,
-		OTF2_MetricType  	metricType,
-		OTF2_MetricMode  	metricMode,
-		OTF2_Type  	valueType,
-		OTF2_Base  	base,
-		int64_t  	exponent,
-		OTF2_StringRef  	unit 
-	) 	
-
-OTF2_ErrorCode OTF2_GlobalDefWriter_WriteMetricClass 	( 	OTF2_GlobalDefWriter *  	writerHandle,
-		OTF2_MetricRef  	self,
-		uint8_t  	numberOfMetrics,
-		const OTF2_MetricMemberRef *  	metricMembers,
-		OTF2_MetricOccurrence  	metricOccurrence,
-		OTF2_RecorderKind  	recorderKind 
-	) 	
-*/
-
-// YOU ARE HERE
-// @name globalDefWriter_metrics_server
+// YOU ARE HERE, fix up implimentation of this to better rely on pmpmeas work 
+//  Eg: list<Meas*> already defined?
+// globalDefWriter_metrics_server
 // @description Create metricClass encapsulating all metrics in globalDefWriter
 void globalDefWriter_metrics_server()
 {
@@ -1063,9 +933,26 @@ void globalDefWriter_metrics_server()
     OTF2_StringRef stringRef_unit;
     OTF2_MetricType metricType;
     OTF2_ErrorCode ret;
+    OTF2_MetricMemberRef *metricMembers;
+    OTF2_Type typeID;
 
-    // Meas contains all metrics of specific type (eg time, papi, perf)
-    for (std::list<Meas*>::iterator m = pmpmeas_match_lst.begin(); m != pmpmeas_match_lst.end(); m++){
+    if (sizeof(long long)==8){
+        typeID = OTF2_TYPE_INT64;
+    } else {
+        typeID = OTF2_TYPE_INT32;
+    }
+
+    std::list<Meas*> tmp;
+    if (pmpmeas_type_lst.empty()){
+        //fprintf(stderr, "ERROR: MUST INITIALIZE WITH PMPMEAS_INIT BEFORE CALLING GLOBALDEFWRITER_METRICS_SERVER");
+        report_and_exit("MUST INITIALIZE WITH PMPMEAS_INIT BEFORE CALLING GLOBALDEFWRITER_METRICS_SERVER");
+    }
+
+    for (list<MeasType*>::iterator mt = pmpmeas_type_lst.begin(); mt != pmpmeas_type_lst.end(); mt++)
+    {
+        Meas *mm = new Meas("PLACEHOLDER", *(*mt));
+        Meas **m = &mm; 
+
         switch( (*m)->type() )
         {
             case (MeasType::PAPI):
@@ -1075,16 +962,17 @@ void globalDefWriter_metrics_server()
                 metricType = OTF2_METRIC_TYPE_OTHER; // perf
                 break;
             default: // TIME or unrecognized
-                continue;
+                metricType = OTF2_METRIC_TYPE_OTHER; // perf
+                //continue;
                 break;
         }
 
         // Cycle through each metric of given type, and create metric
         for ( int i=0; i<(*m)->cnt(); i++ ){
-            const char *ename = (*m)->ename(i);    
-            Rcpp::String stringEname(ename);
 
-            stringRef_name = globalDefWriter_WriteString_server(stringEname);
+            // Put counter name into StringRef
+            const char *ename = (*m)->ename(i);    
+            stringRef_name = globalDefWriter_WriteString_server(ename);
 
             ret = OTF2_GlobalDefWriter_WriteMetricMember(global_def_writer,
                 NUM_METRICS++ /* MetricMemberRef */,
@@ -1092,7 +980,7 @@ void globalDefWriter_metrics_server()
                 0 /*stringRef_description*/,
                 metricType, 
                 OTF2_METRIC_ACCUMULATED_START /* placeholder */,
-                OTF2_TYPE_INT64, 
+                typeID, 
                 OTF2_BASE_DECIMAL,
                 0 /* exponent */, 
                 0 /*stringRef_unit*/);
@@ -1103,14 +991,12 @@ void globalDefWriter_metrics_server()
         }
     }
 
-    OTF2_MetricMemberRef *metricMembers;
-    
     metricMembers = (OTF2_MetricMemberRef*) malloc(NUM_METRICS*sizeof(*metricMembers));
     typeIDs = (OTF2_Type*) malloc(NUM_METRICS*sizeof(*typeIDs));
 
     for (int i=0; i<NUM_METRICS; ++i){ 
         metricMembers[i] = i; 
-        typeIDs[i] = OTF2_TYPE_INT64;
+        typeIDs[i] = typeID;
     }
 
     ret = OTF2_GlobalDefWriter_WriteMetricClass(global_def_writer,
@@ -1123,11 +1009,14 @@ void globalDefWriter_metrics_server()
     if (ret != OTF2_SUCCESS){
         report_and_exit("globalDefWriter_metrics_server WriteMetricClass");
     }
-    free(metricMembers);
+
+    // DEBUGGING
+    //printf("NUM_METRICS for metric definition: %d\n", NUM_METRICS);
+    //free(metricMembers); // @TODO fix for memory leaks later!
 }
 
 // TODO: function for evtWriters err check
-// @name run_EvtWriters_server
+// run_EvtWriters_server
 // @description Main function during which all otf2 event information is processed. 
 //      Terminated by call to `finalize_EvtWriter_client` on client (ZMQ ID: 5x)
 // @param flag_lgo Log all events in log file
@@ -1140,7 +1029,7 @@ void run_EvtWriters_server(bool flag_log){
     int nprocs=1;
     OTF2_StringRef slaveActive_stringRef;
     OTF2_RegionRef slaveActive_regionRef;
-    int rcvmore, rcvmore_ret;
+    int rcvmore;
     size_t rcvmore_len = sizeof(rcvmore);
 
     // Placeholder for region of ZMQ_OTF2_SOCK_CLUSTER
@@ -1173,30 +1062,27 @@ void run_EvtWriters_server(bool flag_log){
 
     // Receive globalDef strings, and return with send regionRef
     while (1) {
-        // YOU ARE HERE
         if (COLLECT_METRICS){
             zmq_ret = zmq_recv(puller, &buffer, sizeof(buffer), 0); // ZMQ ID: 5
 
-            // DEBUGGING
-            //fupdate_server(fp, "COLLECT_METRICS=T: Initial recv\n");
-
+            // Query socket for multipart msg
             /* int zmq_getsockopt (void *socket, int option_name, void *option_value, size_t *option_len); */
             zmq_getsockopt(puller, ZMQ_RCVMORE, &rcvmore, &rcvmore_len);
-            if (rcvmore){
-                rcvmore_ret = zmq_recv(puller, pmpmeas_vals, sizeof(pmpmeas_n*sizeof(*pmpmeas_vals)), 0); // ZMQ ID: 5c_ii
+            if (rcvmore){ // 2nd part will contain metric vals
+                Pmpmeas_vals pmpmeas_vals;
+                zmq_recv(puller, pmpmeas_vals.data, NUM_METRICS*sizeof(*pmpmeas_vals.data), 0); // ZMQ ID: 5c_ii
                 OTF2_EvtWriter_Metric(evt_writers[buffer.pid],
                         NULL /* attribute list */,
                         buffer.time,
                         0 /* MetricRef */,
-                        pmpmeas_n,
+                        NUM_METRICS,
                         typeIDs,
-                        (OTF2_MetricValue*)pmpmeas_vals);
+                        (OTF2_MetricValue*)pmpmeas_vals.data);
 
                 // DEBUGGING
                 //fupdate_server(fp, "COLLECT_METRICS=T: EvtWriter_Metric complete\n");
-            } else { ;
-                // DEBUGGING
-                //fupdate_server(fp, "COLLECT_METRICS=T: no 2nd recv\n");
+                //snprintf(fp_buffer, 50, "NUM_METRICS: %d, pmpmeas_vals.data = [%lld, %lld, ...]\n", NUM_METRICS, pmpmeas_vals.data[0], pmpmeas_vals.data[1]);
+                //fupdate_server(fp, fp_buffer);
             }
 
         } else {
@@ -1273,7 +1159,7 @@ void run_EvtWriters_server(bool flag_log){
 
 }
 
-// @name get_regionRef_array_server
+// get_regionRef_array_server
 // @description Triggered by receiving ZMQ_OTF2_SOCK_CLUSTER_ON
 // @param num_new_procs Number of new procs spawned
 // @param responder ZMQ_REP socket recv proc_id, send regionRef_array
@@ -1309,7 +1195,7 @@ int get_regionRef_array_server(OTF2_RegionRef num_new_procs, void *responder){
 
 //@TODO: Replace usage of this with more R-compliant exit strategy
 //@TODO: Replace usage of this with more R-friendly error message strategy
-// @name report_and_exit
+// report_and_exit
 // @description Print error to log file, close zmq sockets 
 //     and context then exit
 // @param msg Error message to display
@@ -1354,7 +1240,7 @@ void report_and_exit(const char* msg, void *socket){
 
 }
 
-// @name fupdate_server
+// fupdate_server
 // @description Write message to server log file `log_filename`
 // @param fp File pointer to log file
 // @param msg Message to write to log file
@@ -1503,6 +1389,31 @@ RcppExport SEXP get_regionRef_array_slave(const int num_funcs){
     return(R_NilValue);
 }
 
+// evtWriter_metric_server
+// @description Read pmpmeas values and create metric event
+// @TODO add error checking for metric definition (typeIDS!=NULL), and pmpmeas__init
+void evtWriter_metric_server(){
+
+    Pmpmeas_vals pmpmeas_vals = pmpmeas_read();
+
+    // DEBUGGING
+    //printf("pmpmeas_vals.n = %d, pmpmeas_vals.data = [%lld, %lld, ...]\n", pmpmeas_vals.n, pmpmeas_vals.data[0], pmpmeas_vals.data[1]);
+
+    uint8_t n = pmpmeas_vals.n;
+    OTF2_EvtWriter_Metric(evt_writers[0], 
+            NULL /* attribute list */,
+            get_time(),
+            0 /* MetricRef */,
+            n /* Number of metrics*/,
+            typeIDs,
+            (OTF2_MetricValue*)pmpmeas_vals.data);
+}       
+
+// set_collectMetrics
+// @description Set global var for COLLECT_METRICS, useful if interfacing without init_otf2_logger()
+void set_collectMetrics(bool x){
+    COLLECT_METRICS = x;
+}
 
 ///////////////////////////////
 // Testing

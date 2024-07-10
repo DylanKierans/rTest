@@ -51,19 +51,9 @@ void pmpmeas_start(const char* tag)
     pmpmeas__start(tag);
 }
 
-void pmpmeas_read_init(long long **vals, int *n)
+Pmpmeas_vals pmpmeas_read()
 {
-    pmpmeas__read_init(vals, n);
-}
-
-void pmpmeas_read(long long *vals)
-{
-    pmpmeas__read(vals);
-}
-
-void pmpmeas_read_finalize()
-{
-    pmpmeas__read_finalize();
+    return(pmpmeas__read());
 }
 
 void pmpmeas_stop(float weight)

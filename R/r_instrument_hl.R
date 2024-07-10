@@ -54,7 +54,6 @@ is_instrumentation_enabled <- function() {
 }
 
 
-## YOU ARE HERE 
 #' instrumentation_init
 #' @description Create otf2 objs for instrumentation, and initiate global vars
 #' @param flag_user_functions Boolean - TRUE to include user functions in dataframe
@@ -68,7 +67,6 @@ instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbo
     pkg.env$PRINT_SKIPS <- verbose_wrapping
     pkg.env$INSTRUMENTATION_INIT <- TRUE
 
-    ### YOU ARE HERE
     ## Interface to pmpmeas 
     pkg.env$COLLECT_METRICS <- collect_metrics
     if (pkg.env$COLLECT_METRICS){
@@ -76,7 +74,9 @@ instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbo
     }
 
     ## Initiate new proc - close R if not Master
-    ret <- init_otf2_logger(parallelly::availableCores(), collect_metrics=pkg.env$COLLECT_METRICS) # Master R proc returns 0
+    ret <- init_otf2_logger(parallelly::availableCores(), "rTrace", "rTrace", 
+            collect_metrics=pkg.env$COLLECT_METRICS,
+            flag_print_pids=F) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
 
     ## Assign array on logger proc for regionRef of each func
@@ -102,7 +102,6 @@ is_instrumentation_init <- function() {
 }
 
 
-# @TODO: zmq this
 #' instrumentation_finalize
 #' @description Close otf2 objs for instrumentation
 #' @export
@@ -117,22 +116,15 @@ instrumentation_finalize <- function()
 
     ## Ensure instrumententation disabled
     if (is_instrumentation_enabled()){
-        warning("WARNING: Instrumentation currently enabled, will force disable before finalizing.")
         instrumentation_disable()
     }
 
-    warning("DEBUG: finalize_EvtWriter_client")
     finalize_EvtWriter_client()
-    warning("DEBUG: complete finalize_EvtWriter_client")
-    warning("DEBUG: finalize_otf2_client")
-    finalize_otf2_client() # Hanging here!
-    warning("DEBUG: complete finalize_otf2_client")
+    finalize_otf2_client()
 
     if (pkg.env$COLLECT_METRICS){
-        warning("DEBUG: r_pmpmeas_stop _finish")
         r_pmpmeas_stop(1.0) # Might not be necessary
         r_pmpmeas_finish()
-        warning("DEBUG: complete r_pmpmeas_stop _finish")
     }
     return(invisible(NULL))
 }

@@ -6,10 +6,10 @@
 \usage{
 init_otf2_logger(
   max_nprocs,
-  archivePath = "./rTrace",
-  archiveName = "rTrace",
-  collect_metrics = FALSE,
-  flag_print_pids = FALSE
+  archivePath,
+  archiveName,
+  collect_metrics,
+  flag_print_pids
 )
 }
 \arguments{

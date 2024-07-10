@@ -200,7 +200,8 @@ void PerfInf::stop(void)
     }
 }
 
-// YOU ARE HERE
+// YOU ARE HERE - NEW FUNCTION: Pause, read values, resume 
+// Compile with -DRTRACE_SUPPORT to replace writes to stderr
 void PerfInf::pread(void)
 {
     if (_nevent > 0) {

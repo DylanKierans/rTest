@@ -43,11 +43,15 @@
 extern "C" {
 #endif
 
+// Struct used for storing temporary pmpmeas vals
+typedef struct Pmpmeas_vals {
+    long long data[PAPICNTMAX+1];
+    int n; 
+} Pmpmeas_vals;
+
 void pmpmeas__init();
 void pmpmeas__start(const char*);
-void pmpmeas__read_init(long long**, int*);
-void pmpmeas__read(long long*);
-void pmpmeas__read_finalize();
+Pmpmeas_vals pmpmeas__read();
 void pmpmeas__stop(float);
 void pmpmeas__finish();
 

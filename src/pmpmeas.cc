@@ -45,14 +45,14 @@
 #include "pmpmeas.h"
 #include "meas.h"
 #include "utils.h"
+//#include "rTrace.h"
 
 using namespace std;
 using namespace PMPMEAS;
 
-// YOU ARE HERE
-static list<MeasType*> pmpmeas_type_lst;
-static list<Meas*> pmpmeas_meas_lst;
-static list<Meas*> pmpmeas_match_lst;
+list<MeasType*> pmpmeas_type_lst;
+list<Meas*> pmpmeas_meas_lst;
+list<Meas*> pmpmeas_match_lst;
 
 int pmpmeas_meas_cnt_total;
 long long *pmpmeas_meas_vals;
@@ -121,50 +121,18 @@ void pmpmeas__start(const char *tag)
 
 }
 
-
-// YOU ARE HERE
-void pmpmeas__read_init(long long **vals, int *n)
+// NEW FUNCTION: Read (without stopping if possible) metric values
+Pmpmeas_vals pmpmeas__read()
 {
-    bool tmp = pmpmeas_match_lst.empty();
-
-    if (pmpmeas_match_lst.empty())
-        for (list<MeasType*>::iterator mt = pmpmeas_type_lst.begin(); mt != pmpmeas_type_lst.end(); mt++)
-        {
-            Meas *m = new Meas("PLACEHOLDER", *(*mt));
-            pmpmeas_match_lst.push_back(m);
-        }
-
-    pmpmeas_meas_cnt_total=0;
-    for (list<Meas*>::iterator m = pmpmeas_match_lst.begin(); m != pmpmeas_match_lst.end(); m++)
-        pmpmeas_meas_cnt_total += (*m)->cnt();
-    pmpmeas_meas_vals = (long long *) malloc(pmpmeas_meas_cnt_total*sizeof(*pmpmeas_meas_vals));
-
-    *vals = pmpmeas_meas_vals;
-    *n = pmpmeas_meas_cnt_total;
-
-    if (tmp)
-        pmpmeas_match_lst.clear();
-
-    //printf("ncnt = %d\n", pmpmeas_meas_cnt_total); // DEBUGGING
-}
-
-// YOU ARE HERE
-void pmpmeas__read(long long *vals)
-{
+    Pmpmeas_vals vals;
     int index = 0;
-    if (vals==NULL) // Default to global
-        vals = pmpmeas_meas_vals;
 
     for (list<Meas*>::iterator m = pmpmeas_meas_lst.begin(); m != pmpmeas_meas_lst.end(); m++){
-        memcpy( &vals[index], (*m)->read(), (*m)->cnt()*sizeof(*pmpmeas_meas_vals));
+        memcpy( &(vals.data[index]), (*m)->read(), (*m)->cnt()*sizeof(long long));
         index += (*m)->cnt();
     }
-}
-
-// YOU ARE HERE
-void pmpmeas__read_finalize()
-{
-    free(pmpmeas_meas_vals);
+    vals.n = index;
+    return vals;
 }
 
 void pmpmeas__stop(float weight)

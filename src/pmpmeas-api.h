@@ -39,15 +39,15 @@
 #ifndef PMPMEAS_API_H
 #define PMPMEAS_API_H
 
+#include "pmpmeas.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void pmpmeas_init();
 void pmpmeas_start(const char*);
-void pmpmeas_read_init(long long**, int*);
-void pmpmeas_read(long long*);
-void pmpmeas_read_finalize();
+Pmpmeas_vals pmpmeas_read();
 void pmpmeas_stop(float);
 void pmpmeas_stop_fortran(float*);
 void pmpmeas_finish();
