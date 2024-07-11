@@ -29,7 +29,9 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - uses: r-lib/actions/setup-pandoc@v2
 
@@ -39,47 +41,47 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # MANUAL OTF2 INSTALL
+          # MANUAL OTF2 INSTALL
       - name: Install libotf2 (linux)
         if: runner.os == 'linux'
         run: |
-           wget https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.0.3/otf2-3.0.3.tar.gz 
-           tar xzf otf2-3.0.3.tar.gz -C ~
-           cd ~/otf2-3.0.3
-           ./configure --prefix=/usr/local && \
-           make -j  && \
-           make check && \
-           sudo make install
-           cd ~
-           export OTF2_ROOT=/usr/local
+          wget https://perftools.pages.jsc.fz-juelich.de/cicd/otf2/tags/otf2-3.0.3/otf2-3.0.3.tar.gz 
+          tar xzf otf2-3.0.3.tar.gz -C ~
+          cd ~/otf2-3.0.3
+          ./configure --prefix=/usr/local && \
+          make -j  && \
+          make check && \
+          sudo make install
+          cd ~
+          export OTF2_ROOT=/usr/local
 
       - name: Install libotf2 (mac)
         if: runner.os == 'macOS'
         run: |
           brew install otf2
 
-      # PACKAGE MANAGER ZEROMQ INSTALL
+          # PACKAGE MANAGER ZEROMQ INSTALL
       - name: Install libzmq (linux)
         if: runner.os == 'linux'
         run: |
-            sudo apt-get install libzmq3-dev
+          sudo apt-get install libzmq3-dev
 
       - name: Install libzmq (mac)
         if: runner.os == 'macOS'
         run: |
-            brew install zmq
+          brew install zmq
 
-      # PACKAGE MANAGER PAPI INSTALL
+          # PACKAGE MANAGER PAPI INSTALL
       - name: Install papi (linux)
         if: runner.os == 'linux'
         run: |
-            sudo apt-get install libpapi-dev papi-tools
+          sudo apt-get install libpapi-dev papi-tools
 
-      # PACKAGE MANAGER PERF INSTALL
+          # PACKAGE MANAGER PERF INSTALL
       - name: Install perf (linux)
         if: runner.os == 'linux'
         run: |
-            sudo apt-get install linux-tools-generic
+          sudo apt-get install linux-tools-generic
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
