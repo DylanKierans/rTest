@@ -1,0 +1,3 @@
+[submodule "src/pmpmeas"]
+	path = src/pmpmeas
+	url = https://gitlab.jsc.fz-juelich.de/pleiter/pmpmeas.git
