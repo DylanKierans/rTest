@@ -65,7 +65,5 @@ Licensed under GPL-3.0
 
 * Allow users to specify functions to instrument or add exceptions
 
-* Correct integration of pmpmeas as sub-repo
-
 * Integrate socket and port management from tests branch
 
