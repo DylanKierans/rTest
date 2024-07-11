@@ -623,6 +623,8 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
+PMPMEAS_CPP_SOURCE
+PMPMEAS_C_SOURCE
 PAPICNTMAX
 EGREP
 GREP
@@ -3993,7 +3995,7 @@ else
 fi
 
 
-## PMPMEAS
+## PMPMEAS DEPENDENCIES
 # Check whether --enable-metrics was given.
 if test "${enable_metrics+set}" = set; then :
   enableval=$enable_metrics;
@@ -4115,6 +4117,14 @@ $as_echo "#define _COLLECT_METRICS /**/" >>confdefs.h
 $as_echo "#define RTRACE_SUPPORT /**/" >>confdefs.h
 
 fi
+
+## PMPMEAS OBJECTS
+
+# Dynamically generate list of sources from subdirectories via shell
+PMPMEAS_C_SOURCE="$(cd src && ls pmpmeas/src/lib/*.c | tr '\n' ' ')"
+PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cc | tr '\n' ' ')"
+
+
 
 ###################
 

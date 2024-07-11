@@ -1,3 +1,4 @@
 #!/usr/bin/bash
-rm -f  src/*.o src/*.so */*~ *~
-rm -f config.* src/Makevars src/config.h
+rm -f src/*.o src/*.so */*~ *~
+rm -f src/pmpmeas/*.o src/pmpmeas/lib/*.o
+rm -f config.* src/Makevars src/config.h src/stamp-h1

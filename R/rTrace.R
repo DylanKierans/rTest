@@ -16,7 +16,7 @@
 #  instrumentation_finalize()
 # }
 
-#' @useDynLib rTrace
+#' @useDynLib rTrace, .registration = TRUE
 #' @importFrom Rcpp evalCpp 
 #' @importFrom methods is
 #' @importFrom utils head str
@@ -24,6 +24,8 @@
 #' @importFrom rlang env_unlock env_lock env_binding_unlock env_binding_lock 
 #' @importFrom parallelly availableCores
 #' @exportPattern "^[[:alpha:]]+"
+## @useDynLib rTrace, .registration=TRUE
+## @useDynLib rTrace
 
 
 

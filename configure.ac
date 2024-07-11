@@ -1,6 +1,3 @@
-# @TODO Set OBJECTS based on pmpmeas dependency
-# @TODO Create .PHONY target in Makefile `all: $(SHLIB)`
-
 # Must init the autoconf setup
 # 1st param is project name, 2nd is version no., 3rd is bug report address
 AC_INIT([rTrace], [0.0.3])
@@ -11,7 +8,7 @@ AC_CONFIG_SRCDIR([DESCRIPTION])
 # Store the auxiliary build tools (e.g., install-sh, config.sub, config.guess)
 # in this dir (build-aux)
 AC_CONFIG_AUX_DIR([tools/build-aux])
-AC_CONFIG_MACRO_DIR([../tools])
+AC_CONFIG_MACRO_DIR([tools])
 
 # Init automake, and specify this program use relaxed structures.
 # i.e. this program doesn't follow the gnu coding standards, and doesn't have
@@ -57,7 +54,7 @@ AC_CHECK_HEADERS([otf2/otf2.h], [],
 AC_SEARCH_LIBS(OTF2_Archive_Open, otf2, [],
     [AC_MSG_ERROR([Unable to find otf2 libs])])
 
-## PMPMEAS
+## PMPMEAS DEPENDENCIES
 AC_ARG_ENABLE(metrics, [AS_HELP_STRING([--disable-metrics], [do not use metrics (default: yes)])])
 
 if test "$enable_metrics" != no
@@ -84,6 +81,14 @@ then
     AC_DEFINE(_COLLECT_METRICS, [], [Enable rTrace metric collection])
     AC_DEFINE(RTRACE_SUPPORT, [], [Tell pmpmeas to compile in R compatible way])
 fi
+
+## PMPMEAS OBJECTS
+
+# Dynamically generate list of sources from subdirectories via shell
+PMPMEAS_C_SOURCE="$(cd src && ls pmpmeas/src/lib/*.c | tr '\n' ' ')"
+PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cc | tr '\n' ' ')"
+AC_SUBST(PMPMEAS_C_SOURCE)
+AC_SUBST(PMPMEAS_CPP_SOURCE)
 
 ###################
 

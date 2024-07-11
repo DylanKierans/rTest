@@ -1,12 +1,27 @@
-PAPICNTMAX= @PAPICNTMAX@
-PMPMEAS_PKG_CPPFLAGS= -DPAPICNTMAX=${PAPICNTMAX}
+SUBDIRS		= pmpmeas
+AM_CPPFLAGS	= -I. -I$(srcdir)/pmpmeas/src/include/
+AM_LIBS		= -L. -L$(srcdir)/pmpmeas/src/lib/
+
+PAPICNTMAX				= @PAPICNTMAX@
+PMPMEAS_PKG_CPPFLAGS	= -DPAPICNTMAX=${PAPICNTMAX}
 
 # Flags for headers and libraries when compiling R packages
 PKG_CPPFLAGS= ${DEFS} ${DEFAULT_INCLUDES} ${INCLUDES} ${AM_CPPFLAGS} \
 	${CPPFLAGS} ${AM_CFLAGS} ${CFLAGS} \
     ${PMPMEAS_PKG_CPPFLAGS}
-PKG_LIBS= @LIBS@
+PKG_LIBS	= @LIBS@ ${AM_LIBS}
 
 ACLOCAL_AMFLAGS = -I tools
 
+# Includa all .cpp and .c files from `src` and `src/pmpmeas` dirs
+BASE_SOURCE	= rTrace.cpp RcppExports.cpp
+CPP_SOURCE	= @PMPMEAS_CPP_SOURCE@
+C_SOURCE	= @PMPMEAS_C_SOURCE@
+SOURCES		= ${BASE_SOURCE} ${CPP_SOURCE} ${C_SOURCE}
+CPP_OBJECTS	= $(CPP_SOURCE:.cc=.o)
+C_OBJECTS	= $(C_SOURCE:.c=.o)
+OBJECTS 	= $(BASE_SOURCE:.cpp=.o) $(CPP_OBJECTS) $(C_OBJECTS)
+
 all: $(SHLIB)
+
+.PHONY: all clean

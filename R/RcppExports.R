@@ -9,28 +9,28 @@
 #' @param flag_print_pids True to print pids of parent and child procs
 #' @return <0 if error, 0 if R master, else >0 if child
 init_otf2_logger <- function(max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids) {
-    .Call('_rTrace_init_otf2_logger', PACKAGE = 'rTrace', max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids)
+    .Call(`_rTrace_init_otf2_logger`, max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids)
 }
 
 #' r_pmpmeas_init
 #' @description Wrapper for pmpmeas_init
 #' @return R_NilValue
 r_pmpmeas_init <- function() {
-    .Call('_rTrace_r_pmpmeas_init', PACKAGE = 'rTrace')
+    .Call(`_rTrace_r_pmpmeas_init`)
 }
 
 #' r_pmpmeas_finish
 #' @description Wrapper for pmpmeas_finish
 #' @return R_NilValue
 r_pmpmeas_finish <- function() {
-    .Call('_rTrace_r_pmpmeas_finish', PACKAGE = 'rTrace')
+    .Call(`_rTrace_r_pmpmeas_finish`)
 }
 
 #' r_pmpmeas_start
 #' @description Wrapper for pmpmeas_start
 #' @return R_NilValue
 r_pmpmeas_start <- function() {
-    .Call('_rTrace_r_pmpmeas_start', PACKAGE = 'rTrace')
+    .Call(`_rTrace_r_pmpmeas_start`)
 }
 
 #' r_pmpmeas_stop
@@ -38,7 +38,7 @@ r_pmpmeas_start <- function() {
 #' @param weight Weight to scale metric values (eg average over N runs)
 #' @return R_NilValue
 r_pmpmeas_stop <- function(weight) {
-    .Call('_rTrace_r_pmpmeas_stop', PACKAGE = 'rTrace', weight)
+    .Call(`_rTrace_r_pmpmeas_stop`, weight)
 }
 
 #' assign_regionRef_array_master
@@ -47,33 +47,33 @@ r_pmpmeas_stop <- function(weight) {
 #' @param num_funcs Required length of array to store regionRef for each func
 #' @return R_NilValue
 assign_regionRef_array_master <- function(num_funcs) {
-    .Call('_rTrace_assign_regionRef_array_master', PACKAGE = 'rTrace', num_funcs)
+    .Call(`_rTrace_assign_regionRef_array_master`, num_funcs)
 }
 
 #' assign_regionRef_array_slave
 #' @param num_funcs Required length of array to store regionRef for each func
 #' @return R_NilValue
 assign_regionRef_array_slave <- function(num_funcs) {
-    .Call('_rTrace_assign_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
+    .Call(`_rTrace_assign_regionRef_array_slave`, num_funcs)
 }
 
 #' get_regionRef_from_array_slave
 #' @param func_index Index of function to get regionRef for
 #' @return regionRef
 get_regionRef_from_array_slave <- function(func_index) {
-    .Call('_rTrace_get_regionRef_from_array_slave', PACKAGE = 'rTrace', func_index)
+    .Call(`_rTrace_get_regionRef_from_array_slave`, func_index)
 }
 
 #' free_regionRef_array_slave
 #' @return R_NilValue
 free_regionRef_array_slave <- function() {
-    .Call('_rTrace_free_regionRef_array_slave', PACKAGE = 'rTrace')
+    .Call(`_rTrace_free_regionRef_array_slave`)
 }
 
 #' finalize_GlobalDefWriter_client
 #' @return RNilValue
 finalize_GlobalDefWriter_client <- function() {
-    .Call('_rTrace_finalize_GlobalDefWriter_client', PACKAGE = 'rTrace')
+    .Call(`_rTrace_finalize_GlobalDefWriter_client`)
 }
 
 #' define_otf2_regionRef_client
@@ -81,39 +81,39 @@ finalize_GlobalDefWriter_client <- function() {
 #' @param func_index Global index of function in R namespace
 #' @return regionRef regionRef for use when logging events
 define_otf2_regionRef_client <- function(func_name, func_index) {
-    .Call('_rTrace_define_otf2_regionRef_client', PACKAGE = 'rTrace', func_name, func_index)
+    .Call(`_rTrace_define_otf2_regionRef_client`, func_name, func_index)
 }
 
 #' finalize_EvtWriter_client
 #' @return R_NilValue
 finalize_EvtWriter_client <- function() {
-    .Call('_rTrace_finalize_EvtWriter_client', PACKAGE = 'rTrace')
+    .Call(`_rTrace_finalize_EvtWriter_client`)
 }
 
 #' finalize_otf2_client
 #' @description Send signal to server to stop collecting event information
 #' @return R_NilValue
 finalize_otf2_client <- function() {
-    .Call('_rTrace_finalize_otf2_client', PACKAGE = 'rTrace')
+    .Call(`_rTrace_finalize_otf2_client`)
 }
 
 #' Send message to enable or disable event measurement from client side
 #' @param measurementMode True to enable, else disable
 #' @return R_NilValue
 evtWriter_MeasurementOnOff_client <- function(measurementMode) {
-    .Call('_rTrace_evtWriter_MeasurementOnOff_client', PACKAGE = 'rTrace', measurementMode)
+    .Call(`_rTrace_evtWriter_MeasurementOnOff_client`, measurementMode)
 }
 
 #' close_EvtWriterSocket_client
 #' @return R_NilValue
 close_EvtWriterSocket_client <- function() {
-    .Call('_rTrace_close_EvtWriterSocket_client', PACKAGE = 'rTrace')
+    .Call(`_rTrace_close_EvtWriterSocket_client`)
 }
 
 #' open_EvtWriterSocket_client
 #' @return R_NilValue
 open_EvtWriterSocket_client <- function() {
-    .Call('_rTrace_open_EvtWriterSocket_client', PACKAGE = 'rTrace')
+    .Call(`_rTrace_open_EvtWriterSocket_client`)
 }
 
 #' Write event to evt_writer
@@ -121,34 +121,34 @@ open_EvtWriterSocket_client <- function() {
 #' @param event_type True for enter, False for leave region
 #' @return R_NilValue
 evtWriter_Write_client <- function(regionRef, event_type) {
-    .Call('_rTrace_evtWriter_Write_client', PACKAGE = 'rTrace', regionRef, event_type)
+    .Call(`_rTrace_evtWriter_Write_client`, regionRef, event_type)
 }
 
 #' set_locationRef
 #' @param id ID value belonging to this R proc
 #' @return R_NilValue
 set_locationRef <- function(id) {
-    .Call('_rTrace_set_locationRef', PACKAGE = 'rTrace', id)
+    .Call(`_rTrace_set_locationRef`, id)
 }
 
 #' get_locationRef
 #' @return locationRef Proc number between 0,nprocs-1
 get_locationRef <- function() {
-    .Call('_rTrace_get_locationRef', PACKAGE = 'rTrace')
+    .Call(`_rTrace_get_locationRef`)
 }
 
 #' set_maxUsedLocationRef_client
 #' @param nprocs Current number of active evtWriters/procs
 #' @return maxUsedLocationRef Current maximum evtWriters which were active so far
 set_maxUsedLocationRef_client <- function(nprocs) {
-    .Call('_rTrace_set_maxUsedLocationRef_client', PACKAGE = 'rTrace', nprocs)
+    .Call(`_rTrace_set_maxUsedLocationRef_client`, nprocs)
 }
 
 #' print_errnos
 #' @description Print error numbers relating to zmq sockets
 #' @return R_NilValue
 print_errnos <- function() {
-    .Call('_rTrace_print_errnos', PACKAGE = 'rTrace')
+    .Call(`_rTrace_print_errnos`)
 }
 
 #' get_regionRef_array_master
@@ -156,14 +156,14 @@ print_errnos <- function() {
 #' @param nprocs Number of new procs to update
 #' @return R_NilValue
 get_regionRef_array_master <- function(nprocs) {
-    .Call('_rTrace_get_regionRef_array_master', PACKAGE = 'rTrace', nprocs)
+    .Call(`_rTrace_get_regionRef_array_master`, nprocs)
 }
 
 #' stopCluster_master
 #' @description Signal to end cluster
 #' @return R_NilValue
 stopCluster_master <- function() {
-    .Call('_rTrace_stopCluster_master', PACKAGE = 'rTrace')
+    .Call(`_rTrace_stopCluster_master`)
 }
 
 #' get_regionRef_array_slave
@@ -171,21 +171,21 @@ stopCluster_master <- function() {
 #' @param num_funcs Total number of functions in R namespace
 #' @return R_NilValue
 get_regionRef_array_slave <- function(num_funcs) {
-    .Call('_rTrace_get_regionRef_array_slave', PACKAGE = 'rTrace', num_funcs)
+    .Call(`_rTrace_get_regionRef_array_slave`, num_funcs)
 }
 
 #' get_pid
 get_pid <- function() {
-    .Call('_rTrace_get_pid', PACKAGE = 'rTrace')
+    .Call(`_rTrace_get_pid`)
 }
 
 #' get_tid
 get_tid <- function() {
-    .Call('_rTrace_get_tid', PACKAGE = 'rTrace')
+    .Call(`_rTrace_get_tid`)
 }
 
 #' get_ppid
 get_ppid <- function() {
-    .Call('_rTrace_get_ppid', PACKAGE = 'rTrace')
+    .Call(`_rTrace_get_ppid`)
 }
 
