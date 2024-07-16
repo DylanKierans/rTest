@@ -15,6 +15,7 @@
 
 //#define DEBUG /* Uncomment to enable verbose debug info */
 #define MAX_FUNCTION_NAME_LEN 40 // Max length of R function
+#define SIGRTRACE SIGUSR1
 
 // Different events during entry collection phase
 typedef enum {
@@ -116,5 +117,8 @@ void set_collectMetrics(bool);
 
 // Universal functions
 OTF2_TimeStamp get_time();
+void sighup_handler(int signal);
+void sigrtrace_handler(int signal);
+void sigint_handler(int signal);
 
 #endif /* Include guards rTrace.h */
