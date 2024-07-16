@@ -53,12 +53,11 @@ OTF2_GlobalDefWriter* global_def_writer;
 OTF2_TimeStamp epoch_start, epoch_end;  // OTF2_GlobalDefWriter_WriteClockProperties
 OTF2_EvtWriter** evt_writers;
 
-// ZeroMQ objects
+// ZeroMQ sockets
 bool IS_LOGGER=false; ///* Used by report_and_exit() to abtain exit behaviour
 void *context;      ///* zmq context - clients and server
 void *requester;    ///* zmq socket - master(5555) and slaves(5559) (comm with responder for globalDefWriter)
 void *pusher;    ///* zmq socket - clients (comm with puller for EvtWriter)
-void *puller;    ///* zmq socket - clients (comm with pusher for EvtWriter)
 
 // Counters
 const OTF2_StringRef OFFSET_NUM_STRINGREF=10; ///* Offset for NUM_STRINGREF to avoid overwriting
@@ -75,13 +74,9 @@ int locationRef=0; ///* LocationRef of current client proc
 // PMPMEAS - Metric collection
 bool COLLECT_METRICS = false;
 int NUM_METRICS=0;  ///* Number of metrics, only applicable if COLLECT_METRICS is defined/enabled
-long long *pmpmeas_vals; ///* Array of counter values
-int pmpmeas_n;  ///* Number of counters
-OTF2_Type *typeIDs; ///* OTF2 type of counters (equivalent to typeof(pmpmeas_vals))
-
-// Other
-pid_t child_pid; ///* Process ID returned by fork() for server
-sighandler_t default_sigint_handler;
+long long *pmpmeas_vals;
+int pmpmeas_n;
+OTF2_Type *typeIDs;
 
 
 ///////////////////////////////
@@ -131,56 +126,12 @@ static OTF2_FlushCallbacks flush_callbacks =
 // TODO: Review usage of SIGHUP during R makeCluster()
 // signal_hup_handler
 // @description This was introduced due to R procs being sent SIGHUP during forking
-void sighup_handler(int signal) {
+void signal_hup_handler(int signal) {
     // Make sure only catching intended signal, else rethrow
     if (signal == SIGHUP) { /*ignore*/; }
     else { raise(signal); }
 }
 
-// @TODO Cleanup zmq buffers correctly
-// @note Forked server process belongs to same process group, so forked process should
-//  be able to kill server with pid=0 also
-// @description Signal handler for SIGRTRACE, clean up and exit.
-//  SIGRTRACE thrown by any proc (clients/server) when an error occurs in the
-//  native C portion of the rTrace code
-void sigrtrace_handler(int signal) {
-    if (signal==SIGRTRACE){
-        if (IS_LOGGER){
-            if (fp==NULL){ // Open log file if needed
-                fp = fopen(log_filename, "a");
-            }
-            fprintf(fp, "sigfoo_handler: %d, pid: %d, ppid: %d, pgid: %d, child_pid: %d\n", 
-                    signal, getpid(), getppid(), getpgid(getppid()), child_pid);
-            fprintf(fp, "CLOSING DUE TO SIGRTRACE\n");
-            fclose(fp);
-
-            // Cleanup zmq - process pipeline then close
-            //finalize_zmq_server();
-
-            kill(getpid(), SIGTERM);
-        } else {
-            Rcpp::Rcout << "sigfoo_handler: " << signal << ", pid: " << getpid() <<
-                    ", ppid: " << getppid() << ", child_pid: " << child_pid << "\n";
-
-            // Cleanup zmq - process pipeline then close
-            //finalize_zmq_client();
-
-            if (child_pid != 0){ kill(child_pid, SIGRTRACE); }
-            Rcpp::stop("CLOSING DUE TO SIGRTRACE - check previous error message if sent from rTrace client\n");
-            //kill(getpid(), SIGTERM);
-        }
-    } else { raise(signal); }
-}
-
-// sigint_handler
-// @description Signal handler for SIGINT (Ctrl+C), throws SIGRTRACE
-void sigint_handler(int sig){
-    if (sig==SIGINT){
-        raise(SIGRTRACE);
-        signal(SIGINT, default_sigint_handler); // Reset to default handler and rethrow
-        raise(SIGINT);
-    } else { raise(sig); }
-}
 
 //////////////////////////////////////
 // Spawn otf2 process, and give task list
@@ -200,9 +151,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath,
         bool flag_print_pids)
 {
     // TODO: Verify this acts as intended to save child proc
-    signal(SIGHUP, sighup_handler);
-    signal(SIGRTRACE, sigrtrace_handler);
-    default_sigint_handler = signal(SIGINT, sigint_handler);
+    signal(SIGHUP, signal_hup_handler);
 
     // Set COLLECT_METRICS global on server and client before fork
     if (collect_metrics){
@@ -212,7 +161,7 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath,
     }
     COLLECT_METRICS = collect_metrics;
 
-    child_pid = fork();
+    pid_t child_pid = fork();
     if (child_pid == (pid_t) -1 ){ // ERROR
         report_and_exit("Forking logger process", NULL);
         return(1);
@@ -1073,6 +1022,7 @@ void globalDefWriter_metrics_server()
 // @param flag_lgo Log all events in log file
 //  and logged
 void run_EvtWriters_server(bool flag_log){
+    void *puller;               ///< Recv otf2 eventlog
     void *new_proc_rep;
     int zmq_ret, rc; // Debugging recv/sends and socket
     Zmq_otf2_data buffer;
@@ -1274,10 +1224,6 @@ void report_and_exit(const char* msg, void *socket){
         fprintf(fp, "File closing\n");
         fclose(fp);
 
-        // Send signal to parent (master), then to self, to close
-        kill(getppid(), SIGRTRACE);
-        kill(getpid(), SIGRTRACE);
-
     } else { // Print to Rcout (recommend using logfile for makeCluster)
         FILE *fp;
         char filename[20];
@@ -1295,9 +1241,7 @@ void report_and_exit(const char* msg, void *socket){
         fprintf(fp, "ERROR INFO - Errno: %d\n", errno);
         fclose(fp);
 
-        // Send signal to all procs in group to close
-        //kill(0, SIGTERM);
-        kill(0, SIGRTRACE);
+        kill(0, SIGTERM);
     }
 
 }
