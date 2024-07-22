@@ -225,6 +225,8 @@ PMPMEAS_C_SOURCE = @PMPMEAS_C_SOURCE@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
+USER_INC = @USER_INC@
+USER_LIBS = @USER_LIBS@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
@@ -277,9 +279,9 @@ PMPMEAS_PKG_CPPFLAGS = -DPAPICNTMAX=${PAPICNTMAX}
 # Flags for headers and libraries when compiling R packages
 PKG_CPPFLAGS = ${DEFS} ${DEFAULT_INCLUDES} ${INCLUDES} ${AM_CPPFLAGS} \
 	${CPPFLAGS} ${AM_CFLAGS} ${CFLAGS} \
-    ${PMPMEAS_PKG_CPPFLAGS}
+    ${PMPMEAS_PKG_CPPFLAGS} ${USER_INC}
 
-PKG_LIBS = @LIBS@ ${AM_LIBS}
+PKG_LIBS = @LIBS@ ${AM_LIBS} ${USER_LIBS}
 ACLOCAL_AMFLAGS = -I tools
 
 # Includa all .cpp and .c files from `src` and `src/pmpmeas` dirs

@@ -39,48 +39,84 @@ AC_LANG(C++)
 ###################
 # Look for libraries
 ## AC_CHECK_LIB (library, function, [action-if-found], [action-if-not-found], [other-libraries])
+## AC_ARG_ENABLE(option-name, help-string, action-if-present, action-if-not-present)
+## AC_ARG_WITH(option-name, help-string, action-if-present, action-if-not-present)
 
 ## Zeromq
-AC_CHECK_HEADERS([zmq.h sys/wait.h], [],
-    [AC_MSG_ERROR([Unable to find zmq.h])])
+AC_ARG_WITH(zeromq, [AS_HELP_STRING([--with-zeromq=PATH], [specify prefix directory for installed zeromq package.])])
+AS_IF([test "X$with_zeromq" = "X"], [
+    AC_CHECK_HEADERS([zmq.h sys/wait.h], [],
+        [AC_MSG_ERROR([Unable to find zmq.h])])
 
-AC_SEARCH_LIBS(zmq_ctx_new, zmq, [],
-    [AC_MSG_ERROR([Unable to find zmq libs])])
+    AC_SEARCH_LIBS(zmq_ctx_new, zmq, [],
+        [AC_MSG_ERROR([Unable to find zmq libs])])
+    ], [
+    # User provided path
+    user_libs="-L$with_zeromq/lib -lzmq -Wl,-rpath=$with_zeromq/lib $user_libs"
+    user_inc="-I$with_zeromq/include $user_inc"
+    ])
 
 ## OTF2
-AC_CHECK_HEADERS([otf2/otf2.h], [],
-    [AC_MSG_ERROR([Unable to find otf2/otf2.h])])
+AC_ARG_WITH(otf2, [AS_HELP_STRING([--with-otf2=PATH], [specify prefix directory for installed otf2 package.])])
+if test "X$with_otf2" = "X"; then 
+    AC_CHECK_HEADERS([otf2/otf2.h], [],
+        [AC_MSG_ERROR([Unable to find otf2/otf2.h])])
 
-AC_SEARCH_LIBS(OTF2_Archive_Open, otf2, [],
-    [AC_MSG_ERROR([Unable to find otf2 libs])])
+    AC_SEARCH_LIBS(OTF2_Archive_Open, otf2, [],
+        [AC_MSG_ERROR([Unable to find otf2 libs])])
+else
+    # User provided path
+    user_libs="-L$with_otf2/lib -lotf2 -Wl,-rpath=$with_otf2/lib $user_libs"
+    user_inc="-I$with_otf2/include $user_inc"
+fi
 
-## PMPMEAS DEPENDENCIES
+### PMPMEAS DEPENDENCIES
 AC_ARG_ENABLE(metrics, [AS_HELP_STRING([--disable-metrics], [do not use metrics (default: yes)])])
 
-if test "$enable_metrics" != no
-then
-    ### PAPI - sub-option if metrics enabled
-	AC_ARG_WITH(papi, [AS_HELP_STRING([--without-papi], [do not use papi for metric collection (default: yes)])])
-    if test "X$with_papi" != "Xno"
-    then 
-        AC_CHECK_HEADERS([papi.h], [],
-            [AC_MSG_ERROR([Unable to find papi.h])])
+### PAPI - optional if metrics enabled
+AC_ARG_ENABLE(papi, [AS_HELP_STRING([--disable-papi], [do not use papi for metric collection (default: yes)])])
+AC_ARG_WITH(papi, [AS_HELP_STRING([--with-papi=PATH], [specify prefix directory for installed papi package.])])
 
-        AC_SEARCH_LIBS(PAPI_library_init, papi, [],
-            [AC_MSG_ERROR([Unable to find papi libs])])
+### Perf - requirement if metrics enabled
+AC_ARG_WITH(perf, [AS_HELP_STRING([--with-perf=PATH], [specify prefix directory for installed perf package.])])
+
+if test "X$enable_metrics" != "Xno"; then
+    if test "X$enable_papi" != "Xno"; then
+        if test "X$with_papi" = "X"; then 
+            AC_CHECK_HEADERS([papi.h], [],
+                [AC_MSG_ERROR([Unable to find papi.h])])
+
+            AC_SEARCH_LIBS(PAPI_library_init, papi, [],
+                [AC_MSG_ERROR([Unable to find papi libs])])
+
+            PAPICNTMAX=$(papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
+        else
+            # User provided path
+            user_libs="-L$with_papi/lib -lpapi -Wl,-rpath=$with_papi/lib $user_libs"
+            user_inc="-I$with_papi/include $user_inc"
+            PAPICNTMAX=$($with_papi/bin/papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
+        fi
+
         AC_DEFINE(USEPAPI, [], [Enable usage of papi to collect hwpc])
-
-        PAPICNTMAX=$(papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
         AC_SUBST(PAPICNTMAX)
     fi
 
-    ### Perf
-    AC_CHECK_HEADERS([linux/perf_event.h], [], 
-        [AC_MSG_ERROR([Unable to find perf])])
+    if test "X$with_perf" = "X"; then 
+        AC_CHECK_HEADERS([linux/perf_event.h], [], 
+            [AC_MSG_ERROR([Unable to find linux/perf_event.h])])
+    else
+        user_libs="-Wl,-rpath=$with_perf/lib $user_libs"
+        user_inc="-I$with_perf/include $user_inc"
+    fi 
 
     AC_DEFINE(_COLLECT_METRICS, [], [Enable rTrace metric collection])
     AC_DEFINE(RTRACE_SUPPORT, [], [Tell pmpmeas to compile in R compatible way])
 fi
+
+USER_LIBS="$user_libs"
+USER_INC="$user_inc"
+AC_SUBST(USER_LIBS)
+AC_SUBST(USER_INC)
 
 ## PMPMEAS OBJECTS
 

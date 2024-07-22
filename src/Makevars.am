@@ -4,12 +4,14 @@ AM_LIBS		= -L. -L$(srcdir)/pmpmeas/src/lib/
 
 PAPICNTMAX				= @PAPICNTMAX@
 PMPMEAS_PKG_CPPFLAGS	= -DPAPICNTMAX=${PAPICNTMAX}
+USER_LIBS               = @USER_LIBS@
+USER_INC               = @USER_INC@
 
 # Flags for headers and libraries when compiling R packages
 PKG_CPPFLAGS= ${DEFS} ${DEFAULT_INCLUDES} ${INCLUDES} ${AM_CPPFLAGS} \
 	${CPPFLAGS} ${AM_CFLAGS} ${CFLAGS} \
-    ${PMPMEAS_PKG_CPPFLAGS}
-PKG_LIBS	= @LIBS@ ${AM_LIBS}
+    ${PMPMEAS_PKG_CPPFLAGS} ${USER_INC}
+PKG_LIBS	= @LIBS@ ${AM_LIBS} ${USER_LIBS}
 
 ACLOCAL_AMFLAGS = -I tools
 
