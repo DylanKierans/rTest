@@ -23,3 +23,6 @@ config.*
 !src/config.h.in
 src/stamp-h1
 autom4te.cache/
+
+# Generated when testing build
+rTrace.Rcheck/

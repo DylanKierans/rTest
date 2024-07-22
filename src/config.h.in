@@ -64,7 +64,7 @@
 #undef PACKAGE_VERSION
 
 /* Tell pmpmeas to compile in R compatible way */
-#undef RTRACE_SUPPORT
+#undef PMPMEAS_USERTRACE
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

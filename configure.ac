@@ -110,7 +110,7 @@ if test "X$enable_metrics" != "Xno"; then
     fi 
 
     AC_DEFINE(_COLLECT_METRICS, [], [Enable rTrace metric collection])
-    AC_DEFINE(RTRACE_SUPPORT, [], [Tell pmpmeas to compile in R compatible way])
+    AC_DEFINE(PMPMEAS_USERTRACE, [], [Tell pmpmeas to compile in R compatible way])
 fi
 
 USER_LIBS="$user_libs"
@@ -122,7 +122,7 @@ AC_SUBST(USER_INC)
 
 # Dynamically generate list of sources from subdirectories via shell
 PMPMEAS_C_SOURCE="$(cd src && ls pmpmeas/src/lib/*.c | tr '\n' ' ')"
-PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cc | tr '\n' ' ')"
+PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cpp | tr '\n' ' ')"
 AC_SUBST(PMPMEAS_C_SOURCE)
 AC_SUBST(PMPMEAS_CPP_SOURCE)
 

@@ -9,9 +9,9 @@
 
 // PMPMEAS
 #include "pmpmeas-api.h"
-#include "pmpmeas.h"
-#include "meastypes.h"
-#include "meas.h"
+#include "pmpmeas.hpp"
+#include "meastypes.hpp"
+#include "meas.hpp"
 
 //#define DEBUG /* Uncomment to enable verbose debug info */
 #define MAX_FUNCTION_NAME_LEN 40 // Max length of R function

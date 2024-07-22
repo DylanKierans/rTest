@@ -949,11 +949,12 @@ RcppExport SEXP evtWriter_Write_client(int regionRef, bool event_type)
 
     // Use PMPMEAS metrics, and send as multipart. Else send single message
     if (COLLECT_METRICS){
-        Pmpmeas_vals pmpmeas_vals=pmpmeas_read();
-
+        pmpmeas_vlst_t pmpmeas_vlst;
+        pmpmeas_valrd(&pmpmeas_vlst);
+        
         // Send multi-part message. First event, then metrics
         zmq_ret = zmq_send(pusher, &buffer, sizeof(buffer), ZMQ_SNDMORE); // ZMQ ID: 5c // ZMQ ID: 5d
-        zmq_ret = zmq_send(pusher, pmpmeas_vals.data, pmpmeas_vals.n*sizeof(*pmpmeas_vals.data), 0); // ZMQ ID: 5c_ii // ZMQ ID: 5d_ii
+        zmq_ret = zmq_send(pusher, pmpmeas_vlst.val, pmpmeas_vlst.cnt*sizeof(*pmpmeas_vlst.val), 0); // ZMQ ID: 5c_ii // ZMQ ID: 5d_ii
 
         // DEBUGGING
         //printf("pmpmeas_vals.n = %d\n, pmpmeas_vals.data = [%lld, %lld, ...]\n", 
@@ -1003,26 +1004,30 @@ void globalDefWriter_metrics_server()
     {
         Meas *mm = new Meas("PLACEHOLDER", *(*mt));
         Meas **m = &mm; 
+        const char *ename;
 
-        switch( (*m)->type() )
-        {
-            case (MeasType::PAPI):
-                metricType = OTF2_METRIC_TYPE_PAPI;
-                break;
-            case (MeasType::PERF):
-                metricType = OTF2_METRIC_TYPE_OTHER; // perf
-                break;
-            default: // TIME or unrecognized
-                metricType = OTF2_METRIC_TYPE_OTHER; // perf
-                //continue;
-                break;
-        }
+        //switch( (*m)->type() )
+        //{
+        //    case (MeasType::PAPI):
+        //        metricType = OTF2_METRIC_TYPE_PAPI;
+        //        break;
+        //    case (MeasType::PERF):
+        //        metricType = OTF2_METRIC_TYPE_OTHER;
+        //        break;
+        //    default: // TIME or unrecognized
+        //        metricType = OTF2_METRIC_TYPE_OTHER;
+        //        //continue;
+        //        break;
+        //}
+        // @TODO - add public Meas::type()? Just using default for now
+        metricType = OTF2_METRIC_TYPE_OTHER;
 
         // Cycle through each metric of given type, and create metric
         for ( int i=0; i<(*m)->cnt(); i++ ){
+            // Added this function to meas.hpp
+            ename = mm->ename(i);
 
             // Put counter name into StringRef
-            const char *ename = (*m)->ename(i);    
             stringRef_name = globalDefWriter_WriteString_server(ename);
 
             ret = OTF2_GlobalDefWriter_WriteMetricMember(global_def_writer,
@@ -1066,6 +1071,7 @@ void globalDefWriter_metrics_server()
     //free(metricMembers); // @TODO fix for memory leaks later!
 }
 
+
 // TODO: function for evtWriters err check
 // run_EvtWriters_server
 // @description Main function during which all otf2 event information is processed. 
@@ -1081,6 +1087,7 @@ void run_EvtWriters_server(bool flag_log){
     OTF2_RegionRef slaveActive_regionRef, measurementOn_regionRef;
     int rcvmore;                            ///< Boolean value for if multipart message
     size_t rcvmore_len = sizeof(rcvmore);   ///< Size of rcvmore (need int*) for multipart message
+    pmpmeas_vlst_t pmpmeas_vlst;
 
     // Placeholder for region of ZMQ_OTF2_SOCK_CLUSTER
     slaveActive_stringRef = globalDefWriter_WriteString_server("SLAVE_ACTIVE");
@@ -1105,6 +1112,12 @@ void run_EvtWriters_server(bool flag_log){
         report_and_exit("globalDefWriter_update_new_proc new_proc_publisher zmq_bind", NULL); 
     }
 
+    if (COLLECT_METRICS){
+        pmpmeas_vlst.n = NUM_METRICS;
+        pmpmeas_vlst.val = (long long int*)malloc(pmpmeas_vlst.n*sizeof(*pmpmeas_vlst.val));
+    }
+
+
     // DEBUGGING
     char fp_buffer[50];
     if (flag_log){
@@ -1121,20 +1134,20 @@ void run_EvtWriters_server(bool flag_log){
             /* int zmq_getsockopt (void *socket, int option_name, void *option_value, size_t *option_len); */
             zmq_getsockopt(puller, ZMQ_RCVMORE, &rcvmore, &rcvmore_len);
             if (rcvmore){ // 2nd part will contain metric vals
-                Pmpmeas_vals pmpmeas_vals;
-                zmq_recv(puller, pmpmeas_vals.data, NUM_METRICS*sizeof(*pmpmeas_vals.data), 0); // ZMQ ID: 5c_ii
+                zmq_recv(puller, pmpmeas_vlst.val, NUM_METRICS*sizeof(*pmpmeas_vlst.val), 0); // ZMQ ID: 5c_ii
                 OTF2_EvtWriter_Metric(evt_writers[buffer.pid],
                         NULL /* attribute list */,
                         buffer.time,
                         0 /* MetricRef */,
                         NUM_METRICS,
                         typeIDs,
-                        (OTF2_MetricValue*)pmpmeas_vals.data);
+                        (OTF2_MetricValue*)pmpmeas_vlst.val);
 
                 // DEBUGGING
                 //fupdate_server(fp, "COLLECT_METRICS=T: EvtWriter_Metric complete\n");
                 //snprintf(fp_buffer, 50, "NUM_METRICS: %d, pmpmeas_vals.data = [%lld, %lld, ...]\n", NUM_METRICS, pmpmeas_vals.data[0], pmpmeas_vals.data[1]);
                 //fupdate_server(fp, fp_buffer);
+
             }
 
         } else {
@@ -1213,6 +1226,10 @@ void run_EvtWriters_server(bool flag_log){
     zmq_close(puller);
     zmq_close(new_proc_rep);
 
+    // Cleanup counter memory for metrics
+    if (COLLECT_METRICS){
+        free(pmpmeas_vlst.val);
+    }
 }
 
 // get_regionRef_array_server
@@ -1450,26 +1467,6 @@ RcppExport SEXP get_regionRef_array_slave(const int num_funcs){
 
     return(R_NilValue);
 }
-
-// evtWriter_metric_server
-// @description Read pmpmeas values and create metric event
-// @TODO add error checking for metric definition (typeIDS!=NULL), and pmpmeas__init
-void evtWriter_metric_server(){
-
-    Pmpmeas_vals pmpmeas_vals = pmpmeas_read();
-
-    // DEBUGGING
-    //printf("pmpmeas_vals.n = %d, pmpmeas_vals.data = [%lld, %lld, ...]\n", pmpmeas_vals.n, pmpmeas_vals.data[0], pmpmeas_vals.data[1]);
-
-    uint8_t n = pmpmeas_vals.n;
-    OTF2_EvtWriter_Metric(evt_writers[0], 
-            NULL /* attribute list */,
-            get_time(),
-            0 /* MetricRef */,
-            n /* Number of metrics*/,
-            typeIDs,
-            (OTF2_MetricValue*)pmpmeas_vals.data);
-}       
 
 // set_collectMetrics
 // @description Set global var for COLLECT_METRICS, useful if interfacing without init_otf2_logger()

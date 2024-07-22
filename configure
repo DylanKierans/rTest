@@ -3944,7 +3944,6 @@ fi
 else
 
     # User provided path
-    #user_libs="-L$with_zeromq/lib -lzmq $user_libs"
     user_libs="-L$with_zeromq/lib -lzmq -Wl,-rpath=$with_zeromq/lib $user_libs"
     user_inc="-I$with_zeromq/include $user_inc"
 
@@ -4033,8 +4032,7 @@ fi
 
 else
     # User provided path
-    #user_libs="-L${with_otf2}/lib -lotf2 ${user_libs}"
-    user_libs="-Wl,-rpath=$with_otf2/lib -lotf2 $user_libs"
+    user_libs="-L$with_otf2/lib -lotf2 -Wl,-rpath=$with_otf2/lib $user_libs"
     user_inc="-I$with_otf2/include $user_inc"
 fi
 
@@ -4146,8 +4144,7 @@ fi
             PAPICNTMAX=$(papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
         else
             # User provided path
-            #user_libs="-L$with_papi/lib -lpapi $user_libs"
-            user_libs="-Wl,-rpath=$with_papi/lib -lpapi $user_libs"
+            user_libs="-L$with_papi/lib -lpapi -Wl,-rpath=$with_papi/lib $user_libs"
             user_inc="-I$with_papi/include $user_inc"
             PAPICNTMAX=$($with_papi/bin/papi_avail | grep "Number Hardware Counters :" | sed -e "s|Number Hardware Counters : ||")
         fi
@@ -4174,7 +4171,6 @@ fi
 done
 
     else
-        #user_libs="-L$with_perf/lib $user_libs"
         user_libs="-Wl,-rpath=$with_perf/lib $user_libs"
         user_inc="-I$with_perf/include $user_inc"
     fi
@@ -4183,7 +4179,7 @@ done
 $as_echo "#define _COLLECT_METRICS /**/" >>confdefs.h
 
 
-$as_echo "#define RTRACE_SUPPORT /**/" >>confdefs.h
+$as_echo "#define PMPMEAS_USERTRACE /**/" >>confdefs.h
 
 fi
 
@@ -4196,7 +4192,7 @@ USER_INC="$user_inc"
 
 # Dynamically generate list of sources from subdirectories via shell
 PMPMEAS_C_SOURCE="$(cd src && ls pmpmeas/src/lib/*.c | tr '\n' ' ')"
-PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cc | tr '\n' ' ')"
+PMPMEAS_CPP_SOURCE="$(cd src && ls pmpmeas/src/lib/*.cpp | tr '\n' ' ')"
 
 
 
