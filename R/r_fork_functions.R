@@ -39,7 +39,7 @@ get_end_fork_function_list <- function() {
 }
 
 #' is_cluster_function
-#' @description Returns bool for if function listed as for type of {fork, psock} function
+#' @description Returns bool for if function listed as for type of [fork, psock] function
 #' @param func_ptr Function to check
 #' @param fork_cluster True if checking for fork function, else check for psock
 #' @return Boolean - true if fork/psock function, else false
@@ -162,7 +162,7 @@ body_end_fork_function <- function(func_ptr, regionRef){
 }
 
 #' get_new_function_body
-#' @description Returns instrumented body for function type {fork, end fork, default}
+#' @description Returns instrumented body for function type [fork, end fork, default]
 #' @param func_ptr Pointer to function
 #' @param func_name Char[] - Name of function, only used for debugging
 #' @param regionRef Int - OTF2 regionRef for function
