@@ -72,13 +72,10 @@ fi
 
 ### PMPMEAS DEPENDENCIES
 AC_ARG_ENABLE(metrics, [AS_HELP_STRING([--disable-metrics], [do not use metrics (default: yes)])])
-
-### PAPI - optional if metrics enabled
 AC_ARG_ENABLE(papi, [AS_HELP_STRING([--disable-papi], [do not use papi for metric collection (default: yes)])])
 AC_ARG_WITH(papi, [AS_HELP_STRING([--with-papi=PATH], [specify prefix directory for installed papi package.])])
-
-### Perf - requirement if metrics enabled
 AC_ARG_WITH(perf, [AS_HELP_STRING([--with-perf=PATH], [specify prefix directory for installed perf package.])])
+AC_ARG_WITH(boost, [AS_HELP_STRING([--with-boost=PATH], [specify prefix directory for installed boost package.])])
 
 if test "X$enable_metrics" != "Xno"; then
     if test "X$enable_papi" != "Xno"; then
@@ -107,6 +104,14 @@ if test "X$enable_metrics" != "Xno"; then
     else
         user_libs="-Wl,-rpath=$with_perf/lib $user_libs"
         user_inc="-I$with_perf/include $user_inc"
+    fi 
+
+    if test "X$with_boost" = "X"; then 
+        AC_CHECK_HEADERS([boost/format.hpp], [], 
+            [AC_MSG_ERROR([Unable to find boost/format.hpp])])
+    else
+        user_libs="-Wl,-rpath=$with_boost/lib $user_libs"
+        user_inc="-I$with_boost/include $user_inc"
     fi 
 
     AC_DEFINE(_COLLECT_METRICS, [], [Enable rTrace metric collection])

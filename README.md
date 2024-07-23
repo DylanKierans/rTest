@@ -17,7 +17,7 @@ Using `PMPMEAS (Poor Man's Performance Measurement tool)` to interface with papi
 
 Install [`libotf2`](https://www.vi-hps.org/projects/score-p/), and [`zeromq`](https://github.com/zeromq) required dependency. 
 
-Install [`papi`](https://hpc.llnl.gov/software/development-environment-software/papi-performance-application-programming-interface) optional (but recommended) dependency.
+If metrics enabled (default: yes), install [`boost`](https://www.boost.org/) required dependency, and install [`papi`](https://hpc.llnl.gov/software/development-environment-software/papi-performance-application-programming-interface) optional (but recommended) dependency.
 
 Then install `rTrace` from github with:
 
@@ -25,45 +25,32 @@ Then install `rTrace` from github with:
 devtools::install_github("DylanKierans/rTrace")
 ```
 
-Refer to #debugging if you are having errors.
+Refer to [debugging section](#debugging) if you are having errors.
 
 ### DEBUGGING
 
-1. Dependencies not found during installation. Either dependencies are not installed or are in non-standard directories.
-```
-configure: error: Unable to find FOO.h
-ERROR: configuration failed for package ‘rTrace’
-```
-
-- Error - `configure: error: Unable to find zmq.h`. Solution:
-
+1. Dependency not found during installation. Either dependency is not installed or is installed in non-standard directories. 
+    ```
+    configure: error: Unable to find FOO.h
+    ERROR: configuration failed for package ‘rTrace’
+    ```
+    
+    **Solution**: if installed in non-standard dirctory pass the following argument to `devtools::install_github` where `FOO` can be one of the dependencies `{zeromq, otf2, papi, perf, boost}`.
+    
+    Example: 
+    Error - `configure: error: Unable to find FOO_HEADER.h`.
+    
     ```R
-    devtools::install_github("DylanKierans/rTrace", configure.args="--with-zeromq=/path/to/zeromq/directory")
+    devtools::install_github("DylanKierans/rTrace", configure.args="--with-FOO=/path/to/install/directory")
     ```
 
-- Error - `configure: error: Unable to find otf2/otf2.h`. Solution:
+2. If you are receiving error about `devtools` not installed.
+
+    **Solution**: install with
 
     ```R
-    devtools::install_github("DylanKierans/rTrace", configure.args="--with-otf2=/path/to/otf2/directory")
+    install.packages("devtools") 
     ```
-
-- Error - `configure: error: Unable to find papi.h`. Solution: 
-
-    ```R
-    devtools::install_github("DylanKierans/rTrace", configure.args="--with-papi=/path/to/papi/directory")
-    ```
-
-- Error - `configure: error: Unable to find linux/perf_event.h`. Solution:
-
-    ```R
-    devtools::install_github("DylanKierans/rTrace", configure.args="--with-perf=/path/to/perf/directory")
-    ```
-
-2. If you are receiving error about `devtools` not installed, first install with:
-
-```R
-install.packages("devtools") # if not yet installed
-```
 
 
 ## Usage

@@ -728,6 +728,7 @@ enable_metrics
 enable_papi
 with_papi
 with_perf
+with_boost
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1381,6 +1382,8 @@ Optional Packages:
   --with-otf2=PATH        specify prefix directory for installed otf2 package.
   --with-papi=PATH        specify prefix directory for installed papi package.
   --with-perf=PATH        specify prefix directory for installed perf package.
+  --with-boost=PATH       specify prefix directory for installed boost
+                          package.
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -4042,8 +4045,6 @@ if test "${enable_metrics+set}" = set; then :
   enableval=$enable_metrics;
 fi
 
-
-### PAPI - optional if metrics enabled
 # Check whether --enable-papi was given.
 if test "${enable_papi+set}" = set; then :
   enableval=$enable_papi;
@@ -4056,11 +4057,15 @@ if test "${with_papi+set}" = set; then :
 fi
 
 
-### Perf - requirement if metrics enabled
-
 # Check whether --with-perf was given.
 if test "${with_perf+set}" = set; then :
   withval=$with_perf;
+fi
+
+
+# Check whether --with-boost was given.
+if test "${with_boost+set}" = set; then :
+  withval=$with_boost;
 fi
 
 
@@ -4173,6 +4178,26 @@ done
     else
         user_libs="-Wl,-rpath=$with_perf/lib $user_libs"
         user_inc="-I$with_perf/include $user_inc"
+    fi
+
+    if test "X$with_boost" = "X"; then
+        for ac_header in boost/format.hpp
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "boost/format.hpp" "ac_cv_header_boost_format_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_boost_format_hpp" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_BOOST_FORMAT_HPP 1
+_ACEOF
+
+else
+  as_fn_error $? "Unable to find boost/format.hpp" "$LINENO" 5
+fi
+
+done
+
+    else
+        user_libs="-Wl,-rpath=$with_boost/lib $user_libs"
+        user_inc="-I$with_boost/include $user_inc"
     fi
 
 
