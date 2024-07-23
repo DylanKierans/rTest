@@ -15,5 +15,5 @@ is_cluster_function(func_ptr, fork_cluster = F)
 Boolean - true if fork/psock function, else false
 }
 \description{
-Returns bool for if function listed as for type of {fork, psock} function
+Returns bool for if function listed as for type of (fork, psock) function
 }

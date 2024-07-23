@@ -17,5 +17,5 @@ get_new_function_body(func_ptr, func_name, regionRef)
 type(as.call) Updated function body
 }
 \description{
-Returns instrumented body for function type {fork, end fork, default}
+Returns instrumented body for function type (fork, end fork, default)
 }
