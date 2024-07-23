@@ -625,6 +625,7 @@ LTLIBOBJS
 LIBOBJS
 PMPMEAS_CPP_SOURCE
 PMPMEAS_C_SOURCE
+ADDITIONAL_DEFS
 USER_INC
 USER_LIBS
 PAPICNTMAX
@@ -4203,13 +4204,13 @@ done
 
 $as_echo "#define _COLLECT_METRICS /**/" >>confdefs.h
 
-
-$as_echo "#define PMPMEAS_USERTRACE /**/" >>confdefs.h
-
+    #AC_DEFINE(PMPMEAS_USERTRACE, [], [Tell pmpmeas to compile in R compatible way])
+    ADDITIONAL_DEFS="-DPMPMEAS_USERTRACE $ADDITIONAL_DEFS" #Tell pmpmeas to file in R compatible way
 fi
 
 USER_LIBS="$user_libs"
 USER_INC="$user_inc"
+
 
 
 

@@ -115,13 +115,15 @@ if test "X$enable_metrics" != "Xno"; then
     fi 
 
     AC_DEFINE(_COLLECT_METRICS, [], [Enable rTrace metric collection])
-    AC_DEFINE(PMPMEAS_USERTRACE, [], [Tell pmpmeas to compile in R compatible way])
+    #AC_DEFINE(PMPMEAS_USERTRACE, [], [Tell pmpmeas to compile in R compatible way])
+    ADDITIONAL_DEFS="-DPMPMEAS_USERTRACE $ADDITIONAL_DEFS" #Tell pmpmeas to file in R compatible way
 fi
 
 USER_LIBS="$user_libs"
 USER_INC="$user_inc"
 AC_SUBST(USER_LIBS)
 AC_SUBST(USER_INC)
+AC_SUBST(ADDITIONAL_DEFS)
 
 ## PMPMEAS OBJECTS
 
