@@ -9,14 +9,8 @@
 //      Server refers to otf2 logger proc {server}n{clients}=0
 // @note WARNING - Was receiving consistent noise on port 5558
 // @todo Look at timing offsets per proc
-// @todo Signal handling for both procs
-// @todo get epochs from Master proc
 // @todo Multipart message implimentation for repeated buffer usage
-// @todo Move pmpmeas to sub-directory and update buildchain
 //
-// @note Use pmpmeas_init to parse environment variables
-// @note New object Meas for each meas_type, contains multiple metrics via _cnt
-//   Names and values stored in papi/perf interface (include/papiinf.hh)
 
 #include <otf2/otf2.h>
 #include <sys/time.h>
@@ -40,7 +34,6 @@ using namespace Rcpp;
 // PMPMEAS
 #include "pmpmeas-api.h"
 using namespace PMPMEAS;
-
 
 
 ///////////////////////////////
@@ -88,7 +81,6 @@ sighandler_t default_sigint_handler;
 // Function definitions
 ///////////////////////////////
 
-// TODO: Ensure this doesn't cause overflow of wtime
 // get_time
 // @description Returns wall-clock time in units of milliseconds (1E-6s)
 // @return OTF2_Timestamp - Wallclock time 
@@ -191,12 +183,13 @@ void sigint_handler(int sig){
 //' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 //' @param archivePath Path to otf2 archive
 //' @param archiveName Name of otf2 archive
+//' @param overwrite_archivePath If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using current time in seconds
 //' @param collect_metrics Collect HWPC metrics via pmpmeas
 //' @param flag_print_pids True to print pids of parent and child procs
 //' @return <0 if error, 0 if R master, else >0 if child
 // [[Rcpp::export]]
 RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, 
-        Rcpp::String archiveName, bool collect_metrics,
+        Rcpp::String archiveName, bool overwrite_archivePath, bool collect_metrics,
         bool flag_print_pids)
 {
     // TODO: Verify this acts as intended to save child proc
@@ -211,6 +204,12 @@ RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath,
         #endif
     }
     COLLECT_METRICS = collect_metrics;
+
+    // Postpend start time to archivePath name to avoid overwrite
+    char new_archivePath[120];
+    snprintf(new_archivePath, 120, "%s_%lu", archivePath.get_cstring(), get_time());
+    if (!overwrite_archivePath)
+        archivePath = new_archivePath;
 
     child_pid = fork();
     if (child_pid == (pid_t) -1 ){ // ERROR

@@ -75,7 +75,7 @@ instrumentation_init <- function(flag_user_functions=T, collect_metrics=F, verbo
 
     ## Initiate new proc - close R if not Master
     ret <- init_otf2_logger(parallelly::availableCores(), "rTrace", "rTrace", 
-            collect_metrics=pkg.env$COLLECT_METRICS,
+            overwrite_archivePath = FALSE, collect_metrics=pkg.env$COLLECT_METRICS,
             flag_print_pids=F) # Master R proc returns 0
     if (ret != 0){ quit(save="no"); }  # Unintended fork R proc for otf2 logger
 

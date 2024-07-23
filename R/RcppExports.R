@@ -5,11 +5,12 @@
 #' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 #' @param archivePath Path to otf2 archive
 #' @param archiveName Name of otf2 archive
+#' @param overwrite_archivePath If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using mkdtemp
 #' @param collect_metrics Collect HWPC metrics via pmpmeas
 #' @param flag_print_pids True to print pids of parent and child procs
 #' @return <0 if error, 0 if R master, else >0 if child
-init_otf2_logger <- function(max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids) {
-    .Call(`_rTrace_init_otf2_logger`, max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids)
+init_otf2_logger <- function(max_nprocs, archivePath, archiveName, overwrite_archivePath, collect_metrics, flag_print_pids) {
+    .Call(`_rTrace_init_otf2_logger`, max_nprocs, archivePath, archiveName, overwrite_archivePath, collect_metrics, flag_print_pids)
 }
 
 #' r_pmpmeas_init

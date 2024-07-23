@@ -11,17 +11,18 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // init_otf2_logger
-RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, Rcpp::String archiveName, bool collect_metrics, bool flag_print_pids);
-RcppExport SEXP _rTrace_init_otf2_logger(SEXP max_nprocsSEXP, SEXP archivePathSEXP, SEXP archiveNameSEXP, SEXP collect_metricsSEXP, SEXP flag_print_pidsSEXP) {
+RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath, Rcpp::String archiveName, bool overwrite_archivePath, bool collect_metrics, bool flag_print_pids);
+RcppExport SEXP _rTrace_init_otf2_logger(SEXP max_nprocsSEXP, SEXP archivePathSEXP, SEXP archiveNameSEXP, SEXP overwrite_archivePathSEXP, SEXP collect_metricsSEXP, SEXP flag_print_pidsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type max_nprocs(max_nprocsSEXP);
     Rcpp::traits::input_parameter< Rcpp::String >::type archivePath(archivePathSEXP);
     Rcpp::traits::input_parameter< Rcpp::String >::type archiveName(archiveNameSEXP);
+    Rcpp::traits::input_parameter< bool >::type overwrite_archivePath(overwrite_archivePathSEXP);
     Rcpp::traits::input_parameter< bool >::type collect_metrics(collect_metricsSEXP);
     Rcpp::traits::input_parameter< bool >::type flag_print_pids(flag_print_pidsSEXP);
-    rcpp_result_gen = Rcpp::wrap(init_otf2_logger(max_nprocs, archivePath, archiveName, collect_metrics, flag_print_pids));
+    rcpp_result_gen = Rcpp::wrap(init_otf2_logger(max_nprocs, archivePath, archiveName, overwrite_archivePath, collect_metrics, flag_print_pids));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -300,7 +301,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 5},
+    {"_rTrace_init_otf2_logger", (DL_FUNC) &_rTrace_init_otf2_logger, 6},
     {"_rTrace_r_pmpmeas_init", (DL_FUNC) &_rTrace_r_pmpmeas_init, 0},
     {"_rTrace_r_pmpmeas_finish", (DL_FUNC) &_rTrace_r_pmpmeas_finish, 0},
     {"_rTrace_r_pmpmeas_start", (DL_FUNC) &_rTrace_r_pmpmeas_start, 0},

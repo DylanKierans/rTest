@@ -8,6 +8,7 @@ init_otf2_logger(
   max_nprocs,
   archivePath,
   archiveName,
+  overwrite_archivePath,
   collect_metrics,
   flag_print_pids
 )
@@ -18,6 +19,8 @@ init_otf2_logger(
 \item{archivePath}{Path to otf2 archive}
 
 \item{archiveName}{Name of otf2 archive}
+
+\item{overwrite_archivePath}{If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using mkdtemp}
 
 \item{collect_metrics}{Collect HWPC metrics via pmpmeas}
 

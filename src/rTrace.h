@@ -62,7 +62,7 @@ char log_filename[]="log.log"; ///* Name of log file on server proc
 ///////////////////////////////
 // R client functions (master/slaves)
 RcppExport int init_otf2_logger(int max_nprocs, Rcpp::String archivePath = "rTrace", 
-        Rcpp::String archiveName = "rTrace", bool collect_metrics=false,
+        Rcpp::String archiveName = "rTrace", bool overwrite_archivePath=false, bool collect_metrics=false,
         bool flag_print_pids=false);
 RcppExport SEXP finalize_GlobalDefWriter_client();
 RcppExport int define_otf2_regionRef_client(Rcpp::String, int);
