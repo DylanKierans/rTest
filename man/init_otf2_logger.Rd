@@ -20,7 +20,7 @@ init_otf2_logger(
 
 \item{archiveName}{Name of otf2 archive}
 
-\item{overwrite_archivePath}{If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using mkdtemp}
+\item{overwrite_archivePath}{If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using current time in seconds}
 
 \item{collect_metrics}{Collect HWPC metrics via pmpmeas}
 

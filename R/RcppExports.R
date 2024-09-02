@@ -5,7 +5,7 @@
 #' @param max_nprocs Maximum number of R processes (ie evtWriters required)
 #' @param archivePath Path to otf2 archive
 #' @param archiveName Name of otf2 archive
-#' @param overwrite_archivePath If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using mkdtemp
+#' @param overwrite_archivePath If true then use archivePath as prefix for directory to avoid overwriting, the suffix is generated using current time in seconds
 #' @param collect_metrics Collect HWPC metrics via pmpmeas
 #' @param flag_print_pids True to print pids of parent and child procs
 #' @return <0 if error, 0 if R master, else >0 if child
